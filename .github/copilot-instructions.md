@@ -1,63 +1,67 @@
-# Project Overview
+# Project Context
 
-This project is a personal finance tracker with an integrated AI agent.
+Personal finance tracker with an AI agent as its main feature. Users interact primarily through a chat interface where they describe transactions in natural language ("I spent $20 on coffee") and the app handles the rest.
 
-The system is split into two repositories:
+This is the **frontend** repo. The backend is a separate FastAPI service.
 
-- frontend: React web app
-- backend: FastAPI API and AI agent
+# Stack
 
-The main interaction happens through a chat interface where the user can send natural language messages such as:
+- **Package manager:** pnpm
+- **Framework:** React + Vite + TypeScript
+- **Styling:** TailwindCSS
+- **Components:** shadcn/ui
+- **Auth:** @react-oauth/google
+- **JWT storage:** localStorage
 
-"I spent $20 on coffee"
+# Running the Project
 
-The backend interprets the message and stores structured financial data.
+```bash
+pnpm install
+pnpm dev
+```
 
-# Frontend Stack
+# Auth Flow
 
-React
-Vite
-TypeScript
-TailwindCSS
+1. User clicks Google sign-in button (`@react-oauth/google`)
+2. Frontend receives Google credential
+3. POST to `/auth/google` with the credential
+4. Backend returns `{ access_token }`
+5. Store JWT in `localStorage`
+6. All API requests include: `Authorization: Bearer <token>`
 
-# Responsibilities
+# API Communication
 
-- provide the web interface
-- render the chat experience
-- display financial data
-- show statistics
+All requests go to the backend REST API.
+
+Base URL is read from `VITE_API_URL` env variable.
+
+Always include the JWT header on protected endpoints:
+
+```ts
+headers: { Authorization: `Bearer ${token}` }
+```
+
+Main endpoints used:
+
+```
+POST /auth/google   — login, returns { access_token }
+POST /chat          — send message, returns { reply: string }
+GET  /expenses      — fetch expenses list
+POST /expenses      — create expense manually
+```
 
 # Main UI Sections
 
-Chat interface (primary feature)
-Expenses list
-Statistics dashboard
-Accounts overview
-
-# API Usage
-
-The frontend communicates with the backend through REST endpoints.
-
-Example:
-
-POST /chat
-
-Request:
-{
-  message: string
-}
-
-Response:
-{
-  reply: string
-}
+- **Chat** — primary feature, conversational interface with the AI agent
+- **Expenses** — list and history of recorded transactions
+- **Statistics** — charts and summaries
+- **Accounts** — account overview
 
 # Coding Principles
 
-Prefer simple and readable code.
-
-Avoid unnecessary abstractions.
-
-Keep functions small and focused.
-
-Use descriptive variable names.
+- Simple and readable over clever
+- Avoid unnecessary abstractions
+- Keep components small and focused
+- Use descriptive variable names
+- Prefer shadcn/ui components over custom ones
+- Chat-first UX: the chat is the main entry point, not a secondary feature
