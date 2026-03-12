@@ -1,0 +1,77 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "../api";
+import type {
+  TransactionType,
+  PaginatedTransactions,
+  Transaction,
+} from "../types/transaction";
+
+interface UseTransactionsParams {
+  month: string; // 'YYYY-MM'
+  type?: TransactionType;
+  account?: string;
+  category?: string;
+  limit?: number;
+  offset?: number;
+}
+
+function buildSearchParams(params: UseTransactionsParams): string {
+  const { month, type, account, category, limit = 20, offset = 0 } = params;
+
+  const [year, monthNum] = month.split("-").map(Number);
+  const dateFrom = `${year}-${String(monthNum).padStart(2, "0")}-01`;
+  const lastDay = new Date(year, monthNum, 0).getDate();
+  const dateTo = `${year}-${String(monthNum).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+  const sp = new URLSearchParams();
+  sp.set("date_from", dateFrom);
+  sp.set("date_to", dateTo);
+  sp.set("limit", String(limit));
+  sp.set("offset", String(offset));
+  if (type) sp.set("type", type);
+  if (account) sp.set("account", account);
+  if (category) sp.set("category", category);
+
+  return sp.toString();
+}
+
+export function useTransactions(params: UseTransactionsParams) {
+  return useQuery({
+    queryKey: ["transactions", params],
+    queryFn: () =>
+      apiFetch<PaginatedTransactions>(
+        `/expenses?${buildSearchParams(params)}`,
+      ),
+  });
+}
+
+export function useDeleteTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<void>(`/expenses/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}
+
+export function useUpdateTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<Transaction>;
+    }) =>
+      apiFetch<Transaction>(`/expenses/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../api";
 
 interface Props {
@@ -21,6 +22,7 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 export default function TransactionDraftCard({ data, onCancel }: Props) {
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Record<string, unknown>>({ ...data });
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -39,6 +41,7 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
         body: JSON.stringify(payload),
       });
 
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
       setStatus("saved");
     } catch {
       setStatus("error");
