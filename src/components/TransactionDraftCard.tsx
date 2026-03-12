@@ -11,10 +11,12 @@ const FIELD_LABELS: Record<string, string> = {
   description: "Descripción",
   type: "Tipo",
   account: "Cuenta",
+  account_destination: "Cuenta destino",
   category: "Categoría",
   subcategory: "Subcategoría",
   expense_date: "Fecha",
   currency: "Moneda",
+  installments: "Cuotas",
   note: "Nota",
 };
 
