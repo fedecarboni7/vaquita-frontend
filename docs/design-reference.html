@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gastos</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@300;400&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafaf8; --surface: #ffffff; --surface2: #f4f4f0;
+    --border: #e8e8e4; --border-light: #f0f0ec;
+    --text: #1a1a18; --text-muted: #8a8a84; --text-faint: #c4c4be;
+    --accent: #2d6a4f; --accent-soft: #eef5f1;
+    --danger: #c0392b; --danger-soft: #fdf0ee;
+    --warning: #d4813a; --nav-width: 220px; --radius: 8px;
+  }
+  [data-theme="dark"] {
+    --bg: #111110; --surface: #1c1c1a; --surface2: #242422;
+    --border: #2e2e2b; --border-light: #252523;
+    --text: #e8e8e2; --text-muted: #6e6e68; --text-faint: #3e3e3a;
+    --accent: #4ade80; --accent-soft: #1a2e22;
+    --danger: #f87171; --danger-soft: #2a1a1a; --warning: #fb923c;
+  }
+
+  body { font-family: 'Geist', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; transition: background 0.2s, color 0.2s; }
+  .app { display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar { width: var(--nav-width); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 28px 0; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; transition: transform 0.25s ease, background 0.2s; }
+  .logo { padding: 0 20px 28px; border-bottom: 1px solid var(--border-light); margin-bottom: 16px; }
+  .logo-name { font-family: 'Lora', serif; font-size: 18px; font-weight: 500; letter-spacing: -0.3px; }
+  .logo-sub { font-size: 11px; color: var(--text-faint); font-family: 'DM Mono', monospace; letter-spacing: 0.05em; margin-top: 2px; }
+  .nav-section { padding: 0 12px; margin-bottom: 8px; }
+  .nav-label { font-size: 10px; color: var(--text-faint); font-family: 'DM Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; color: var(--text-muted); font-size: 13.5px; transition: all 0.15s; user-select: none; }
+  .nav-item:hover { background: var(--bg); color: var(--text); }
+  .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+  .nav-icon { width: 16px; text-align: center; font-size: 14px; opacity: 0.7; }
+  .nav-item.active .nav-icon { opacity: 1; }
+  .sidebar-footer { margin-top: auto; padding: 16px 20px 0; border-top: 1px solid var(--border-light); display: flex; flex-direction: column; gap: 12px; }
+  .theme-toggle { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 4px 0; }
+  .theme-label { font-size: 12px; color: var(--text-muted); }
+  .user-chip { display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; }
+  .user-name { font-size: 12.5px; }
+
+  /* TOGGLE */
+  .toggle { width: 36px; height: 20px; border-radius: 10px; background: var(--border); position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+  .toggle.on { background: var(--accent); }
+  .toggle::after { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: white; top: 3px; left: 3px; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .toggle.on::after { transform: translateX(16px); }
+
+  /* MAIN */
+  .main { margin-left: var(--nav-width); flex: 1; padding: 40px 48px; max-width: 1100px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 36px; }
+  .page-title { font-family: 'Lora', serif; font-size: 24px; font-weight: 500; letter-spacing: -0.4px; }
+  .page-subtitle { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius); font-size: 13px; font-family: 'Geist', sans-serif; cursor: pointer; border: none; font-weight: 500; transition: all 0.15s; }
+  .btn-primary { background: var(--text); color: var(--bg); }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--bg); color: var(--text); }
+  .btn-agent { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+  .btn-agent:hover { opacity: 0.8; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .divider { height: 1px; background: var(--border-light); margin: 8px 0; }
+
+  /* STATS */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
+  .stat-label { font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-family: 'Lora', serif; font-size: 26px; font-weight: 400; letter-spacing: -0.5px; }
+  .stat-value.negative { color: var(--danger); }
+  .stat-delta { font-size: 11.5px; color: var(--text-faint); margin-top: 4px; }
+  .stat-delta.up { color: var(--accent); }
+  .stat-delta.down { color: var(--danger); }
+
+  /* FILTERS */
+  .filters-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filter-input { flex: 1; min-width: 160px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); font-family: 'Geist', sans-serif; font-size: 13px; color: var(--text); outline: none; transition: border-color 0.15s; }
+  .filter-input:focus { border-color: var(--text-muted); }
+  .filter-input::placeholder { color: var(--text-faint); }
+  .filter-select { padding: 8px 28px 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); font-family: 'Geist', sans-serif; font-size: 13px; color: var(--text); outline: none; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238a8a84' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { border-bottom: 1px solid var(--border); }
+  th { padding: 10px 16px; text-align: left; font-size: 11px; color: var(--text-faint); font-family: 'DM Mono', monospace; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 400; cursor: pointer; white-space: nowrap; user-select: none; }
+  th:hover { color: var(--text-muted); }
+  th.sorted { color: var(--text); }
+  tbody tr { border-bottom: 1px solid var(--border-light); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg); }
+  td { padding: 12px 16px; font-size: 13.5px; vertical-align: middle; }
+  td.date { color: var(--text-muted); font-family: 'DM Mono', monospace; font-size: 12px; white-space: nowrap; }
+  td.amount { font-family: 'DM Mono', monospace; font-size: 13px; text-align: right; white-space: nowrap; }
+  td.amount.neg { color: var(--danger); }
+  td.amount.pos { color: var(--accent); }
+  .note { font-size: 12px; color: var(--text-faint); margin-top: 1px; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  .tag-food { background: #fff7ed; color: #c2620e; }
+  .tag-transport { background: #eff6ff; color: #2563a8; }
+  .tag-services { background: #f5f3ff; color: #6d28d9; }
+  .tag-salary { background: var(--accent-soft); color: var(--accent); }
+  .tag-health { background: #fef2f2; color: #b91c1c; }
+  .tag-leisure { background: #fdf4ff; color: #9333ea; }
+  .tag-home { background: #fff8f0; color: #c06a2b; }
+  [data-theme="dark"] .tag-food { background: #2a1f12; color: #fb923c; }
+  [data-theme="dark"] .tag-transport { background: #121e2e; color: #60a5fa; }
+  [data-theme="dark"] .tag-services { background: #1e1a2e; color: #a78bfa; }
+  [data-theme="dark"] .tag-health { background: #2a1414; color: #f87171; }
+  [data-theme="dark"] .tag-leisure { background: #251428; color: #c084fc; }
+  [data-theme="dark"] .tag-home { background: #261c10; color: #fb923c; }
+  .account-badge { font-size: 11.5px; color: var(--text-muted); }
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--border-light); background: var(--surface); }
+  .pagination-info { font-size: 12px; color: var(--text-faint); }
+  .pagination-btns { display: flex; gap: 4px; }
+  .page-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-size: 12px; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .page-btn:hover { background: var(--bg); }
+  .page-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  /* PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ACCOUNTS */
+  .accounts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .account-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; cursor: pointer; transition: border-color 0.15s; position: relative; overflow: hidden; }
+  .account-card:hover { border-color: var(--text-muted); }
+  .account-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .account-card.green::before { background: var(--accent); }
+  .account-card.blue::before { background: #3b82f6; }
+  .account-card.orange::before { background: var(--warning); }
+  .account-card.purple::before { background: #8b5cf6; }
+  .account-name { font-size: 12px; color: var(--text-muted); font-family: 'DM Mono', monospace; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 12px; }
+  .account-balance { font-family: 'Lora', serif; font-size: 28px; font-weight: 400; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .account-meta { font-size: 12px; color: var(--text-faint); }
+  .section-title { font-family: 'Lora', serif; font-size: 16px; font-weight: 500; margin-bottom: 14px; }
+
+  /* CONFIG */
+  .config-section { margin-bottom: 32px; }
+  .config-section-title { font-size: 11px; font-family: 'DM Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light); }
+  .config-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border-light); }
+  .config-row:last-child { border-bottom: none; }
+  .config-row-label { font-size: 13.5px; }
+  .config-row-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .categories-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .category-chip { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); font-size: 12.5px; cursor: pointer; transition: border-color 0.15s; }
+  .category-chip:hover { border-color: var(--text-muted); }
+  .category-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .category-chip .remove { color: var(--text-faint); font-size: 14px; line-height: 1; margin-left: 2px; }
+  .category-chip .remove:hover { color: var(--danger); }
+  .add-category-row { display: flex; gap: 8px; align-items: center; }
+
+  /* AGENT PAGE */
+  .agent-page { display: flex; flex-direction: column; height: calc(100vh - 80px); max-height: 760px; }
+  .agent-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-shrink: 0; }
+  .agent-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+  .agent-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .chat-wrap { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
+  .chat-messages::-webkit-scrollbar { width: 4px; }
+  .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .msg { display: flex; gap: 10px; align-items: flex-end; max-width: 82%; animation: msgIn 0.2s ease; }
+  @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg.agent { align-self: flex-start; }
+  .msg-avatar { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .msg.agent .msg-avatar { background: var(--accent-soft); color: var(--accent); }
+  .msg.user .msg-avatar { background: var(--surface2); color: var(--text-muted); }
+  .msg-bubble { padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.55; }
+  .msg.agent .msg-bubble { background: var(--bg); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .msg.user .msg-bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+  [data-theme="dark"] .msg.user .msg-bubble { color: #111; }
+
+  .msg-audio { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--accent); border-radius: 12px; border-bottom-right-radius: 4px; color: white; cursor: pointer; }
+  [data-theme="dark"] .msg-audio { color: #111; }
+  .audio-bars { display: flex; align-items: center; gap: 2px; height: 20px; }
+  .audio-bar { width: 3px; background: rgba(255,255,255,0.75); border-radius: 2px; animation: abar 1.2s ease-in-out infinite; }
+  .audio-bar:nth-child(1){height:6px;animation-delay:0s}
+  .audio-bar:nth-child(2){height:14px;animation-delay:.15s}
+  .audio-bar:nth-child(3){height:10px;animation-delay:.3s}
+  .audio-bar:nth-child(4){height:16px;animation-delay:.1s}
+  .audio-bar:nth-child(5){height:8px;animation-delay:.25s}
+  @keyframes abar { 0%,100%{transform:scaleY(0.5);opacity:0.5} 50%{transform:scaleY(1);opacity:1} }
+  .audio-dur { font-size: 12px; font-family: 'DM Mono', monospace; opacity: 0.8; }
+
+  .msg-suggestion { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); font-size: 12px; color: var(--text-muted); cursor: pointer; transition: all 0.15s; margin: 2px; }
+  .msg-suggestion:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .suggestions-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+
+  .agent-confirm-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 13px; margin-top: 6px; }
+  .confirm-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border-light); }
+  .confirm-row:last-child { border-bottom: none; }
+  .confirm-key { color: var(--text-muted); font-size: 12px; }
+  .confirm-val { font-weight: 500; }
+  .confirm-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .confirm-btn { flex: 1; padding: 7px; border-radius: 6px; border: none; font-family: 'Geist', sans-serif; font-size: 12.5px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+  .confirm-btn.ok { background: var(--accent); color: white; }
+  [data-theme="dark"] .confirm-btn.ok { color: #111; }
+  .confirm-btn.cancel { background: var(--border); color: var(--text-muted); }
+  .confirm-btn:hover { opacity: 0.8; }
+
+  .chat-input-area { padding: 14px 16px; border-top: 1px solid var(--border); background: var(--surface); display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; }
+  .chat-input-wrap { flex: 1; display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 22px; padding: 8px 14px; transition: border-color 0.15s; }
+  .chat-input-wrap:focus-within { border-color: var(--text-muted); }
+  .chat-input { flex: 1; background: none; border: none; outline: none; font-family: 'Geist', sans-serif; font-size: 13.5px; color: var(--text); resize: none; max-height: 100px; line-height: 1.4; }
+  .chat-input::placeholder { color: var(--text-faint); }
+  .audio-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; flex-shrink: 0; font-size: 15px; color: var(--text-muted); }
+  .audio-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+  .audio-btn.recording { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); animation: recpulse 1s ease infinite; }
+  @keyframes recpulse { 0%,100%{box-shadow:0 0 0 0 transparent} 50%{box-shadow:0 0 0 5px var(--danger-soft)} }
+  .send-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.15s; flex-shrink: 0; font-size: 14px; color: white; }
+  [data-theme="dark"] .send-btn { color: #111; }
+  .send-btn:hover { opacity: 0.85; }
+
+  /* MOBILE */
+  .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; height: 52px; background: var(--surface); border-bottom: 1px solid var(--border); align-items: center; justify-content: space-between; padding: 0 18px; z-index: 200; }
+  .mobile-logo { font-family: 'Lora', serif; font-size: 16px; font-weight: 500; }
+  .hamburger { background: none; border: none; cursor: pointer; color: var(--text); font-size: 18px; display: flex; align-items: center; }
+  .mobile-theme-btn { background: none; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; color: var(--text-muted); font-size: 14px; padding: 4px 8px; }
+  .mobile-nav-bottom { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 200; }
+  .mobile-nav-items { display: flex; justify-content: space-around; }
+  .mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 14px; cursor: pointer; color: var(--text-faint); font-size: 10px; font-family: 'DM Mono', monospace; letter-spacing: 0.04em; text-transform: uppercase; transition: color 0.15s; }
+  .mobile-nav-item.active { color: var(--accent); }
+  .mobile-nav-item .mob-icon { font-size: 18px; }
+  .sidebar-overlay { display: none; position: fixed; inset: 0; z-index: 99; }
+  .sidebar-overlay.open { display: block; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 300; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 10px; padding: 28px; width: 440px; max-width: 90vw; border: 1px solid var(--border); animation: modalIn 0.2s ease; }
+  @keyframes modalIn { from{opacity:0;transform:translateY(8px) scale(0.98)} to{opacity:1;transform:none} }
+  .modal-title { font-family: 'Lora', serif; font-size: 18px; font-weight: 500; margin-bottom: 20px; }
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 11.5px; color: var(--text-muted); margin-bottom: 5px; font-family: 'DM Mono', monospace; letter-spacing: 0.04em; text-transform: uppercase; }
+  .form-input { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); font-family: 'Geist', sans-serif; font-size: 13.5px; color: var(--text); outline: none; transition: border-color 0.15s; }
+  .form-input:focus { border-color: var(--text-muted); background: var(--surface); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.15); }
+    .mobile-header { display: flex; }
+    .mobile-nav-bottom { display: block; }
+    .main { margin-left: 0; padding: 70px 18px 80px; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .stats-row .stat-card:last-child { grid-column: 1 / -1; }
+    .page-title { font-size: 20px; }
+    .topbar { margin-bottom: 22px; }
+    .filter-input { min-width: 100%; }
+    .accounts-grid { grid-template-columns: 1fr 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .agent-page { height: calc(100vh - 160px); max-height: none; }
+  }
+  @media (max-width: 480px) {
+    .accounts-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: 1fr; }
+    .stats-row .stat-card:last-child { grid-column: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header class="mobile-header">
+  <div class="mobile-logo">gastos.</div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="mobile-theme-btn" onclick="toggleTheme()">☀</button>
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+  </div>
+</header>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<nav class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-name">gastos.</div>
+    <div class="logo-sub">personal finance</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Principal</div>
+    <div class="nav-item active" onclick="showPage('registros',this)"><span class="nav-icon">≡</span> Registros</div>
+    <div class="nav-item" onclick="showPage('cuentas',this)"><span class="nav-icon">◫</span> Cuentas</div>
+    <div class="nav-item" onclick="showPage('agente',this)"><span class="nav-icon">✦</span> Agente</div>
+  </div>
+  <div class="divider" style="margin:8px 20px;"></div>
+  <div class="nav-section">
+    <div class="nav-label">Sistema</div>
+    <div class="nav-item" onclick="showPage('config',this)"><span class="nav-icon">⚙</span> Configuración</div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="theme-toggle" onclick="toggleTheme()">
+      <span class="theme-label" id="themeLabel">Modo oscuro</span>
+      <div class="toggle" id="themeToggle"></div>
+    </div>
+    <div class="user-chip">
+      <div class="avatar">JD</div>
+      <div class="user-name">Juan D.</div>
+    </div>
+  </div>
+</nav>
+
+<main class="main">
+
+  <!-- REGISTROS -->
+  <div class="page active" id="page-registros">
+    <div class="topbar">
+      <div>
+        <div class="page-title">Registros</div>
+        <div class="page-subtitle">Todos tus movimientos</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" onclick="document.getElementById('modalOverlay').classList.add('open')">+ Nuevo</button>
+        <button class="btn btn-agent" onclick="showPage('agente',null,null)">✦ Agente</button>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Ingresos — Marzo</div><div class="stat-value">$280.000</div><div class="stat-delta up">↑ 12% vs febrero</div></div>
+      <div class="stat-card"><div class="stat-label">Gastos — Marzo</div><div class="stat-value negative">$142.350</div><div class="stat-delta down">↑ 8% vs febrero</div></div>
+      <div class="stat-card"><div class="stat-label">Balance</div><div class="stat-value">$137.650</div><div class="stat-delta up">este mes</div></div>
+    </div>
+    <div class="filters-bar">
+      <input class="filter-input" type="text" placeholder="Buscar descripción...">
+      <select class="filter-select"><option>Todas las categorías</option><option>Comida</option><option>Transporte</option><option>Servicios</option><option>Salud</option><option>Ocio</option><option>Hogar</option></select>
+      <select class="filter-select"><option>Todas las cuentas</option><option>Santander</option><option>Mercado Pago</option><option>Efectivo</option><option>BBVA</option></select>
+      <select class="filter-select"><option>Marzo 2025</option><option>Febrero 2025</option><option>Enero 2025</option></select>
+      <select class="filter-select"><option>Tipo: Todos</option><option>Gastos</option><option>Ingresos</option></select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th class="sorted">Fecha ↓</th><th>Descripción</th><th>Categoría</th><th>Cuenta</th><th style="text-align:right">Monto ↕</th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="date">04 mar</td><td>Mercado libre — zapatillas<div class="note">Tarjeta 3 cuotas</div></td><td><span class="tag tag-leisure">Ocio</span></td><td class="account-badge">BBVA</td><td class="amount neg">−$24.000</td></tr>
+          <tr><td class="date">03 mar</td><td>Sueldo marzo</td><td><span class="tag tag-salary">Ingreso</span></td><td class="account-badge">Santander</td><td class="amount pos">+$280.000</td></tr>
+          <tr><td class="date">02 mar</td><td>Rappi — almuerzo</td><td><span class="tag tag-food">Comida</span></td><td class="account-badge">Mercado Pago</td><td class="amount neg">−$3.200</td></tr>
+          <tr><td class="date">01 mar</td><td>SUBE — carga mensual</td><td><span class="tag tag-transport">Transporte</span></td><td class="account-badge">Efectivo</td><td class="amount neg">−$8.000</td></tr>
+          <tr><td class="date">28 feb</td><td>Netflix + Spotify<div class="note">Renovación automática</div></td><td><span class="tag tag-services">Servicios</span></td><td class="account-badge">BBVA</td><td class="amount neg">−$4.800</td></tr>
+          <tr><td class="date">27 feb</td><td>Farmacity — medicamentos</td><td><span class="tag tag-health">Salud</span></td><td class="account-badge">Santander</td><td class="amount neg">−$6.750</td></tr>
+          <tr><td class="date">26 feb</td><td>Supermercado Coto</td><td><span class="tag tag-food">Comida</span></td><td class="account-badge">Santander</td><td class="amount neg">−$18.400</td></tr>
+          <tr><td class="date">25 feb</td><td>Expensas febrero</td><td><span class="tag tag-home">Hogar</span></td><td class="account-badge">Efectivo</td><td class="amount neg">−$35.000</td></tr>
+          <tr><td class="date">24 feb</td><td>Taxi — aeropuerto<div class="note">Viaje de trabajo</div></td><td><span class="tag tag-transport">Transporte</span></td><td class="account-badge">Mercado Pago</td><td class="amount neg">−$9.500</td></tr>
+          <tr><td class="date">23 feb</td><td>Cine + cena</td><td><span class="tag tag-leisure">Ocio</span></td><td class="account-badge">BBVA</td><td class="amount neg">−$12.700</td></tr>
+        </tbody>
+      </table>
+      <div class="pagination">
+        <div class="pagination-info">Mostrando 1–10 de 84 registros</div>
+        <div class="pagination-btns">
+          <button class="page-btn">‹</button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">2</button>
+          <button class="page-btn">3</button>
+          <button class="page-btn">›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUENTAS -->
+  <div class="page" id="page-cuentas">
+    <div class="topbar">
+      <div><div class="page-title">Cuentas</div><div class="page-subtitle">Saldo actual por cuenta</div></div>
+      <button class="btn btn-primary">+ Cuenta</button>
+    </div>
+    <div class="accounts-grid">
+      <div class="account-card green"><div class="account-name">Santander</div><div class="account-balance">$342.500</div><div class="account-meta">Caja de ahorro · ARS</div></div>
+      <div class="account-card blue"><div class="account-name">BBVA</div><div class="account-balance">$89.200</div><div class="account-meta">Cuenta corriente · ARS</div></div>
+      <div class="account-card orange"><div class="account-name">Mercado Pago</div><div class="account-balance">$24.680</div><div class="account-meta">Billetera digital · ARS</div></div>
+      <div class="account-card purple"><div class="account-name">Efectivo</div><div class="account-balance">$18.000</div><div class="account-meta">Efectivo · ARS</div></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Total disponible</div>
+      <div style="font-family:'Lora',serif;font-size:36px;font-weight:400;letter-spacing:-1px;margin-bottom:6px;">$474.380</div>
+      <div style="font-size:12.5px;color:var(--text-muted);">Suma de todas las cuentas · actualizado hoy</div>
+      <div class="divider" style="margin:20px 0;"></div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Distribución</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:13px;">Santander</span><span style="font-size:12px;color:var(--text-muted);font-family:'DM Mono',monospace;">72%</span></div><div style="background:var(--border);border-radius:2px;height:4px;"><div style="background:var(--accent);width:72%;height:100%;border-radius:2px;"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:13px;">BBVA</span><span style="font-size:12px;color:var(--text-muted);font-family:'DM Mono',monospace;">19%</span></div><div style="background:var(--border);border-radius:2px;height:4px;"><div style="background:#3b82f6;width:19%;height:100%;border-radius:2px;"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:13px;">Mercado Pago</span><span style="font-size:12px;color:var(--text-muted);font-family:'DM Mono',monospace;">5%</span></div><div style="background:var(--border);border-radius:2px;height:4px;"><div style="background:var(--warning);width:5%;height:100%;border-radius:2px;"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:13px;">Efectivo</span><span style="font-size:12px;color:var(--text-muted);font-family:'DM Mono',monospace;">4%</span></div><div style="background:var(--border);border-radius:2px;height:4px;"><div style="background:#8b5cf6;width:4%;height:100%;border-radius:2px;"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENTE -->
+  <div class="page" id="page-agente">
+    <div class="agent-page">
+      <div class="agent-topbar">
+        <div>
+          <div class="page-title">Agente</div>
+          <div class="page-subtitle">Cargá gastos por chat o audio</div>
+        </div>
+        <div class="agent-status"><div class="agent-dot"></div>Activo</div>
+      </div>
+      <div class="chat-wrap">
+        <div class="chat-messages" id="chatMessages">
+          <!-- Bienvenida -->
+          <div class="msg agent">
+            <div class="msg-avatar">✦</div>
+            <div>
+              <div class="msg-bubble">Hola Juan. Contame un gasto y lo registro por vos. Por ejemplo: <em>"gasté $3.500 en Rappi"</em> o mandame un audio 🎙</div>
+              <div class="suggestions-row">
+                <div class="msg-suggestion" onclick="sendSuggestion(this)">💸 Registrar un gasto</div>
+                <div class="msg-suggestion" onclick="sendSuggestion(this)">📊 Resumen del mes</div>
+                <div class="msg-suggestion" onclick="sendSuggestion(this)">💰 ¿Cuánto gasté hoy?</div>
+              </div>
+            </div>
+          </div>
+          <!-- Ejemplo audio usuario -->
+          <div class="msg user">
+            <div class="msg-avatar">JD</div>
+            <div class="msg-audio">
+              <span style="font-size:16px;">▶</span>
+              <div class="audio-bars"><div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div></div>
+              <span class="audio-dur">0:08</span>
+            </div>
+          </div>
+          <!-- Respuesta con confirmación -->
+          <div class="msg agent">
+            <div class="msg-avatar">✦</div>
+            <div>
+              <div class="msg-bubble">Escuché el audio. Entendí esto:</div>
+              <div class="agent-confirm-card">
+                <div class="confirm-row"><span class="confirm-key">Descripción</span><span class="confirm-val">Supermercado Coto</span></div>
+                <div class="confirm-row"><span class="confirm-key">Monto</span><span class="confirm-val">$18.400</span></div>
+                <div class="confirm-row"><span class="confirm-key">Categoría</span><span class="confirm-val">Comida</span></div>
+                <div class="confirm-row"><span class="confirm-key">Cuenta</span><span class="confirm-val">Santander</span></div>
+                <div class="confirm-row"><span class="confirm-key">Fecha</span><span class="confirm-val">Hoy, 4 mar</span></div>
+                <div class="confirm-actions">
+                  <button class="confirm-btn ok" onclick="confirmSave(this)">✓ Confirmar</button>
+                  <button class="confirm-btn cancel">Corregir</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <div class="chat-input-wrap">
+            <textarea class="chat-input" id="chatInput" rows="1" placeholder="Contale un gasto al agente..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          </div>
+          <button class="audio-btn" id="audioBtn" onclick="toggleRecording()" title="Grabar audio">🎙</button>
+          <button class="send-btn" onclick="sendMessage()">↑</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="page" id="page-config">
+    <div class="topbar">
+      <div><div class="page-title">Configuración</div><div class="page-subtitle">Preferencias y datos</div></div>
+    </div>
+    <div class="config-section">
+      <div class="config-section-title">Categorías</div>
+      <div class="categories-list">
+        <div class="category-chip"><div class="dot" style="background:#c06a2b"></div>Comida<span class="remove">×</span></div>
+        <div class="category-chip"><div class="dot" style="background:#2563a8"></div>Transporte<span class="remove">×</span></div>
+        <div class="category-chip"><div class="dot" style="background:#6d28d9"></div>Servicios<span class="remove">×</span></div>
+        <div class="category-chip"><div class="dot" style="background:#b91c1c"></div>Salud<span class="remove">×</span></div>
+        <div class="category-chip"><div class="dot" style="background:#9333ea"></div>Ocio<span class="remove">×</span></div>
+        <div class="category-chip"><div class="dot" style="background:#c2620e"></div>Hogar<span class="remove">×</span></div>
+        <div class="category-chip"><div class="dot" style="background:var(--accent)"></div>Ingreso<span class="remove">×</span></div>
+      </div>
+      <div class="add-category-row">
+        <input class="filter-input" style="max-width:200px" type="text" placeholder="Nueva categoría...">
+        <button class="btn btn-ghost">+ Agregar</button>
+      </div>
+    </div>
+    <div class="config-section">
+      <div class="config-section-title">Apariencia</div>
+      <div class="card">
+        <div class="config-row">
+          <div><div class="config-row-label">Modo oscuro</div><div class="config-row-sub">Cambia el tema de la interfaz</div></div>
+          <div class="toggle" id="configThemeToggle" onclick="toggleTheme()"></div>
+        </div>
+      </div>
+    </div>
+    <div class="config-section">
+      <div class="config-section-title">Moneda y región</div>
+      <div class="card">
+        <div class="config-row"><div><div class="config-row-label">Moneda principal</div><div class="config-row-sub">Para mostrar importes</div></div><select class="filter-select"><option>ARS — Peso argentino</option><option>USD — Dólar</option><option>EUR — Euro</option></select></div>
+        <div class="config-row"><div><div class="config-row-label">Formato de fecha</div></div><select class="filter-select"><option>DD/MM/AAAA</option><option>MM/DD/AAAA</option></select></div>
+        <div class="config-row"><div><div class="config-row-label">Inicio de mes fiscal</div><div class="config-row-sub">Para calcular totales mensuales</div></div><select class="filter-select"><option>Día 1</option><option>Día 15</option><option>Personalizado</option></select></div>
+      </div>
+    </div>
+    <div class="config-section">
+      <div class="config-section-title">Notificaciones</div>
+      <div class="card">
+        <div class="config-row"><div><div class="config-row-label">Recordatorio diario</div><div class="config-row-sub">Cargar gastos al final del día</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="config-row"><div><div class="config-row-label">Alerta por presupuesto</div><div class="config-row-sub">Avisar al superar el límite mensual</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+        <div class="config-row"><div><div class="config-row-label">Resumen semanal</div><div class="config-row-sub">Todos los lunes por email</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+    </div>
+    <div class="config-section">
+      <div class="config-section-title">Datos</div>
+      <div class="card">
+        <div class="config-row"><div><div class="config-row-label">Exportar a CSV</div><div class="config-row-sub">Todos los registros</div></div><button class="btn btn-ghost">Exportar</button></div>
+        <div class="config-row"><div><div class="config-row-label">Importar registros</div><div class="config-row-sub">Desde archivo CSV</div></div><button class="btn btn-ghost">Importar</button></div>
+        <div class="config-row"><div><div class="config-row-label" style="color:var(--danger)">Eliminar todos los datos</div><div class="config-row-sub">Esta acción no se puede deshacer</div></div><button class="btn btn-ghost" style="color:var(--danger);border-color:var(--danger-soft)">Eliminar</button></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<nav class="mobile-nav-bottom">
+  <div class="mobile-nav-items">
+    <div class="mobile-nav-item active" onclick="showPage('registros',null,this)"><div class="mob-icon">≡</div><div>Registros</div></div>
+    <div class="mobile-nav-item" onclick="showPage('cuentas',null,this)"><div class="mob-icon">◫</div><div>Cuentas</div></div>
+    <div class="mobile-nav-item" onclick="showPage('agente',null,this)"><div class="mob-icon" style="color:var(--accent)">✦</div><div>Agente</div></div>
+    <div class="mobile-nav-item" onclick="showPage('config',null,this)"><div class="mob-icon">⚙</div><div>Config</div></div>
+  </div>
+</nav>
+
+<!-- MODAL NUEVO REGISTRO -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-title">Nuevo registro</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-input"><option>Gasto</option><option>Ingreso</option><option>Transferencia</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha</label>
+        <input class="form-input" type="date" value="2025-03-04">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripción</label>
+      <input class="form-input" type="text" placeholder="Ej: Supermercado">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Monto</label>
+        <input class="form-input" type="number" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cuenta</label>
+        <select class="form-input"><option>Santander</option><option>BBVA</option><option>Mercado Pago</option><option>Efectivo</option></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Categoría</label>
+      <select class="form-input"><option>Comida</option><option>Transporte</option><option>Servicios</option><option>Salud</option><option>Ocio</option><option>Hogar</option><option>Ingreso</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nota (opcional)</label>
+      <input class="form-input" type="text" placeholder="Detalles adicionales">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('modalOverlay').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary" onclick="document.getElementById('modalOverlay').classList.remove('open')">Guardar registro</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let isDark = false;
+
+  function toggleTheme() {
+    isDark = !isDark;
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    document.getElementById('themeToggle').classList.toggle('on', isDark);
+    document.getElementById('configThemeToggle').classList.toggle('on', isDark);
+    document.getElementById('themeLabel').textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+    const mb = document.querySelector('.mobile-theme-btn');
+    if (mb) mb.textContent = isDark ? '☾' : '☀';
+  }
+
+  function showPage(name, sidebarItem, mobileItem) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    if (sidebarItem) sidebarItem.classList.add('active');
+    else document.querySelectorAll('.nav-item').forEach(i => { if (i.textContent.trim().toLowerCase().includes(name === 'agente' ? 'agente' : name === 'config' ? 'configuración' : name)) i.classList.add('active'); });
+    document.querySelectorAll('.mobile-nav-item').forEach(i => i.classList.remove('active'));
+    if (mobileItem) mobileItem.classList.add('active');
+    closeSidebar();
+  }
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('open');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+  }
+
+  let isRecording = false;
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+  }
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+  function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    appendUserMsg(text);
+    input.value = ''; input.style.height = 'auto';
+    setTimeout(appendAgentTyping, 600);
+  }
+  function sendSuggestion(el) {
+    appendUserMsg(el.textContent.trim());
+    setTimeout(appendAgentTyping, 600);
+  }
+  function appendUserMsg(text) {
+    const msgs = document.getElementById('chatMessages');
+    const d = document.createElement('div');
+    d.className = 'msg user';
+    d.innerHTML = `<div class="msg-avatar">JD</div><div class="msg-bubble">${text}</div>`;
+    msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight;
+  }
+  function appendAgentTyping() {
+    const msgs = document.getElementById('chatMessages');
+    const t = document.createElement('div');
+    t.className = 'msg agent'; t.id = 'typing';
+    t.innerHTML = `<div class="msg-avatar">✦</div><div class="msg-bubble" style="color:var(--text-faint);font-style:italic">Escribiendo...</div>`;
+    msgs.appendChild(t); msgs.scrollTop = msgs.scrollHeight;
+    setTimeout(() => {
+      t.remove();
+      appendAgentMsg('Entendido. ¿Querés que lo registre con alguna categoría específica, o uso la que mejor aplica?');
+    }, 1400);
+  }
+  function appendAgentMsg(text) {
+    const msgs = document.getElementById('chatMessages');
+    const d = document.createElement('div');
+    d.className = 'msg agent';
+    d.innerHTML = `<div class="msg-avatar">✦</div><div class="msg-bubble">${text}</div>`;
+    msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight;
+  }
+  function toggleRecording() {
+    const btn = document.getElementById('audioBtn');
+    isRecording = !isRecording;
+    btn.classList.toggle('recording', isRecording);
+    btn.textContent = isRecording ? '⏹' : '🎙';
+    if (!isRecording) {
+      const msgs = document.getElementById('chatMessages');
+      const d = document.createElement('div');
+      d.className = 'msg user';
+      d.innerHTML = `<div class="msg-avatar">JD</div><div class="msg-audio"><span style="font-size:16px;">▶</span><div class="audio-bars"><div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div><div class="audio-bar"></div></div><span class="audio-dur">0:05</span></div>`;
+      msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight;
+      setTimeout(appendAgentTyping, 800);
+    }
+  }
+  function confirmSave(btn) {
+    btn.closest('.agent-confirm-card').innerHTML = '<div style="color:var(--accent);font-size:13px;padding:6px 0;">✓ Registrado correctamente</div>';
+    setTimeout(() => appendAgentMsg('Listo, el gasto quedó guardado. ¿Hay algo más que quieras registrar?'), 400);
+  }
+</script>
+</body>
+</html>
