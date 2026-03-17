@@ -31,5 +31,10 @@ export async function apiFetch<T>(
     throw new Error(error.detail || `HTTP ${response.status}`);
   }
 
+  // Si no hay contenido (ej 204 No Content para DELETE), retorna nulo.
+  if (response.status === 204 || response.headers.get("content-length") === "0") {
+    return null as unknown as Promise<T>;
+  }
+
   return response.json() as Promise<T>;
 }

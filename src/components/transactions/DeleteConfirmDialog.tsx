@@ -24,7 +24,8 @@ export default function DeleteConfirmDialog({
 }: Props) {
   const deleteMutation = useDeleteTransaction();
 
-  const handleConfirm = () => {
+  const handleConfirm = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
     if (!transactionId) return;
     deleteMutation.mutate(transactionId, {
       onSuccess: () => onOpenChange(false),
