@@ -1,10 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@300;400&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@300;400&display=swap');
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is([data-theme="dark"] *));
 
 :root {
     --background: oklch(0.98 0.002 90);
@@ -41,7 +41,7 @@
     --chart-5: oklch(0.58 0.15 25);
 }
 
-.dark {
+[data-theme="dark"] {
     --background: oklch(0.10 0.002 90);
     --foreground: oklch(0.92 0.003 90);
     --card: oklch(0.14 0.003 90);
