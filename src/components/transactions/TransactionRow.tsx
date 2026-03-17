@@ -15,28 +15,16 @@ interface Props {
   onDelete: (t: Transaction) => void;
 }
 
-function getCategoryInitial(category: string | null): string {
-  if (!category) return "?";
-  return category.charAt(0).toUpperCase();
-}
-
-function getCategoryColor(category: string | null): string {
-  if (!category) return "bg-muted";
-  let hash = 0;
-  for (let i = 0; i < category.length; i++) {
-    hash = category.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const colors = [
-    "bg-red-500/20 text-red-400",
-    "bg-blue-500/20 text-blue-400",
-    "bg-green-500/20 text-green-400",
-    "bg-yellow-500/20 text-yellow-400",
-    "bg-purple-500/20 text-purple-400",
-    "bg-pink-500/20 text-pink-400",
-    "bg-orange-500/20 text-orange-400",
-    "bg-teal-500/20 text-teal-400",
-  ];
-  return colors[Math.abs(hash) % colors.length];
+function getCategoryTagClass(category: string | null): string {
+  if (!category) return "tag-home";
+  const norm = category.toLowerCase();
+  if (norm.includes("comida") || norm.includes("aliment") || norm.includes("super")) return "tag-food";
+  if (norm.includes("transporte") || norm.includes("viaje") || norm.includes("auto")) return "tag-transport";
+  if (norm.includes("servicios") || norm.includes("internet") || norm.includes("luz") || norm.includes("gas") || norm.includes("agua")) return "tag-services";
+  if (norm.includes("salud") || norm.includes("farmacia") || norm.includes("doctor") || norm.includes("médic") || norm.includes("medic")) return "tag-health";
+  if (norm.includes("ocio") || norm.includes("entretenimiento") || norm.includes("salida") || norm.includes("juego")) return "tag-leisure";
+  if (norm.includes("sueldo") || norm.includes("salario") || norm.includes("ingreso")) return "tag-salary";
+  return "tag-home";
 }
 
 function formatAmount(amount: number, currency: string): string {
@@ -54,79 +42,65 @@ export default function TransactionRow({
   onEdit,
   onDelete,
 }: Props) {
-  const day = new Date(transaction.expense_date + "T12:00:00").getDate();
+  // Parse date safely, splitting YYYY-MM-DD to avoid timezone shifts
+  const [year, month, day] = transaction.expense_date.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
+  const dateStr = d.toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
+
   const label = transaction.description || transaction.category || "Sin descripción";
-  const subtitle = [transaction.category, transaction.account]
-    .filter(Boolean)
-    .join(" · ");
 
   return (
-    <div
-      className="flex items-center gap-3 px-4 py-3 hover:bg-accent/50 cursor-pointer transition-colors"
-      onClick={() => onSelect(transaction)}
-    >
-      {/* Category icon */}
-      <div
-        className={cn(
-          "flex items-center justify-center w-10 h-10 rounded-full text-sm font-semibold shrink-0",
-          getCategoryColor(transaction.category),
+    <tr onClick={() => onSelect(transaction)} className="cursor-pointer">
+      <td className="date">{dateStr}</td>
+      <td>
+        <div className="font-medium">{label}</div>
+        {transaction.note && <div className="note">{transaction.note}</div>}
+      </td>
+      <td>
+        {transaction.category && (
+          <span className={`tag ${getCategoryTagClass(transaction.category)}`}>
+            {transaction.category}
+          </span>
         )}
-      >
-        {getCategoryInitial(transaction.category)}
-      </div>
-
-      {/* Description + subtitle */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{label}</p>
-        {subtitle && (
-          <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
-        )}
-      </div>
-
-      {/* Date */}
-      <span className="text-xs text-muted-foreground tabular-nums w-6 text-center shrink-0">
-        {day}
-      </span>
-
-      {/* Amount */}
-      <span
-        className={cn(
-          "text-sm font-medium tabular-nums shrink-0",
-          transaction.type === "expense" && "text-red-500",
-          transaction.type === "income" && "text-green-500",
-          transaction.type === "transfer" && "text-muted-foreground",
-        )}
-      >
+      </td>
+      <td>
+        <span className="account-badge">{transaction.account}</span>
+      </td>
+      <td className={cn(
+        "amount",
+        transaction.type === "expense" && "neg",
+        transaction.type === "income" && "pos",
+      )}>
         {transaction.type === "expense" ? "-" : ""}
         {formatAmount(transaction.amount, transaction.currency)}
-      </span>
-
-      {/* Menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          className="p-1 rounded-md hover:bg-accent shrink-0"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => onSelect(transaction)}>
-            <Eye className="h-4 w-4 mr-2" />
-            Ver detalle
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onEdit(transaction)}>
-            <Pencil className="h-4 w-4 mr-2" />
-            Editar
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={() => onDelete(transaction)}
+      </td>
+      <td className="w-10 text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className="p-1 rounded-md hover:bg-accent shrink-0 inline-flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
           >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Eliminar
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSelect(transaction); }}>
+              <Eye className="h-4 w-4 mr-2" />
+              Ver detalle
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(transaction); }}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={(e) => { e.stopPropagation(); onDelete(transaction); }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Eliminar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </td>
+    </tr>
   );
 }
