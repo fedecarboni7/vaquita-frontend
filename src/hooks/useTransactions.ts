@@ -11,12 +11,13 @@ interface UseTransactionsParams {
   type?: TransactionType;
   account?: string;
   category?: string;
+  subcategoryId?: string;
   limit?: number;
   offset?: number;
 }
 
 function buildSearchParams(params: UseTransactionsParams): string {
-  const { month, type, account, category, limit = 20, offset = 0 } = params;
+  const { month, type, account, category, subcategoryId, limit = 20, offset = 0 } = params;
 
   const [year, monthNum] = month.split("-").map(Number);
   const dateFrom = `${year}-${String(monthNum).padStart(2, "0")}-01`;
@@ -31,6 +32,7 @@ function buildSearchParams(params: UseTransactionsParams): string {
   if (type) sp.set("type", type);
   if (account) sp.set("account", account);
   if (category) sp.set("category", category);
+  if (subcategoryId) sp.set("subcategory_id", subcategoryId);
 
   return sp.toString();
 }

@@ -43,6 +43,7 @@ export default function TransactionsPage() {
   const [typeFilter, setTypeFilter] = useState<TransactionType | undefined>();
   const [accountFilter, setAccountFilter] = useState<string | undefined>();
   const [categoryFilter, setCategoryFilter] = useState<string | undefined>();
+  const [subcategoryFilter, setSubcategoryFilter] = useState<string | undefined>();
   const [offset, setOffset] = useState(0);
   const [accumulated, setAccumulated] = useState<Transaction[]>([]);
 
@@ -60,6 +61,7 @@ export default function TransactionsPage() {
     type: typeFilter,
     account: accountFilter,
     category: categoryFilter,
+    subcategoryId: subcategoryFilter,
     limit: 100,
     offset,
   });
@@ -105,6 +107,12 @@ export default function TransactionsPage() {
 
   const handleCategoryChange = (c: string | undefined) => {
     setCategoryFilter(c);
+    setSubcategoryFilter(undefined);
+    resetFilters();
+  };
+
+  const handleSubcategoryChange = (subcategoryId: string | undefined) => {
+    setSubcategoryFilter(subcategoryId);
     resetFilters();
   };
 
@@ -140,12 +148,14 @@ export default function TransactionsPage() {
         type={typeFilter}
         account={accountFilter}
         category={categoryFilter}
+        subcategoryId={subcategoryFilter}
         search={search}
         accounts={accounts}
         categories={categories}
         onTypeChange={handleTypeChange}
         onAccountChange={handleAccountChange}
         onCategoryChange={handleCategoryChange}
+        onSubcategoryChange={handleSubcategoryChange}
         onSearchChange={setSearch}
       />
 
