@@ -17,6 +17,7 @@ import {
   useCreateCategory,
   useDeleteCategory,
 } from "@/hooks/useCategories";
+import SubcategoryManager from "@/components/settings/SubcategoryManager";
 import { useTheme } from "@/hooks/useTheme";
 import type { Category } from "@/types/transaction";
 
@@ -138,6 +139,17 @@ export default function SettingsPage() {
             )}
           </Button>
         </form>
+      </section>
+
+      {/* Subcategorías */}
+      <section className="mb-8">
+        <div className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground/60 mb-3 pb-2 border-b border-border">
+          Subcategorías
+        </div>
+        <SubcategoryManager
+          categories={categories}
+          loadingCategories={categoriesLoading}
+        />
       </section>
 
       {/* Apariencia */}
