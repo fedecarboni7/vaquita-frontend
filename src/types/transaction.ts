@@ -1,5 +1,11 @@
 export type TransactionType = "expense" | "income" | "transfer";
 
+export interface Subcategory {
+  id: string;
+  name: string;
+  category_id: string;
+}
+
 export interface Transaction {
   id: string;
   type: TransactionType;
@@ -9,7 +15,8 @@ export interface Transaction {
   account: string;
   description: string;
   expense_date: string; // 'YYYY-MM-DD'
-  subcategory?: string | null;
+  subcategory_id: string | null;
+  subcategory_name: string | null;
   note?: string | null;
   installments?: number | null;
   account_destination?: string | null;
@@ -34,4 +41,5 @@ export interface Category {
   name: string;
   type: string;
   created_at: string;
+  subcategories: Subcategory[];
 }

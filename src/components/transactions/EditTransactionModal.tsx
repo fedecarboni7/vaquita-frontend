@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,12 +33,19 @@ export default function EditTransactionModal({
   const [amount, setAmount] = useState(String(transaction.amount));
   const [description, setDescription] = useState(transaction.description || "");
   const [category, setCategory] = useState(transaction.category || "");
+  const [subcategoryId, setSubcategoryId] = useState(transaction.subcategory_id || "__none__");
   const [account, setAccount] = useState(transaction.account);
   const [expenseDate, setExpenseDate] = useState(transaction.expense_date);
 
   const updateMutation = useUpdateTransaction();
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
+
+  const selectedCategory = useMemo(
+    () => categories.find((item) => item.name === category) ?? null,
+    [categories, category],
+  );
+  const availableSubcategories = selectedCategory?.subcategories ?? [];
 
   const handleSave = () => {
     updateMutation.mutate(
@@ -48,6 +55,7 @@ export default function EditTransactionModal({
           amount: parseFloat(amount),
           description,
           category: category || null,
+          subcategory_id: subcategoryId === "__none__" ? null : subcategoryId,
           account,
           expense_date: expenseDate,
         },
@@ -90,7 +98,13 @@ export default function EditTransactionModal({
 
           <div>
             <label className="text-sm font-medium mb-1 block">Categoría</label>
-            <Select value={category} onValueChange={(v) => setCategory(v ?? "")}>
+            <Select
+              value={category}
+              onValueChange={(value) => {
+                setCategory(value ?? "");
+                setSubcategoryId("__none__");
+              }}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Seleccionar categoría" />
               </SelectTrigger>
@@ -98,6 +112,27 @@ export default function EditTransactionModal({
                 {categories.map((c) => (
                   <SelectItem key={c.id} value={c.name}>
                     {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1 block">Subcategoría</label>
+            <Select
+              value={subcategoryId}
+              onValueChange={(value) => setSubcategoryId(value ?? "__none__")}
+              disabled={!category}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Sin subcategoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Sin subcategoría</SelectItem>
+                {availableSubcategories.map((subcategory) => (
+                  <SelectItem key={subcategory.id} value={subcategory.id}>
+                    {subcategory.name}
                   </SelectItem>
                 ))}
               </SelectContent>
