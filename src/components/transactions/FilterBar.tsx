@@ -4,12 +4,14 @@ interface Props {
   type: TransactionType | undefined;
   account: string | undefined;
   category: string | undefined;
+  subcategoryId: string | undefined;
   search: string;
   accounts: Account[];
   categories: Category[];
   onTypeChange: (type: TransactionType | undefined) => void;
   onAccountChange: (account: string | undefined) => void;
   onCategoryChange: (category: string | undefined) => void;
+  onSubcategoryChange: (subcategoryId: string | undefined) => void;
   onSearchChange: (search: string) => void;
 }
 
@@ -24,14 +26,18 @@ export default function FilterBar({
   type,
   account,
   category,
+  subcategoryId,
   search,
   accounts,
   categories,
   onTypeChange,
   onAccountChange,
   onCategoryChange,
+  onSubcategoryChange,
   onSearchChange,
 }: Props) {
+  const selectedCategory = categories.find((item) => item.name === category);
+  const availableSubcategories = selectedCategory?.subcategories ?? [];
   
   return (
     <div className="filters-bar px-4 py-3">
@@ -74,6 +80,21 @@ export default function FilterBar({
           <option key={t.value} value={t.value}>{t.label}</option>
         ))}
       </select>
+
+      {category && (
+        <select
+          className="filter-select"
+          value={subcategoryId ?? "__all__"}
+          onChange={(e) => onSubcategoryChange(e.target.value === "__all__" ? undefined : e.target.value)}
+        >
+          <option value="__all__">Todas las subcategorías</option>
+          {availableSubcategories.map((subcategory) => (
+            <option key={subcategory.id} value={subcategory.id}>
+              {subcategory.name}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }

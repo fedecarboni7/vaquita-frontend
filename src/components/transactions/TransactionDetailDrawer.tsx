@@ -56,7 +56,7 @@ function DetailContent({
     },
     { label: "Descripción", value: transaction.description },
     { label: "Categoría", value: transaction.category },
-    { label: "Subcategoría", value: transaction.subcategory },
+    { label: "Subcategoría", value: transaction.subcategory_name },
     { label: "Cuenta", value: transaction.account },
     { label: "Cuenta destino", value: transaction.account_destination },
     { label: "Fecha", value: formatDate(transaction.expense_date) },
