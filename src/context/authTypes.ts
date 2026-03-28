@@ -11,6 +11,8 @@ export interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (credential: string) => Promise<void>;
+  loginDev: () => Promise<void>;
+  isDevAuthEnabled: boolean;
   logout: () => void;
 }
 
