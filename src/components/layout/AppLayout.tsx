@@ -25,7 +25,7 @@ function getUserInitials(name: string | null | undefined) {
 }
 
 export default function AppLayout() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -146,6 +146,17 @@ export default function AppLayout() {
             </div>
             <span className="text-[12.5px] truncate">{displayName}</span>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              setSidebarOpen(false);
+            }}
+            className="w-full mt-1 rounded-md border border-border px-2.5 py-2 text-[12px] text-muted-foreground hover:text-foreground hover:bg-background transition-colors cursor-pointer"
+          >
+            Cerrar sesión
+          </button>
         </div>
       </nav>
 

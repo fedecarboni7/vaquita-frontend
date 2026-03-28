@@ -3,7 +3,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/useAuth";
 
 export default function LoginPage() {
-  const { user, isLoading, login } = useAuth();
+  const { user, isLoading, login, loginDev, isDevAuthEnabled } = useAuth();
 
   if (isLoading) {
     return (
@@ -35,6 +35,33 @@ export default function LoginPage() {
           console.error("Google Login Failed");
         }}
       />
+
+      {isDevAuthEnabled && (
+        <>
+          <p style={{ margin: 0, color: "#666", fontSize: "0.9rem" }}>
+            O iniciá con acceso local de desarrollo
+          </p>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await loginDev();
+              } catch (error) {
+                console.error("Dev login failed:", error);
+              }
+            }}
+            style={{
+              border: "1px solid #ccc",
+              background: "#fff",
+              borderRadius: "8px",
+              padding: "0.6rem 1rem",
+              cursor: "pointer",
+            }}
+          >
+            Entrar en modo desarrollo (offline)
+          </button>
+        </>
+      )}
     </div>
   );
 }
