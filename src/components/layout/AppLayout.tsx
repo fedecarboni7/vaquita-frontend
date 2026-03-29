@@ -45,7 +45,7 @@ export default function AppLayout() {
       {/* Sidebar */}
       <nav
         className={cn(
-          "fixed top-0 left-0 bottom-0 z-[100] flex w-[220px] flex-col bg-card border-r border-border py-7 transition-transform duration-250 ease-out",
+          "fixed top-12 left-0 bottom-[76px] z-[100] flex w-[220px] flex-col bg-card border-r border-border py-7 transition-transform duration-250 ease-out md:top-0 md:bottom-0",
           "md:translate-x-0",
           sidebarOpen ? "translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.15)]" : "-translate-x-full md:translate-x-0",
         )}

@@ -128,7 +128,7 @@ export default function TransactionDetailDrawer({
         <DrawerHeader>
           <DrawerTitle>Detalle de transacción</DrawerTitle>
         </DrawerHeader>
-        <div className="px-4 pb-4 overflow-y-auto">
+        <div className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] overflow-y-auto">
           <DetailContent
             transaction={transaction}
             onEdit={onEdit}

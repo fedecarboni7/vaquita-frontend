@@ -143,16 +143,24 @@ export default function MonthSection({
                   </div>
                 </div>
 
-                <div className="mt-2 flex items-center gap-2 flex-wrap min-w-0">
-                  {t.category && (
-                    <span className={`tag ${getCategoryTagClass(t.category)}`}>
-                      {t.category}
-                    </span>
-                  )}
-                  <span className="text-xs text-muted-foreground truncate max-w-full">
+                {t.type === "transfer" ? (
+                  <div className="mt-2 text-xs text-muted-foreground break-words">
                     {t.account}
-                  </span>
-                </div>
+                    <span className="mx-1.5">→</span>
+                    {t.account_destination || "Sin cuenta destino"}
+                  </div>
+                ) : (
+                  <div className="mt-2 flex items-center gap-2 flex-wrap min-w-0">
+                    {t.category && (
+                      <span className={`tag ${getCategoryTagClass(t.category)}`}>
+                        {t.category}
+                      </span>
+                    )}
+                    <span className="text-xs text-muted-foreground truncate max-w-full">
+                      {t.account}
+                    </span>
+                  </div>
+                )}
 
                 {t.note && (
                   <p className="mt-2 text-xs text-muted-foreground break-words">{t.note}</p>
