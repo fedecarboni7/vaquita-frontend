@@ -17,7 +17,7 @@ import {
 import { useUpdateTransaction } from "@/hooks/useTransactions";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
-import type { Transaction } from "@/types/transaction";
+import type { CurrencyCode, Transaction } from "@/types/transaction";
 
 interface Props {
   transaction: Transaction;
@@ -38,6 +38,7 @@ export default function EditTransactionModal({
   const [account, setAccount] = useState(transaction.account);
   const [accountDestination, setAccountDestination] = useState(transaction.account_destination || "");
   const [expenseDate, setExpenseDate] = useState(transaction.expense_date);
+  const [currency, setCurrency] = useState<CurrencyCode>(transaction.currency);
 
   const updateMutation = useUpdateTransaction();
   const { data: accounts = [] } = useAccounts();
@@ -55,6 +56,7 @@ export default function EditTransactionModal({
       description,
       account,
       expense_date: expenseDate,
+      currency,
     };
 
     const transferData = {
@@ -172,6 +174,20 @@ export default function EditTransactionModal({
                     {a.name}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1 block">Moneda</label>
+            <Select value={currency} onValueChange={(value) => setCurrency((value as CurrencyCode) ?? "ARS")}> 
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Seleccionar moneda" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ARS">ARS</SelectItem>
+                <SelectItem value="USD">USD</SelectItem>
+                <SelectItem value="EUR">EUR</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../api";
 import { useCategories } from "@/hooks/useCategories";
-import type { Category } from "@/types/transaction";
+import type { Category, CurrencyCode } from "@/types/transaction";
 
 interface Props {
   data: Record<string, unknown>;
@@ -24,6 +24,7 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 const EXCLUDED_FIELDS = new Set(["subcategory_id"]);
+const CURRENCY_OPTIONS: CurrencyCode[] = ["ARS", "USD", "EUR"];
 
 export default function TransactionDraftCard({ data, onCancel }: Props) {
   const queryClient = useQueryClient();
@@ -37,6 +38,7 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
     return normalized;
   });
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   const selectedCategoryName = typeof editData.category === "string" ? editData.category : "";
   const selectedSubcategoryId = typeof editData.subcategory_id === "string" ? editData.subcategory_id : "";
@@ -45,11 +47,16 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
 
   const handleConfirm = async () => {
     setStatus("saving");
+    setErrorMessage("");
     try {
       const payload = {
         ...editData,
         expense_date: editData.expense_date || new Date().toISOString().split("T")[0],
         account: editData.account || "efectivo",
+        currency:
+          typeof editData.currency === "string"
+            ? editData.currency.toUpperCase()
+            : "ARS",
         subcategory_id: typeof editData.subcategory_id === "string" ? editData.subcategory_id : null,
       };
 
@@ -60,15 +67,21 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
 
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       setStatus("saved");
-    } catch {
+    } catch (error) {
       setStatus("error");
+      setErrorMessage(error instanceof Error ? error.message : "Error al guardar. Intentá de nuevo.");
     }
   };
 
   const handleFieldChange = (field: string, value: string) => {
     setEditData((prev) => ({
       ...prev,
-      [field]: field === "amount" ? parseFloat(value) || 0 : value,
+      [field]:
+        field === "amount"
+          ? parseFloat(value) || 0
+          : field === "currency"
+            ? value.toUpperCase()
+            : value,
     }));
   };
 
@@ -148,6 +161,18 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
                   </option>
                 ))}
               </select>
+            ) : isEditing && key === "currency" ? (
+              <select
+                value={String(value ?? "ARS").toUpperCase()}
+                onChange={(event) => handleFieldChange("currency", event.target.value)}
+                className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+              >
+                {CURRENCY_OPTIONS.map((currency) => (
+                  <option key={currency} value={currency}>
+                    {currency}
+                  </option>
+                ))}
+              </select>
             ) : isEditing ? (
               <input
                 type={key === "amount" ? "number" : "text"}
@@ -163,7 +188,7 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
       </div>
 
       {status === "error" && (
-        <p className="text-red-400 text-sm mb-2">Error al guardar. Intentá de nuevo.</p>
+        <p className="text-red-400 text-sm mb-2">{errorMessage || "Error al guardar. Intentá de nuevo."}</p>
       )}
 
       <div className="flex flex-wrap gap-2">
