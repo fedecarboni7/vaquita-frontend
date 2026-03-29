@@ -33,7 +33,7 @@ export default function AppLayout() {
   const displayName = user?.display_name ?? user?.email ?? "";
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen overflow-x-hidden">
       {/* Sidebar overlay (mobile) */}
       {sidebarOpen && (
         <div
@@ -161,7 +161,7 @@ export default function AppLayout() {
       </nav>
 
       {/* Mobile header */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-13 bg-card border-b border-border flex items-center justify-between px-4.5 z-[200]">
+      <header className="md:hidden fixed top-0 left-0 right-0 h-12 bg-card border-b border-border flex items-center justify-between px-4 z-[200]">
         <div className="font-serif text-base font-medium">gastos.</div>
         <div className="flex gap-2 items-center">
           <button
@@ -180,12 +180,12 @@ export default function AppLayout() {
       </header>
 
       {/* Main content */}
-      <main className="md:ml-[220px] flex-1 px-5 pt-[70px] pb-20 md:px-12 md:py-10 md:max-w-[1100px]">
+      <main className="md:ml-[220px] flex-1 px-3 sm:px-4 pt-[60px] pb-[88px] md:px-12 md:py-10 md:max-w-[1100px]">
         <Outlet />
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-[200]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border py-1.5 pb-[calc(0.4rem+env(safe-area-inset-bottom))] z-[200]">
         <div className="flex justify-around">
           {[...mainNav, ...systemNav].map((item) => (
             <NavLink
@@ -194,12 +194,12 @@ export default function AppLayout() {
               end={item.to === "/"}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center gap-0.5 px-3.5 py-1.5 cursor-pointer text-[10px] font-mono tracking-wider uppercase transition-colors duration-150",
+                  "flex flex-col items-center gap-0.5 px-3 py-1 cursor-pointer text-[10px] font-mono tracking-wider uppercase transition-colors duration-150",
                   isActive ? "text-accent" : "text-muted-foreground/60",
                 )
               }
             >
-              <span className="text-lg">{item.icon}</span>
+              <span className="text-base">{item.icon}</span>
               <span>{item.label === "Configuración" ? "Config" : item.label}</span>
             </NavLink>
           ))}

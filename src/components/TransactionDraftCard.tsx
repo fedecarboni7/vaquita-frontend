@@ -116,16 +116,16 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
   }
 
   return (
-    <div className="border border-gray-600 rounded-lg p-3 bg-gray-800">
+    <div className="border border-gray-600 rounded-lg p-3 bg-gray-800 min-w-0">
       <div className="space-y-2 mb-3">
         {displayFields.map(([key, value]) => (
-          <div key={key} className="flex justify-between text-sm">
+          <div key={key} className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
             <span className="text-gray-400">{FIELD_LABELS[key]}:</span>
             {isEditing && key === "category" ? (
               <select
                 value={selectedCategoryName}
                 onChange={(event) => handleCategoryChange(event.target.value)}
-                className="bg-gray-700 text-white rounded px-2 py-0.5 w-40 text-right"
+                className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
               >
                 <option value="">Sin categoría</option>
                 {categories.map((category: Category) => (
@@ -138,7 +138,7 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
               <select
                 value={selectedSubcategoryId}
                 onChange={(event) => handleSubcategoryChange(event.target.value)}
-                className="bg-gray-700 text-white rounded px-2 py-0.5 w-40 text-right"
+                className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
                 disabled={!selectedCategoryName}
               >
                 <option value="">Sin subcategoría</option>
@@ -153,10 +153,10 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
                 type={key === "amount" ? "number" : "text"}
                 value={String(value ?? "")}
                 onChange={(e) => handleFieldChange(key, e.target.value)}
-                className="bg-gray-700 text-white rounded px-2 py-0.5 w-40 text-right"
+                className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
               />
             ) : (
-              <span className="text-white">{String(value)}</span>
+              <span className="text-white break-words">{String(value)}</span>
             )}
           </div>
         ))}
@@ -166,7 +166,7 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
         <p className="text-red-400 text-sm mb-2">Error al guardar. Intentá de nuevo.</p>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           onClick={handleConfirm}
           disabled={status === "saving"}

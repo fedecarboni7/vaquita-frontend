@@ -68,11 +68,11 @@ export default function EditTransactionModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Editar transacción</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
           <div>
             <label className="text-sm font-medium mb-1 block">Monto</label>
             <input
