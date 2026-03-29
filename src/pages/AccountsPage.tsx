@@ -88,7 +88,7 @@ export default function AccountsPage() {
       total: totalsByCurrency[currency],
       count: countsByCurrency[currency],
     }));
-  }, [accounts]);
+  }, [accounts, totalsByCurrency]);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
