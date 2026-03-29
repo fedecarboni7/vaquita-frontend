@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,33 +19,90 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useAccounts, useCreateAccount, useDeleteAccount } from "@/hooks/useAccounts";
-import type { Account } from "@/types/transaction";
+import { useAccounts, useCreateAccount, useDeleteAccount, useUpdateAccount } from "@/hooks/useAccounts";
+import type { Account, AccountTypeCode, CurrencyCode } from "@/types/transaction";
 
-const CARD_COLORS = ["green", "blue", "orange", "purple"] as const;
-const COLOR_MAP: Record<string, string> = {
-  green: "bg-green-500",
-  blue: "bg-blue-500",
-  orange: "bg-orange-500",
-  purple: "bg-purple-500",
+const CARD_ACCENTS = ["bg-emerald-500", "bg-sky-500", "bg-amber-500", "bg-rose-500", "bg-teal-500"];
+const ACCOUNT_TYPE_LABELS: Record<AccountTypeCode, string> = {
+  savings: "Caja de ahorro",
+  checking: "Cuenta corriente",
+  credit_card: "Tarjeta de crédito",
+  digital_wallet: "Billetera virtual",
+  cash: "Efectivo",
 };
+const ACCOUNT_TYPE_OPTIONS: Array<{ value: AccountTypeCode; label: string }> = [
+  { value: "savings", label: "Caja de ahorro" },
+  { value: "checking", label: "Cuenta corriente" },
+  { value: "credit_card", label: "Tarjeta de crédito" },
+  { value: "digital_wallet", label: "Billetera virtual" },
+  { value: "cash", label: "Efectivo" },
+];
+const CURRENCY_OPTIONS: CurrencyCode[] = ["ARS", "USD", "EUR"];
+
+function formatMoney(amount: number, currency: CurrencyCode): string {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
 
 export default function AccountsPage() {
   const { data: accounts = [], isLoading, isError, refetch } = useAccounts();
   const createMutation = useCreateAccount();
+  const updateMutation = useUpdateAccount();
   const deleteMutation = useDeleteAccount();
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newType, setNewType] = useState<AccountTypeCode>("savings");
+  const [newCurrency, setNewCurrency] = useState<CurrencyCode>("ARS");
+  const [editTarget, setEditTarget] = useState<Account | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editType, setEditType] = useState<AccountTypeCode>("savings");
+  const [editCurrency, setEditCurrency] = useState<CurrencyCode>("ARS");
   const [deleteTarget, setDeleteTarget] = useState<Account | null>(null);
+
+  const totalsByCurrency = useMemo(() => {
+    return accounts.reduce<Record<CurrencyCode, number>>(
+      (acc, account) => {
+        acc[account.currency] += account.balance;
+        return acc;
+      },
+      { ARS: 0, USD: 0, EUR: 0 },
+    );
+  }, [accounts]);
+
+  const totalsVisible = useMemo(() => {
+    const countsByCurrency = accounts.reduce<Record<CurrencyCode, number>>(
+      (acc, account) => {
+        acc[account.currency] += 1;
+        return acc;
+      },
+      { ARS: 0, USD: 0, EUR: 0 },
+    );
+
+    return CURRENCY_OPTIONS.filter((currency) => countsByCurrency[currency] > 0).map((currency) => ({
+      currency,
+      total: totalsByCurrency[currency],
+      count: countsByCurrency[currency],
+    }));
+  }, [accounts]);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = newName.trim();
     if (!trimmed) return;
-    createMutation.mutate(trimmed, {
+    createMutation.mutate({
+      name: trimmed,
+      account_type: newType,
+      currency: newCurrency,
+    }, {
       onSuccess: () => {
         setNewName("");
+        setNewType("savings");
+        setNewCurrency("ARS");
         setCreateOpen(false);
       },
     });
@@ -59,29 +116,74 @@ export default function AccountsPage() {
     });
   };
 
+  const openEdit = (account: Account) => {
+    setEditTarget(account);
+    setEditName(account.name);
+    setEditType(account.account_type);
+    setEditCurrency(account.currency);
+    setEditOpen(true);
+  };
+
+  const handleEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget) return;
+    const trimmed = editName.trim();
+    if (!trimmed) return;
+    updateMutation.mutate(
+      {
+        id: editTarget.id,
+        name: trimmed,
+        account_type: editType,
+        currency: editCurrency,
+      },
+      {
+        onSuccess: () => {
+          setEditOpen(false);
+          setEditTarget(null);
+        },
+      },
+    );
+  };
+
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-2">
         <div>
-          <div className="font-serif text-2xl font-medium tracking-tight">
+          <div className="font-serif text-2xl font-medium tracking-[-0.4px]">
             Cuentas
           </div>
           <div className="text-[12.5px] text-muted-foreground mt-0.5">
-            Tus cuentas registradas
+            Saldo actual por cuenta y moneda
           </div>
         </div>
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4 mr-1.5" />
-          Cuenta
+          Nueva cuenta
         </Button>
       </div>
 
-      {/* Content */}
+      {totalsVisible.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {totalsVisible.map(({ currency, total, count }) => (
+          <div key={currency} className="rounded-lg border border-border bg-card px-5 py-4">
+            <div className="text-[11px] text-muted-foreground font-mono tracking-wider uppercase mb-2">
+              Total {currency}
+            </div>
+            <div className="font-serif text-[28px] tracking-[-0.5px] leading-none">
+              {formatMoney(total, currency)}
+            </div>
+            <div className="text-[11.5px] mt-2 text-muted-foreground">
+              {count} cuenta(s)
+            </div>
+          </div>
+          ))}
+        </div>
+      )}
+
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-lg" />
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-40 rounded-lg" />
           ))}
         </div>
       ) : isError ? (
@@ -92,7 +194,7 @@ export default function AccountsPage() {
           </Button>
         </div>
       ) : accounts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 text-muted-foreground border border-dashed border-border rounded-lg">
+        <div className="flex flex-col items-center justify-center p-12 text-muted-foreground border border-dashed border-border rounded-lg bg-card">
           <p className="text-sm mb-3">No tenés cuentas creadas</p>
           <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4 mr-1.5" />
@@ -102,21 +204,27 @@ export default function AccountsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {accounts.map((account, i) => {
-            const color = CARD_COLORS[i % CARD_COLORS.length];
             return (
               <div
                 key={account.id}
-                className="relative overflow-hidden rounded-lg border border-border bg-card p-5 transition-colors hover:border-muted-foreground/40"
+                className="relative overflow-hidden rounded-lg border border-border bg-card p-5 transition-colors hover:border-muted-foreground/40 cursor-pointer"
+                onClick={() => openEdit(account)}
               >
                 <div
-                  className={`absolute top-0 left-0 right-0 h-[3px] ${COLOR_MAP[color]}`}
+                  className={`absolute top-0 left-0 right-0 h-[3px] ${CARD_ACCENTS[i % CARD_ACCENTS.length]}`}
                 />
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-xs text-muted-foreground font-mono tracking-wide uppercase mb-2">
                       {account.name}
                     </div>
-                    <div className="text-xs text-muted-foreground/60">
+                    <div className="font-serif text-[29px] tracking-[-0.6px] leading-none mb-2">
+                      {formatMoney(account.balance, account.currency)}
+                    </div>
+                    <div className="text-[12px] text-muted-foreground mb-1">
+                      {ACCOUNT_TYPE_LABELS[account.account_type]} · {account.currency}
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground/60">
                       Creada{" "}
                       {new Date(account.created_at).toLocaleDateString("es-AR", {
                         day: "numeric",
@@ -129,7 +237,10 @@ export default function AccountsPage() {
                     variant="ghost"
                     size="icon-sm"
                     className="text-muted-foreground hover:text-destructive"
-                    onClick={() => setDeleteTarget(account)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setDeleteTarget(account);
+                    }}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -140,7 +251,6 @@ export default function AccountsPage() {
         </div>
       )}
 
-      {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader>
@@ -159,6 +269,40 @@ export default function AccountsPage() {
                 className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
                 autoFocus
               />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
+                  Tipo
+                </label>
+                <select
+                  value={newType}
+                  onChange={(event) => setNewType(event.target.value as AccountTypeCode)}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
+                >
+                  {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
+                  Moneda
+                </label>
+                <select
+                  value={newCurrency}
+                  onChange={(event) => setNewCurrency(event.target.value as CurrencyCode)}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
+                >
+                  {CURRENCY_OPTIONS.map((currency) => (
+                    <option key={currency} value={currency}>
+                      {currency}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <DialogFooter>
               <Button
@@ -179,7 +323,92 @@ export default function AccountsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirm dialog */}
+      <Dialog
+        open={editOpen}
+        onOpenChange={(open) => {
+          setEditOpen(open);
+          if (!open) {
+            setEditTarget(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar cuenta</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEdit}>
+            <div className="mb-4">
+              <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
+                Nombre
+              </label>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Ej: Santander, Mercado Pago..."
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
+                autoFocus
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
+                  Tipo
+                </label>
+                <select
+                  value={editType}
+                  onChange={(event) => setEditType(event.target.value as AccountTypeCode)}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
+                >
+                  {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
+                  Moneda
+                </label>
+                <select
+                  value={editCurrency}
+                  onChange={(event) => setEditCurrency(event.target.value as CurrencyCode)}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
+                >
+                  {CURRENCY_OPTIONS.map((currency) => (
+                    <option key={currency} value={currency}>
+                      {currency}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setEditOpen(false);
+                  setEditTarget(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={!editName.trim() || updateMutation.isPending || !editTarget}
+              >
+                {updateMutation.isPending && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                )}
+                Guardar cambios
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}

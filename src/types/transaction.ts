@@ -1,4 +1,6 @@
 export type TransactionType = "expense" | "income" | "transfer";
+export type CurrencyCode = "ARS" | "USD" | "EUR";
+export type AccountTypeCode = "savings" | "checking" | "credit_card" | "digital_wallet" | "cash";
 
 export interface Subcategory {
   id: string;
@@ -10,7 +12,7 @@ export interface Transaction {
   id: string;
   type: TransactionType;
   amount: number;
-  currency: string;
+  currency: CurrencyCode;
   category: string | null;
   account: string;
   description: string;
@@ -33,6 +35,9 @@ export interface PaginatedTransactions {
 export interface Account {
   id: string;
   name: string;
+  account_type: AccountTypeCode;
+  currency: CurrencyCode;
+  balance: number;
   created_at: string;
 }
 
