@@ -124,11 +124,11 @@ export default function TransactionDetailDrawer({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
+      <DrawerContent className="max-h-[85vh]">
         <DrawerHeader>
           <DrawerTitle>Detalle de transacción</DrawerTitle>
         </DrawerHeader>
-        <div className="px-4 pb-6">
+        <div className="px-4 pb-4 overflow-y-auto">
           <DetailContent
             transaction={transaction}
             onEdit={onEdit}

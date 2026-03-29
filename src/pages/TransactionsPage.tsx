@@ -161,8 +161,8 @@ export default function TransactionsPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-4 py-2">
-          <div className="flex items-center justify-between py-3 mb-2 border-b border-border">
+        <div className="px-2 py-2 sm:px-4">
+          <div className="flex flex-col gap-2 py-3 mb-2 border-b border-border sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -172,7 +172,7 @@ export default function TransactionsPage() {
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <h2 className="text-sm font-semibold capitalize min-w-[120px] text-center">
+              <h2 className="text-sm font-semibold capitalize text-center min-w-0">
                 {formatMonthNav(month)}
               </h2>
               <Button
@@ -186,7 +186,7 @@ export default function TransactionsPage() {
             </div>
             
             <span
-              className={`text-sm font-medium tabular-nums ${
+              className={`text-xs sm:text-sm font-medium tabular-nums self-end sm:self-auto ${
                 netTotal >= 0 ? "text-green-500" : "text-red-500"
               }`}
             >

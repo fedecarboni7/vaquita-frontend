@@ -12,7 +12,7 @@ export default function ChatMessage({ message, onDraftCancel }: Props) {
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <div className="bg-blue-600 text-white rounded-lg px-4 py-2 max-w-[80%]">
+        <div className="bg-blue-600 text-white rounded-lg px-4 py-2 max-w-[92%] sm:max-w-[80%] break-words whitespace-pre-wrap">
           {message.content}
         </div>
       </div>
@@ -23,8 +23,8 @@ export default function ChatMessage({ message, onDraftCancel }: Props) {
   if (message.response_type === "draft" && message.data) {
     return (
       <div className="flex justify-start">
-        <div className="max-w-[85%]">
-          <div className="bg-gray-700 text-white rounded-lg px-4 py-2 mb-2">
+        <div className="max-w-[95%] sm:max-w-[85%] min-w-0">
+          <div className="bg-gray-700 text-white rounded-lg px-4 py-2 mb-2 break-words whitespace-pre-wrap">
             {message.content}
           </div>
           <TransactionDraftCard
@@ -38,7 +38,7 @@ export default function ChatMessage({ message, onDraftCancel }: Props) {
 
   return (
     <div className="flex justify-start">
-      <div className="bg-gray-700 text-white rounded-lg px-4 py-2 max-w-[80%]">
+      <div className="bg-gray-700 text-white rounded-lg px-4 py-2 max-w-[92%] sm:max-w-[80%] break-words whitespace-pre-wrap">
         {message.content}
       </div>
     </div>

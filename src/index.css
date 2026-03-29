@@ -129,6 +129,11 @@
   html {
     @apply font-sans;
     }
+  html, body, #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
 }
 
 /* DESIGN REFERENCE VARIABLES */
@@ -201,3 +206,26 @@ td.amount.pos { color: var(--accent); }
 [data-theme="dark"] .tag-leisure { background: #251428; color: #c084fc; }
 [data-theme="dark"] .tag-home { background: #261c10; color: #fb923c; }
 .account-badge { font-size: 11.5px; color: var(--text-muted); }
+
+@media (max-width: 767px) {
+  .filters-bar {
+    margin-bottom: 0;
+  }
+
+  .filter-input,
+  .filter-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .table-wrap {
+    overflow-x: visible;
+  }
+
+  .tag {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

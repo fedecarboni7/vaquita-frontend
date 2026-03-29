@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { SlidersHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { TransactionType, Account, Category } from "@/types/transaction";
 
 interface Props {
@@ -36,21 +39,22 @@ export default function FilterBar({
   onSubcategoryChange,
   onSearchChange,
 }: Props) {
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const selectedCategory = categories.find((item) => item.name === category);
   const availableSubcategories = selectedCategory?.subcategories ?? [];
-  
-  return (
-    <div className="filters-bar px-4 py-3">
-      <input 
-        className="filter-input" 
-        type="text" 
-        placeholder="Buscar descripción..." 
+
+  const filterControls = (
+    <>
+      <input
+        className="filter-input w-full md:w-auto"
+        type="text"
+        placeholder="Buscar descripción..."
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
       />
-      
-      <select 
-        className="filter-select"
+
+      <select
+        className="filter-select w-full md:w-auto"
         value={category ?? "__all__"}
         onChange={(e) => onCategoryChange(e.target.value === "__all__" ? undefined : e.target.value)}
       >
@@ -60,8 +64,8 @@ export default function FilterBar({
         ))}
       </select>
 
-      <select 
-        className="filter-select"
+      <select
+        className="filter-select w-full md:w-auto"
         value={account ?? "__all__"}
         onChange={(e) => onAccountChange(e.target.value === "__all__" ? undefined : e.target.value)}
       >
@@ -71,8 +75,8 @@ export default function FilterBar({
         ))}
       </select>
 
-      <select 
-        className="filter-select"
+      <select
+        className="filter-select w-full md:w-auto"
         value={type ?? "all"}
         onChange={(e) => onTypeChange(e.target.value === "all" ? undefined : e.target.value as TransactionType)}
       >
@@ -83,7 +87,7 @@ export default function FilterBar({
 
       {category && (
         <select
-          className="filter-select"
+          className="filter-select w-full md:w-auto"
           value={subcategoryId ?? "__all__"}
           onChange={(e) => onSubcategoryChange(e.target.value === "__all__" ? undefined : e.target.value)}
         >
@@ -95,6 +99,38 @@ export default function FilterBar({
           ))}
         </select>
       )}
+    </>
+  );
+  
+  return (
+    <div className="px-2 py-2 sm:px-4 sm:py-3 border-b border-border/60">
+      <div className="md:hidden">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full justify-between"
+          onClick={() => setMobileFiltersOpen((prev) => !prev)}
+        >
+          <span className="inline-flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4" />
+            Filtros
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {mobileFiltersOpen ? "Ocultar" : "Mostrar"}
+          </span>
+        </Button>
+
+        {mobileFiltersOpen && (
+          <div className="mt-2 grid gap-2">
+            {filterControls}
+          </div>
+        )}
+      </div>
+
+      <div className="hidden md:flex md:items-center md:gap-2.5 md:mb-4 md:flex-wrap">
+        {filterControls}
+      </div>
     </div>
   );
 }

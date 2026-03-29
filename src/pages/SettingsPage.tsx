@@ -110,18 +110,18 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <form onSubmit={handleAddCategory} className="flex items-center gap-2">
+        <form onSubmit={handleAddCategory} className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
             type="text"
             value={newCatName}
             onChange={(e) => setNewCatName(e.target.value)}
             placeholder="Nueva categoría..."
-            className="max-w-[200px] px-3 py-2 border border-border rounded-lg bg-card text-sm outline-none transition-colors focus:border-muted-foreground"
+            className="w-full sm:max-w-[200px] px-3 py-2 border border-border rounded-lg bg-card text-sm outline-none transition-colors focus:border-muted-foreground"
           />
           <select
             value={newCatType}
             onChange={(e) => setNewCatType(e.target.value as "expense" | "income")}
-            className="px-3 py-2 border border-border rounded-lg bg-card text-sm outline-none cursor-pointer"
+            className="w-full sm:w-auto px-3 py-2 border border-border rounded-lg bg-card text-sm outline-none cursor-pointer"
           >
             <option value="expense">Gasto</option>
             <option value="income">Ingreso</option>
@@ -187,24 +187,24 @@ export default function SettingsPage() {
           Moneda y región
         </div>
         <div className="rounded-lg border border-border bg-card divide-y divide-border">
-          <div className="flex items-center justify-between px-4 py-3.5">
+          <div className="flex flex-col items-start gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[13.5px]">Moneda principal</div>
               <div className="text-xs text-muted-foreground mt-0.5">
                 Para mostrar importes
               </div>
             </div>
-            <select className="px-3 py-1.5 border border-border rounded-lg bg-card text-sm outline-none cursor-pointer">
+            <select className="w-full sm:w-auto px-3 py-1.5 border border-border rounded-lg bg-card text-sm outline-none cursor-pointer">
               <option>ARS — Peso argentino</option>
               <option>USD — Dólar</option>
               <option>EUR — Euro</option>
             </select>
           </div>
-          <div className="flex items-center justify-between px-4 py-3.5">
+          <div className="flex flex-col items-start gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[13.5px]">Formato de fecha</div>
             </div>
-            <select className="px-3 py-1.5 border border-border rounded-lg bg-card text-sm outline-none cursor-pointer">
+            <select className="w-full sm:w-auto px-3 py-1.5 border border-border rounded-lg bg-card text-sm outline-none cursor-pointer">
               <option>DD/MM/AAAA</option>
               <option>MM/DD/AAAA</option>
             </select>
@@ -218,7 +218,7 @@ export default function SettingsPage() {
           Datos
         </div>
         <div className="rounded-lg border border-border bg-card divide-y divide-border">
-          <div className="flex items-center justify-between px-4 py-3.5">
+          <div className="flex flex-col items-start gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[13.5px]">Importar registros</div>
               <div className="text-xs text-muted-foreground mt-0.5">
@@ -230,7 +230,7 @@ export default function SettingsPage() {
               Importar
             </Button>
           </div>
-          <div className="flex items-center justify-between px-4 py-3.5">
+          <div className="flex flex-col items-start gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[13.5px] text-destructive">
                 Eliminar todos los datos
