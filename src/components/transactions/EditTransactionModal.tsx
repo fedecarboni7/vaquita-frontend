@@ -30,11 +30,13 @@ export default function EditTransactionModal({
   open,
   onOpenChange,
 }: Props) {
+  const isTransfer = transaction.type === "transfer";
   const [amount, setAmount] = useState(String(transaction.amount));
   const [description, setDescription] = useState(transaction.description || "");
   const [category, setCategory] = useState(transaction.category || "");
   const [subcategoryId, setSubcategoryId] = useState(transaction.subcategory_id || "__none__");
   const [account, setAccount] = useState(transaction.account);
+  const [accountDestination, setAccountDestination] = useState(transaction.account_destination || "");
   const [expenseDate, setExpenseDate] = useState(transaction.expense_date);
 
   const updateMutation = useUpdateTransaction();
@@ -48,17 +50,30 @@ export default function EditTransactionModal({
   const availableSubcategories = selectedCategory?.subcategories ?? [];
 
   const handleSave = () => {
+    const commonData = {
+      amount: parseFloat(amount),
+      description,
+      account,
+      expense_date: expenseDate,
+    };
+
+    const transferData = {
+      ...commonData,
+      category: null,
+      subcategory_id: null,
+      account_destination: accountDestination || null,
+    };
+
+    const defaultData = {
+      ...commonData,
+      category: category || null,
+      subcategory_id: subcategoryId === "__none__" ? null : subcategoryId,
+    };
+
     updateMutation.mutate(
       {
         id: transaction.id,
-        data: {
-          amount: parseFloat(amount),
-          description,
-          category: category || null,
-          subcategory_id: subcategoryId === "__none__" ? null : subcategoryId,
-          account,
-          expense_date: expenseDate,
-        },
+        data: isTransfer ? transferData : defaultData,
       },
       {
         onSuccess: () => onOpenChange(false),
@@ -96,51 +111,57 @@ export default function EditTransactionModal({
             />
           </div>
 
-          <div>
-            <label className="text-sm font-medium mb-1 block">Categoría</label>
-            <Select
-              value={category}
-              onValueChange={(value) => {
-                setCategory(value ?? "");
-                setSubcategoryId("__none__");
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleccionar categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.name}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {!isTransfer && (
+            <>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Categoría</label>
+                <Select
+                  value={category}
+                  onValueChange={(value) => {
+                    setCategory(value ?? "");
+                    setSubcategoryId("__none__");
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.name}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1 block">Subcategoría</label>
+                <Select
+                  value={subcategoryId}
+                  onValueChange={(value) => setSubcategoryId(value ?? "__none__")}
+                  disabled={!category}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sin subcategoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sin subcategoría</SelectItem>
+                    {availableSubcategories.map((subcategory) => (
+                      <SelectItem key={subcategory.id} value={subcategory.id}>
+                        {subcategory.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
 
           <div>
-            <label className="text-sm font-medium mb-1 block">Subcategoría</label>
-            <Select
-              value={subcategoryId}
-              onValueChange={(value) => setSubcategoryId(value ?? "__none__")}
-              disabled={!category}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Sin subcategoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Sin subcategoría</SelectItem>
-                {availableSubcategories.map((subcategory) => (
-                  <SelectItem key={subcategory.id} value={subcategory.id}>
-                    {subcategory.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-1 block">Cuenta</label>
+            <label className="text-sm font-medium mb-1 block">
+              {isTransfer ? "Cuenta de origen" : "Cuenta"}
+            </label>
             <Select value={account} onValueChange={(v) => setAccount(v ?? "")}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Seleccionar cuenta" />
@@ -155,6 +176,26 @@ export default function EditTransactionModal({
             </Select>
           </div>
 
+          {isTransfer && (
+            <div>
+              <label className="text-sm font-medium mb-1 block">Cuenta destino</label>
+              <Select value={accountDestination} onValueChange={(v) => setAccountDestination(v ?? "")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar cuenta destino" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts
+                    .filter((a) => a.name !== account)
+                    .map((a) => (
+                      <SelectItem key={a.id} value={a.name}>
+                        {a.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div>
             <label className="text-sm font-medium mb-1 block">Fecha</label>
             <input
@@ -168,7 +209,7 @@ export default function EditTransactionModal({
           <Button
             className="w-full"
             onClick={handleSave}
-            disabled={updateMutation.isPending}
+            disabled={updateMutation.isPending || (isTransfer && !accountDestination)}
           >
             {updateMutation.isPending && (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
