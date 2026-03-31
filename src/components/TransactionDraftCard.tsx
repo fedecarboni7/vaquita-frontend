@@ -11,6 +11,7 @@ interface Props {
 
 const FIELD_LABELS: Record<string, string> = {
   amount: "Monto",
+  installment_amount: "Monto por cuota",
   description: "Descripción",
   type: "Tipo",
   account: "Cuenta",
@@ -24,6 +25,7 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 const EXCLUDED_FIELDS = new Set(["subcategory_id"]);
+const READ_ONLY_FIELDS = new Set(["installment_amount"]);
 const CURRENCY_OPTIONS: CurrencyCode[] = ["ARS", "USD", "EUR"];
 
 export default function TransactionDraftCard({ data, onCancel }: Props) {
@@ -173,7 +175,7 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
                   </option>
                 ))}
               </select>
-            ) : isEditing ? (
+            ) : isEditing && !READ_ONLY_FIELDS.has(key) ? (
               <input
                 type={key === "amount" ? "number" : "text"}
                 value={String(value ?? "")}
