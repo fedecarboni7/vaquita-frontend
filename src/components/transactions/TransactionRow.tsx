@@ -42,12 +42,13 @@ export default function TransactionRow({
   onEdit,
   onDelete,
 }: Props) {
+  const categoryLabel = transaction.category_name ?? transaction.category ?? null;
   // Parse date safely, splitting YYYY-MM-DD to avoid timezone shifts
   const [year, month, day] = transaction.expense_date.split("-").map(Number);
   const d = new Date(year, month - 1, day);
   const dateStr = d.toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
 
-  const label = transaction.description || transaction.category || "Sin descripción";
+  const label = transaction.description || categoryLabel || "Sin descripción";
 
   return (
     <tr onClick={() => onSelect(transaction)} className="cursor-pointer">
@@ -57,9 +58,9 @@ export default function TransactionRow({
         {transaction.note && <div className="note">{transaction.note}</div>}
       </td>
       <td>
-        {transaction.category && (
-          <span className={`tag ${getCategoryTagClass(transaction.category)}`}>
-            {transaction.category}
+        {categoryLabel && (
+          <span className={`tag ${getCategoryTagClass(categoryLabel)}`}>
+            {categoryLabel}
           </span>
         )}
       </td>

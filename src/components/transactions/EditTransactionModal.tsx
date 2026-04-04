@@ -33,7 +33,7 @@ export default function EditTransactionModal({
   const isTransfer = transaction.type === "transfer";
   const [amount, setAmount] = useState(String(transaction.amount));
   const [description, setDescription] = useState(transaction.description || "");
-  const [category, setCategory] = useState(transaction.category || "");
+  const [categoryId, setCategoryId] = useState(transaction.category_id || "__none__");
   const [subcategoryId, setSubcategoryId] = useState(transaction.subcategory_id || "__none__");
   const [account, setAccount] = useState(transaction.account);
   const [accountDestination, setAccountDestination] = useState(transaction.account_destination || "");
@@ -45,10 +45,22 @@ export default function EditTransactionModal({
   const { data: categories = [] } = useCategories();
 
   const selectedCategory = useMemo(
-    () => categories.find((item) => item.name === category) ?? null,
-    [categories, category],
+    () => categories.find((item) => item.id === categoryId) ?? null,
+    [categories, categoryId],
   );
   const availableSubcategories = selectedCategory?.subcategories ?? [];
+  const selectedCategoryLabel = useMemo(() => {
+    if (categoryId === "__none__") return "";
+    return selectedCategory?.name ?? transaction.category_name ?? "";
+  }, [categoryId, selectedCategory?.name, transaction.category_name]);
+  const selectedSubcategoryLabel = useMemo(() => {
+    if (subcategoryId === "__none__") return "";
+    return (
+      availableSubcategories.find((item) => item.id === subcategoryId)?.name ??
+      transaction.subcategory_name ??
+      ""
+    );
+  }, [availableSubcategories, subcategoryId, transaction.subcategory_name]);
 
   const handleSave = () => {
     const commonData = {
@@ -61,14 +73,14 @@ export default function EditTransactionModal({
 
     const transferData = {
       ...commonData,
-      category: null,
+      category_id: null,
       subcategory_id: null,
       account_destination: accountDestination || null,
     };
 
     const defaultData = {
       ...commonData,
-      category: category || null,
+      category_id: categoryId === "__none__" ? null : categoryId,
       subcategory_id: subcategoryId === "__none__" ? null : subcategoryId,
     };
 
@@ -118,18 +130,21 @@ export default function EditTransactionModal({
               <div>
                 <label className="text-sm font-medium mb-1 block">Categoría</label>
                 <Select
-                  value={category}
+                  value={categoryId}
                   onValueChange={(value) => {
-                    setCategory(value ?? "");
+                    setCategoryId(value ?? "__none__");
                     setSubcategoryId("__none__");
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Seleccionar categoría" />
+                    <SelectValue placeholder="Seleccionar categoría">
+                      {selectedCategoryLabel || undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__none__">Sin categoría</SelectItem>
                     {categories.map((c) => (
-                      <SelectItem key={c.id} value={c.name}>
+                      <SelectItem key={c.id} value={c.id}>
                         {c.name}
                       </SelectItem>
                     ))}
@@ -142,10 +157,12 @@ export default function EditTransactionModal({
                 <Select
                   value={subcategoryId}
                   onValueChange={(value) => setSubcategoryId(value ?? "__none__")}
-                  disabled={!category}
+                  disabled={categoryId === "__none__"}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sin subcategoría" />
+                    <SelectValue placeholder="Sin subcategoría">
+                      {selectedSubcategoryLabel || undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Sin subcategoría</SelectItem>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Loader2, Upload } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -218,18 +218,6 @@ export default function SettingsPage() {
           Datos
         </div>
         <div className="rounded-lg border border-border bg-card divide-y divide-border">
-          <div className="flex flex-col items-start gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-[13.5px]">Importar registros</div>
-              <div className="text-xs text-muted-foreground mt-0.5">
-                Desde archivo CSV
-              </div>
-            </div>
-            <Button variant="outline" size="sm" disabled>
-              <Upload className="h-3.5 w-3.5 mr-1.5" />
-              Importar
-            </Button>
-          </div>
           <div className="flex flex-col items-start gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-[13.5px] text-destructive">

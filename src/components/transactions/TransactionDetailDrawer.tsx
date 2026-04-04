@@ -55,7 +55,7 @@ function DetailContent({
       value: `${transaction.currency} ${transaction.amount.toLocaleString("es-AR")}`,
     },
     { label: "Descripción", value: transaction.description },
-    { label: "Categoría", value: transaction.category },
+    { label: "Categoría", value: transaction.category_name ?? transaction.category },
     { label: "Subcategoría", value: transaction.subcategory_name },
     { label: "Cuenta", value: transaction.account },
     { label: "Cuenta destino", value: transaction.account_destination },
