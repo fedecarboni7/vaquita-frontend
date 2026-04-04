@@ -13,9 +13,11 @@ export interface Transaction {
   type: TransactionType;
   amount: number;
   currency: CurrencyCode;
-  category: string | null;
-  account: string;
-  description: string;
+  category_id: string | null;
+  category_name: string | null;
+  category?: string | null;
+  account: string | null;
+  description: string | null;
   expense_date: string; // 'YYYY-MM-DD'
   subcategory_id: string | null;
   subcategory_name: string | null;

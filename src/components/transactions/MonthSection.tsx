@@ -88,7 +88,8 @@ export default function MonthSection({
       ) : (
         <div className="space-y-2.5">
           {transactions.map((t) => {
-            const label = t.description || t.category || "Sin descripción";
+            const categoryLabel = t.category_name ?? t.category ?? null;
+            const label = t.description || categoryLabel || "Sin descripción";
             return (
               <article
                 key={t.id}
@@ -151,9 +152,9 @@ export default function MonthSection({
                   </div>
                 ) : (
                   <div className="mt-2 flex items-center gap-2 flex-wrap min-w-0">
-                    {t.category && (
-                      <span className={`tag ${getCategoryTagClass(t.category)}`}>
-                        {t.category}
+                    {categoryLabel && (
+                      <span className={`tag ${getCategoryTagClass(categoryLabel)}`}>
+                        {categoryLabel}
                       </span>
                     )}
                     <span className="text-xs text-muted-foreground truncate max-w-full">
