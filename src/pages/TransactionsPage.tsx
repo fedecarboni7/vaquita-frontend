@@ -80,7 +80,7 @@ export default function TransactionsPage() {
     return transactions.filter(t => 
       t.description?.toLowerCase().includes(lowerSearch) ||
       t.note?.toLowerCase().includes(lowerSearch) ||
-      t.category?.toLowerCase().includes(lowerSearch) ||
+      (t.category_name ?? t.category)?.toLowerCase().includes(lowerSearch) ||
       t.account?.toLowerCase().includes(lowerSearch)
     );
   }, [transactions, search]);
