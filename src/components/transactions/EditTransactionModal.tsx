@@ -49,6 +49,18 @@ export default function EditTransactionModal({
     [categories, categoryId],
   );
   const availableSubcategories = selectedCategory?.subcategories ?? [];
+  const selectedCategoryLabel = useMemo(() => {
+    if (categoryId === "__none__") return "";
+    return selectedCategory?.name ?? transaction.category_name ?? "";
+  }, [categoryId, selectedCategory?.name, transaction.category_name]);
+  const selectedSubcategoryLabel = useMemo(() => {
+    if (subcategoryId === "__none__") return "";
+    return (
+      availableSubcategories.find((item) => item.id === subcategoryId)?.name ??
+      transaction.subcategory_name ??
+      ""
+    );
+  }, [availableSubcategories, subcategoryId, transaction.subcategory_name]);
 
   const handleSave = () => {
     const commonData = {
@@ -125,7 +137,9 @@ export default function EditTransactionModal({
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Seleccionar categoría" />
+                    <SelectValue placeholder="Seleccionar categoría">
+                      {selectedCategoryLabel || undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Sin categoría</SelectItem>
@@ -146,7 +160,9 @@ export default function EditTransactionModal({
                   disabled={categoryId === "__none__"}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sin subcategoría" />
+                    <SelectValue placeholder="Sin subcategoría">
+                      {selectedSubcategoryLabel || undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Sin subcategoría</SelectItem>
