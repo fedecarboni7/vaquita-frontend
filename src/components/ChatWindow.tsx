@@ -28,7 +28,7 @@ export default function ChatWindow({ messages, isProcessing = false, onDraftCanc
       {isProcessing && (
         <div className="flex justify-start">
           <div className="bg-gray-700 text-white rounded-lg px-4 py-3 max-w-[92%] sm:max-w-[80%]">
-            <span className="sr-only">El asistente esta escribiendo</span>
+            <span className="sr-only">El asistente está escribiendo</span>
             <div className="flex items-center gap-1" aria-hidden="true">
               <span
                 className="h-2 w-2 rounded-full bg-gray-300 animate-bounce"

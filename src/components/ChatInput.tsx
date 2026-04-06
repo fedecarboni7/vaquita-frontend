@@ -38,7 +38,7 @@ export default function ChatInput({ onSend, onSendAudio, onStop, isProcessing = 
     try {
       await start();
     } catch {
-      setRecorderError("No se pudo iniciar la grabacion");
+      setRecorderError("No se pudo iniciar la grabación");
     }
   };
 
@@ -74,7 +74,7 @@ export default function ChatInput({ onSend, onSendAudio, onStop, isProcessing = 
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Ej: Gaste 500 en el super..."
+          placeholder="Ej: Gasté 500 en el super con Mercado Pago..."
           disabled={isProcessing}
           className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
         />
@@ -82,7 +82,7 @@ export default function ChatInput({ onSend, onSendAudio, onStop, isProcessing = 
           type="button"
           onClick={handleMicClick}
           disabled={isProcessing}
-          aria-label={isRecording ? "Detener grabacion" : "Iniciar grabacion"}
+          aria-label={isRecording ? "Detener grabación" : "Iniciar grabación"}
           className={
             isRecording
               ? "bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg disabled:opacity-50"
