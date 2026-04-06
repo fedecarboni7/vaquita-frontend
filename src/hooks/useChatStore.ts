@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiFetch } from "../api";
 
@@ -24,11 +24,13 @@ interface ChatRequestMessage {
 
 interface TextMutationPayload {
   messages: ChatRequestMessage[];
+  signal: AbortSignal;
 }
 
 interface AudioMutationPayload {
   audioBlob: Blob;
   messages: ChatRequestMessage[];
+  signal: AbortSignal;
 }
 
 const CHAT_HISTORY_LIMIT = 5;
@@ -63,18 +65,31 @@ function buildErrorMessage(): ChatMessage {
   };
 }
 
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    (error as { name?: string }).name === "AbortError"
+  );
+}
+
 export function useChatStore() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const textMutation = useMutation({
-    mutationFn: ({ messages: requestMessages }: TextMutationPayload) =>
+    mutationFn: ({ messages: requestMessages, signal }: TextMutationPayload) =>
       apiFetch<ChatResponse>("/chat", {
         method: "POST",
         body: JSON.stringify({ messages: requestMessages }),
+        signal,
       }),
   });
 
   const audioMutation = useMutation({
-    mutationFn: ({ audioBlob, messages: requestMessages }: AudioMutationPayload) => {
+    mutationFn: ({ audioBlob, messages: requestMessages, signal }: AudioMutationPayload) => {
       const formData = new FormData();
       formData.append("audio", audioBlob, "voice-message.webm");
       if (requestMessages.length > 0) {
@@ -84,16 +99,47 @@ export function useChatStore() {
       return apiFetch<ChatResponse>("/chat/audio", {
         method: "POST",
         body: formData,
+        signal,
       });
     },
   });
 
-  const isLoading = textMutation.isPending || audioMutation.isPending;
+  const beginProcessing = useCallback(() => {
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    setIsProcessing(true);
+    return controller;
+  }, []);
+
+  const finishProcessing = useCallback((controller: AbortController) => {
+    if (abortControllerRef.current !== controller) {
+      return;
+    }
+
+    abortControllerRef.current = null;
+    setIsProcessing(false);
+  }, []);
+
+  const stopProcessing = useCallback(() => {
+    const activeController = abortControllerRef.current;
+    if (activeController) {
+      activeController.abort();
+      abortControllerRef.current = null;
+    }
+
+    setIsProcessing(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
-      if (!trimmed || isLoading) {
+      if (!trimmed || isProcessing) {
         return;
       }
 
@@ -105,32 +151,43 @@ export function useChatStore() {
 
       const allMessages = [...messages, userMsg];
       const historyWindow = toRequestMessages(allMessages.slice(-CHAT_HISTORY_LIMIT));
+      const controller = beginProcessing();
 
       setMessages((prev) => [...prev, userMsg]);
 
       try {
         const response = await textMutation.mutateAsync({
           messages: historyWindow,
+          signal: controller.signal,
         });
         setMessages((prev) => [...prev, buildAssistantMessage(response)]);
-      } catch {
+      } catch (error) {
+        if (isAbortError(error)) {
+          return;
+        }
+
         setMessages((prev) => [...prev, buildErrorMessage()]);
+      } finally {
+        finishProcessing(controller);
       }
     },
-    [isLoading, messages, textMutation],
+    [beginProcessing, finishProcessing, isProcessing, messages, textMutation],
   );
 
   const sendAudioMessage = useCallback(
     async (audioBlob: Blob) => {
-      if (isLoading || !audioBlob || audioBlob.size === 0) {
+      if (isProcessing || !audioBlob || audioBlob.size === 0) {
         return;
       }
+
+      const controller = beginProcessing();
 
       try {
         const historyWindow = toRequestMessages(messages.slice(-AUDIO_HISTORY_LIMIT));
         const response = await audioMutation.mutateAsync({
           audioBlob,
           messages: historyWindow,
+          signal: controller.signal,
         });
 
         const transcribedText = (response.transcribed_text ?? "").trim();
@@ -144,12 +201,25 @@ export function useChatStore() {
         }
 
         setMessages((prev) => [...prev, buildAssistantMessage(response)]);
-      } catch {
+      } catch (error) {
+        if (isAbortError(error)) {
+          return;
+        }
+
         setMessages((prev) => [...prev, buildErrorMessage()]);
+      } finally {
+        finishProcessing(controller);
       }
     },
-    [audioMutation, isLoading, messages],
+    [audioMutation, beginProcessing, finishProcessing, isProcessing, messages],
   );
 
-  return { messages, isLoading, sendMessage, sendAudioMessage, setMessages };
+  return {
+    messages,
+    isProcessing,
+    sendMessage,
+    sendAudioMessage,
+    stopProcessing,
+    setMessages,
+  };
 }
