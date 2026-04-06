@@ -6,6 +6,7 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  input_source?: "text" | "audio";
   response_type?: string;
   data?: Record<string, unknown> | null;
 }
@@ -147,6 +148,7 @@ export function useChatStore() {
         id: crypto.randomUUID(),
         role: "user",
         content: trimmed,
+        input_source: "text",
       };
 
       const allMessages = [...messages, userMsg];
@@ -196,6 +198,7 @@ export function useChatStore() {
             id: crypto.randomUUID(),
             role: "user",
             content: transcribedText,
+            input_source: "audio",
           };
           setMessages((prev) => [...prev, userMsg]);
         }
