@@ -4,12 +4,19 @@ import ChatInput from "../components/ChatInput";
 import { useChatStore } from "../hooks/useChatStore";
 
 export default function ChatPage() {
-  const { messages, isLoading, sendMessage, setMessages } = useChatStore();
+  const {
+    messages,
+    isProcessing,
+    sendMessage,
+    sendAudioMessage,
+    stopProcessing,
+    setMessages,
+  } = useChatStore();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [isProcessing, messages]);
 
   const handleDraftCancel = (messageId: string) => {
     setMessages((prev) => prev.filter((m) => m.id !== messageId));
@@ -24,12 +31,18 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto p-4">
         <ChatWindow
           messages={messages}
+          isProcessing={isProcessing}
           onDraftCancel={handleDraftCancel}
         />
         <div ref={bottomRef} />
       </div>
 
-      <ChatInput onSend={sendMessage} isLoading={isLoading} />
+      <ChatInput
+        onSend={sendMessage}
+        onSendAudio={sendAudioMessage}
+        onStop={stopProcessing}
+        isProcessing={isProcessing}
+      />
     </div>
   );
 }
