@@ -18,7 +18,7 @@ export default function ChatMessage({ message, onDraftCancel }: Props) {
           {isAudioTranscription && (
             <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-blue-500/70 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-blue-50">
               <Mic size={12} />
-              <span>Transcripcion de audio</span>
+              <span>Transcripción de audio</span>
             </div>
           )}
           <p className={isAudioTranscription ? "italic text-blue-50" : undefined}>

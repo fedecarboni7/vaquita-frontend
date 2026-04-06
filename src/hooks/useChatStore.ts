@@ -61,7 +61,7 @@ function buildErrorMessage(): ChatMessage {
   return {
     id: crypto.randomUUID(),
     role: "assistant",
-    content: "Error al procesar el mensaje. Intenta de nuevo.",
+    content: "Error al procesar el mensaje. Intentá de nuevo.",
     response_type: "answer",
   };
 }
