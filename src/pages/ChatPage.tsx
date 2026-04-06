@@ -4,7 +4,7 @@ import ChatInput from "../components/ChatInput";
 import { useChatStore } from "../hooks/useChatStore";
 
 export default function ChatPage() {
-  const { messages, isLoading, sendMessage, setMessages } = useChatStore();
+  const { messages, isLoading, sendMessage, sendAudioMessage, setMessages } = useChatStore();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      <ChatInput onSend={sendMessage} isLoading={isLoading} />
+      <ChatInput onSend={sendMessage} onSendAudio={sendAudioMessage} isLoading={isLoading} />
     </div>
   );
 }

@@ -5,9 +5,11 @@ export async function apiFetch<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const token = localStorage.getItem("access_token");
+  const isFormDataBody =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
 
   const headers: HeadersInit = {
-    "Content-Type": "application/json",
+    ...(isFormDataBody ? {} : { "Content-Type": "application/json" }),
     ...options.headers,
   };
 
