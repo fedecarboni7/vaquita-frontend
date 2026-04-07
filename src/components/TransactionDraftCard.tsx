@@ -8,7 +8,6 @@ import type { Category, CurrencyCode, TransactionType } from "@/types/transactio
 
 interface Props {
   data: Record<string, unknown>;
-  onCancel?: () => void;
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -82,7 +81,7 @@ function getCurrentLocalDateISO(): string {
   return localDate.toISOString().split("T")[0];
 }
 
-export default function TransactionDraftCard({ data, onCancel }: Props) {
+export default function TransactionDraftCard({ data }: Props) {
   const queryClient = useQueryClient();
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
@@ -107,7 +106,7 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
 
     return normalized;
   });
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error" | "cancelled">("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   const selectedType = normalizeTransactionType(editData.type);
@@ -287,6 +286,14 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
     return (
       <div className="border border-green-600 rounded-lg p-3 bg-green-900/30 text-green-300">
         ✓ Transacción guardada
+      </div>
+    );
+  }
+
+  if (status === "cancelled") {
+    return (
+      <div className="border border-red-600 rounded-lg p-3 bg-red-900/30 text-red-300">
+        ✗ Registro cancelado
       </div>
     );
   }
@@ -534,7 +541,7 @@ export default function TransactionDraftCard({ data, onCancel }: Props) {
           {isEditing ? "Listo" : "Editar"}
         </button>
         <button
-          onClick={onCancel}
+          onClick={() => setStatus("cancelled")}
           className="bg-red-700 hover:bg-red-600 text-white text-sm px-3 py-1 rounded"
         >
           Cancelar

@@ -4,10 +4,9 @@ import TransactionDraftCard from "./TransactionDraftCard";
 
 interface Props {
   message: ChatMessageType;
-  onDraftCancel?: () => void;
 }
 
-export default function ChatMessage({ message, onDraftCancel }: Props) {
+export default function ChatMessage({ message }: Props) {
   const isUser = message.role === "user";
   const isAudioTranscription = isUser && message.input_source === "audio";
 
@@ -37,10 +36,7 @@ export default function ChatMessage({ message, onDraftCancel }: Props) {
           <div className="bg-gray-700 text-white rounded-lg px-4 py-2 mb-2 break-words whitespace-pre-wrap">
             {message.content}
           </div>
-          <TransactionDraftCard
-            data={message.data}
-            onCancel={onDraftCancel}
-          />
+          <TransactionDraftCard data={message.data} />
         </div>
       </div>
     );

@@ -10,17 +10,12 @@ export default function ChatPage() {
     sendMessage,
     sendAudioMessage,
     stopProcessing,
-    setMessages,
   } = useChatStore();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [isProcessing, messages]);
-
-  const handleDraftCancel = (messageId: string) => {
-    setMessages((prev) => prev.filter((m) => m.id !== messageId));
-  };
 
   return (
     <div className="flex flex-col h-full">
@@ -32,7 +27,6 @@ export default function ChatPage() {
         <ChatWindow
           messages={messages}
           isProcessing={isProcessing}
-          onDraftCancel={handleDraftCancel}
         />
         <div ref={bottomRef} />
       </div>
