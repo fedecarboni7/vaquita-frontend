@@ -4,10 +4,9 @@ import type { ChatMessage as ChatMessageType } from "../hooks/useChatStore";
 interface Props {
   messages: ChatMessageType[];
   isProcessing?: boolean;
-  onDraftCancel?: (messageId: string) => void;
 }
 
-export default function ChatWindow({ messages, isProcessing = false, onDraftCancel }: Props) {
+export default function ChatWindow({ messages, isProcessing = false }: Props) {
   if (messages.length === 0 && !isProcessing) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500">
@@ -22,7 +21,6 @@ export default function ChatWindow({ messages, isProcessing = false, onDraftCanc
         <ChatMessage
           key={msg.id}
           message={msg}
-          onDraftCancel={() => onDraftCancel?.(msg.id)}
         />
       ))}
       {isProcessing && (
