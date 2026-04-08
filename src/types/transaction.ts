@@ -39,6 +39,11 @@ export interface Account {
   name: string;
   account_type: AccountTypeCode;
   currency: CurrencyCode;
+  include_in_total: boolean;
+  billing_period_start?: string | null;
+  billing_period_end?: string | null;
+  payment_due_date?: string | null;
+  closed_period_balance?: number | null;
   balance: number;
   created_at: string;
 }

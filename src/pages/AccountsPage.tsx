@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -19,7 +19,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useAccounts, useCreateAccount, useDeleteAccount, useUpdateAccount } from "@/hooks/useAccounts";
+import {
+  useAccounts,
+  useAdjustAccountBalance,
+  useCreateAccount,
+  useDeleteAccount,
+  useUpdateAccount,
+} from "@/hooks/useAccounts";
 import type { Account, AccountTypeCode, CurrencyCode } from "@/types/transaction";
 
 const CARD_ACCENTS = ["bg-emerald-500", "bg-sky-500", "bg-amber-500", "bg-rose-500", "bg-teal-500"];
@@ -47,25 +53,72 @@ function formatMoney(amount: number, currency: CurrencyCode): string {
   }).format(amount);
 }
 
+function parseLocalDate(iso: string): Date {
+  const [year, month, day] = iso.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function formatIsoDate(value: string): string {
+  return parseLocalDate(value).toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function toNullableDate(value: string): string | null {
+  return value.trim() ? value.trim() : null;
+}
+
+function parseBalanceInput(value: string): number | null {
+  const normalized = value.trim().replace(",", ".");
+  if (!normalized) return null;
+
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export default function AccountsPage() {
   const { data: accounts = [], isLoading, isError, refetch } = useAccounts();
   const createMutation = useCreateAccount();
   const updateMutation = useUpdateAccount();
   const deleteMutation = useDeleteAccount();
+  const adjustMutation = useAdjustAccountBalance();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<AccountTypeCode>("savings");
   const [newCurrency, setNewCurrency] = useState<CurrencyCode>("ARS");
+  const [newIncludeInTotal, setNewIncludeInTotal] = useState(true);
+  const [newBillingPeriodStart, setNewBillingPeriodStart] = useState("");
+  const [newBillingPeriodEnd, setNewBillingPeriodEnd] = useState("");
+  const [newPaymentDueDate, setNewPaymentDueDate] = useState("");
   const [editTarget, setEditTarget] = useState<Account | null>(null);
   const [editName, setEditName] = useState("");
   const [editType, setEditType] = useState<AccountTypeCode>("savings");
   const [editCurrency, setEditCurrency] = useState<CurrencyCode>("ARS");
+  const [editIncludeInTotal, setEditIncludeInTotal] = useState(true);
+  const [editBillingPeriodStart, setEditBillingPeriodStart] = useState("");
+  const [editBillingPeriodEnd, setEditBillingPeriodEnd] = useState("");
+  const [editPaymentDueDate, setEditPaymentDueDate] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Account | null>(null);
+  const [adjustTarget, setAdjustTarget] = useState<Account | null>(null);
+  const [adjustBalance, setAdjustBalance] = useState("");
 
   const totalsByCurrency = useMemo(() => {
-    return accounts.reduce<Record<CurrencyCode, number>>(
+    return accounts
+      .filter((account) => account.include_in_total)
+      .reduce<Record<CurrencyCode, number>>(
       (acc, account) => {
         acc[account.currency] += account.balance;
         return acc;
@@ -75,7 +128,9 @@ export default function AccountsPage() {
   }, [accounts]);
 
   const totalsVisible = useMemo(() => {
-    const countsByCurrency = accounts.reduce<Record<CurrencyCode, number>>(
+    const countsByCurrency = accounts
+      .filter((account) => account.include_in_total)
+      .reduce<Record<CurrencyCode, number>>(
       (acc, account) => {
         acc[account.currency] += 1;
         return acc;
@@ -98,11 +153,19 @@ export default function AccountsPage() {
       name: trimmed,
       account_type: newType,
       currency: newCurrency,
+      include_in_total: newIncludeInTotal,
+      billing_period_start: newType === "credit_card" ? toNullableDate(newBillingPeriodStart) : null,
+      billing_period_end: newType === "credit_card" ? toNullableDate(newBillingPeriodEnd) : null,
+      payment_due_date: newType === "credit_card" ? toNullableDate(newPaymentDueDate) : null,
     }, {
       onSuccess: () => {
         setNewName("");
         setNewType("savings");
         setNewCurrency("ARS");
+        setNewIncludeInTotal(true);
+        setNewBillingPeriodStart("");
+        setNewBillingPeriodEnd("");
+        setNewPaymentDueDate("");
         setCreateOpen(false);
       },
     });
@@ -121,7 +184,17 @@ export default function AccountsPage() {
     setEditName(account.name);
     setEditType(account.account_type);
     setEditCurrency(account.currency);
+    setEditIncludeInTotal(account.include_in_total);
+    setEditBillingPeriodStart(account.billing_period_start ?? "");
+    setEditBillingPeriodEnd(account.billing_period_end ?? "");
+    setEditPaymentDueDate(account.payment_due_date ?? "");
     setEditOpen(true);
+  };
+
+  const openAdjust = (account: Account) => {
+    setAdjustTarget(account);
+    setAdjustBalance(account.balance.toFixed(2));
+    setAdjustOpen(true);
   };
 
   const handleEdit = (e: React.FormEvent) => {
@@ -135,6 +208,10 @@ export default function AccountsPage() {
         name: trimmed,
         account_type: editType,
         currency: editCurrency,
+        include_in_total: editIncludeInTotal,
+        billing_period_start: editType === "credit_card" ? toNullableDate(editBillingPeriodStart) : null,
+        billing_period_end: editType === "credit_card" ? toNullableDate(editBillingPeriodEnd) : null,
+        payment_due_date: editType === "credit_card" ? toNullableDate(editPaymentDueDate) : null,
       },
       {
         onSuccess: () => {
@@ -144,6 +221,29 @@ export default function AccountsPage() {
       },
     );
   };
+
+  const handleAdjust = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adjustTarget) return;
+
+    const parsedBalance = parseBalanceInput(adjustBalance);
+    if (parsedBalance == null) return;
+
+    adjustMutation.mutate(
+      {
+        id: adjustTarget.id,
+        balance: parsedBalance,
+      },
+      {
+        onSuccess: () => {
+          setAdjustOpen(false);
+          setAdjustTarget(null);
+        },
+      },
+    );
+  };
+
+  const parsedAdjustBalance = parseBalanceInput(adjustBalance);
 
   return (
     <div className="space-y-6">
@@ -224,26 +324,54 @@ export default function AccountsPage() {
                     <div className="text-[12px] text-muted-foreground mb-1">
                       {ACCOUNT_TYPE_LABELS[account.account_type]} · {account.currency}
                     </div>
+                    {!account.include_in_total && (
+                      <div className="text-[11.5px] text-amber-600 mb-1">
+                        Excluida del saldo total
+                      </div>
+                    )}
+                    {account.account_type === "credit_card" && (
+                      <>
+                        <div className="text-[11.5px] text-muted-foreground mb-1">
+                          {account.billing_period_start && account.billing_period_end
+                            ? `Periodo: ${formatIsoDate(account.billing_period_start)} - ${formatIsoDate(account.billing_period_end)} · ${account.closed_period_balance != null ? formatMoney(account.closed_period_balance, account.currency) : "-"}`
+                            : "Periodo sin configurar"}
+                        </div>
+                        <div className="text-[11.5px] text-muted-foreground mb-1">
+                          {account.payment_due_date
+                            ? `Vence: ${formatIsoDate(account.payment_due_date)}`
+                            : "Vencimiento sin configurar"}
+                        </div>
+                      </>
+                    )}
                     <div className="mt-2 text-xs text-muted-foreground/60">
                       Creada{" "}
-                      {new Date(account.created_at).toLocaleDateString("es-AR", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                      {formatDateTime(account.created_at)}
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="text-muted-foreground hover:text-destructive"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setDeleteTarget(account);
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-muted-foreground"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openAdjust(account);
+                      }}
+                    >
+                      <Scale className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setDeleteTarget(account);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             );
@@ -277,7 +405,11 @@ export default function AccountsPage() {
                 </label>
                 <select
                   value={newType}
-                  onChange={(event) => setNewType(event.target.value as AccountTypeCode)}
+                  onChange={(event) => {
+                    const value = event.target.value as AccountTypeCode;
+                    setNewType(value);
+                    setNewIncludeInTotal(value === "credit_card" ? false : true);
+                  }}
                   className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
                 >
                   {ACCOUNT_TYPE_OPTIONS.map((option) => (
@@ -304,6 +436,54 @@ export default function AccountsPage() {
                 </select>
               </div>
             </div>
+            <div className="mb-4 rounded-lg border border-border bg-card px-3 py-2.5">
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={newIncludeInTotal}
+                  onChange={(event) => setNewIncludeInTotal(event.target.checked)}
+                  className="h-4 w-4"
+                />
+                Incluir en saldo total
+              </label>
+            </div>
+            {newType === "credit_card" && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div>
+                  <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
+                    Inicio periodo
+                  </label>
+                  <input
+                    type="date"
+                    value={newBillingPeriodStart}
+                    onChange={(event) => setNewBillingPeriodStart(event.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
+                    Cierre periodo
+                  </label>
+                  <input
+                    type="date"
+                    value={newBillingPeriodEnd}
+                    onChange={(event) => setNewBillingPeriodEnd(event.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
+                    Vencimiento
+                  </label>
+                  <input
+                    type="date"
+                    value={newPaymentDueDate}
+                    onChange={(event) => setNewPaymentDueDate(event.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
+                  />
+                </div>
+              </div>
+            )}
             <DialogFooter>
               <Button
                 type="button"
@@ -312,7 +492,10 @@ export default function AccountsPage() {
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={!newName.trim() || createMutation.isPending}>
+              <Button
+                type="submit"
+                disabled={!newName.trim() || createMutation.isPending}
+              >
                 {createMutation.isPending && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
@@ -384,6 +567,54 @@ export default function AccountsPage() {
                 </select>
               </div>
             </div>
+            <div className="mb-4 rounded-lg border border-border bg-card px-3 py-2.5">
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={editIncludeInTotal}
+                  onChange={(event) => setEditIncludeInTotal(event.target.checked)}
+                  className="h-4 w-4"
+                />
+                Incluir en saldo total
+              </label>
+            </div>
+            {editType === "credit_card" && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div>
+                  <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
+                    Inicio periodo
+                  </label>
+                  <input
+                    type="date"
+                    value={editBillingPeriodStart}
+                    onChange={(event) => setEditBillingPeriodStart(event.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
+                    Cierre periodo
+                  </label>
+                  <input
+                    type="date"
+                    value={editBillingPeriodEnd}
+                    onChange={(event) => setEditBillingPeriodEnd(event.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
+                    Vencimiento
+                  </label>
+                  <input
+                    type="date"
+                    value={editPaymentDueDate}
+                    onChange={(event) => setEditPaymentDueDate(event.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
+                  />
+                </div>
+              </div>
+            )}
             <DialogFooter>
               <Button
                 type="button"
@@ -397,12 +628,74 @@ export default function AccountsPage() {
               </Button>
               <Button
                 type="submit"
-                disabled={!editName.trim() || updateMutation.isPending || !editTarget}
+                disabled={
+                  !editName.trim()
+                  || updateMutation.isPending
+                  || !editTarget
+                }
               >
                 {updateMutation.isPending && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
                 Guardar cambios
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={adjustOpen}
+        onOpenChange={(open) => {
+          setAdjustOpen(open);
+          if (!open) {
+            setAdjustTarget(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajustar saldo</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAdjust}>
+            <div className="text-sm text-muted-foreground mb-1">
+              Cuenta: <span className="text-foreground">{adjustTarget?.name}</span>
+            </div>
+            <div className="text-sm text-muted-foreground mb-4">
+              Saldo calculado: {adjustTarget ? formatMoney(adjustTarget.balance, adjustTarget.currency) : "-"}
+            </div>
+            <div className="mb-4">
+              <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
+                Saldo real actual
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={adjustBalance}
+                onChange={(event) => setAdjustBalance(event.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setAdjustOpen(false);
+                  setAdjustTarget(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={adjustMutation.isPending || !adjustTarget || parsedAdjustBalance == null}
+              >
+                {adjustMutation.isPending && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                )}
+                Aplicar ajuste
               </Button>
             </DialogFooter>
           </form>
