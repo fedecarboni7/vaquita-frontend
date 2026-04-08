@@ -6,10 +6,24 @@ interface AccountCreatePayload {
   name: string;
   account_type: AccountTypeCode;
   currency: CurrencyCode;
+  include_in_total?: boolean;
+  billing_period_start?: string | null;
+  billing_period_end?: string | null;
+  payment_due_date?: string | null;
 }
 
 interface AccountUpdatePayload extends AccountCreatePayload {
   id: string;
+}
+
+interface AccountAdjustPayload {
+  id: string;
+  balance: number;
+}
+
+interface AccountAdjustResponse {
+  applied: boolean;
+  delta: number;
 }
 
 export function useAccounts() {
@@ -51,6 +65,21 @@ export function useUpdateAccount() {
       apiFetch<Account>(`/accounts/${id}`, {
         method: "PUT",
         body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}
+
+export function useAdjustAccountBalance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, balance }: AccountAdjustPayload) =>
+      apiFetch<AccountAdjustResponse>(`/accounts/${id}/adjust`, {
+        method: "POST",
+        body: JSON.stringify({ balance }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
