@@ -13,6 +13,7 @@ export interface Transaction {
   type: TransactionType;
   amount: number;
   currency: CurrencyCode;
+  account_id: string | null;
   category_id: string | null;
   category_name: string | null;
   category?: string | null;
@@ -23,6 +24,7 @@ export interface Transaction {
   subcategory_name: string | null;
   note?: string | null;
   installments?: number | null;
+  account_destination_id?: string | null;
   account_destination?: string | null;
   created_at: string;
   updated_at: string;

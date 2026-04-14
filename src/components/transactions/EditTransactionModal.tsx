@@ -126,10 +126,18 @@ export default function EditTransactionModal({
   };
 
   const handleSave = () => {
+    const selectedSourceAccount = accounts.find((item) => item.name === account);
+    const selectedDestinationAccount = accounts.find((item) => item.name === accountDestination);
+    const resolvedAccountId = selectedSourceAccount?.id ?? transaction.account_id;
+
+    if (!resolvedAccountId) {
+      return;
+    }
+
     const commonData = {
       amount: parseFloat(amount),
       description,
-      account,
+      account_id: resolvedAccountId,
       expense_date: expenseDate || getCurrentLocalDateISO(),
       currency,
       type: transactionType,
@@ -141,7 +149,8 @@ export default function EditTransactionModal({
       category_id: null,
       subcategory_id: null,
       installments: null,
-      account_destination: accountDestination || null,
+      account_destination_id:
+        (selectedDestinationAccount?.id ?? transaction.account_destination_id) || null,
     };
 
     const defaultData = {
@@ -149,7 +158,7 @@ export default function EditTransactionModal({
       category_id: safeCategoryValue === "__none__" ? null : safeCategoryValue,
       subcategory_id: safeSubcategoryValue === "__none__" ? null : safeSubcategoryValue,
       installments: isExpense ? installments : null,
-      account_destination: null,
+      account_destination_id: null,
     };
 
     updateMutation.mutate(
