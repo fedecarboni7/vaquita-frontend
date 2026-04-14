@@ -125,6 +125,10 @@ export default function TransactionDraftCard({ data }: Props) {
   const selectedAccount = typeof editData.account === "string" ? editData.account : "";
   const selectedDestinationAccount =
     typeof editData.account_destination === "string" ? editData.account_destination : "";
+  const selectedAccountRecord = accounts.find((account) => account.name === selectedAccount);
+  const selectedDestinationAccountRecord = accounts.find(
+    (account) => account.name === selectedDestinationAccount,
+  );
   const destinationAccountOptions = accounts.filter((account) => account.name !== selectedAccount);
 
   const installmentsValue = editData.installments == null ? "" : String(editData.installments);
@@ -132,8 +136,8 @@ export default function TransactionDraftCard({ data }: Props) {
 
   const canConfirm =
     status !== "saving" &&
-    !!selectedAccount &&
-    (!isTransfer || !!selectedDestinationAccount) &&
+    !!selectedAccountRecord &&
+    (!isTransfer || !!selectedDestinationAccountRecord) &&
     (!isExpense || installmentsValue === "" || parsedInstallments !== null);
 
   const handleConfirm = async () => {
@@ -152,6 +156,18 @@ export default function TransactionDraftCard({ data }: Props) {
     if (isExpense && installmentsValue !== "" && parsedInstallments === null) {
       setStatus("error");
       setErrorMessage("La cantidad de cuotas debe ser un número mayor a 0.");
+      return;
+    }
+
+    if (!selectedAccountRecord) {
+      setStatus("error");
+      setErrorMessage("La cuenta seleccionada no existe. Elegí una cuenta válida.");
+      return;
+    }
+
+    if (isTransfer && !selectedDestinationAccountRecord) {
+      setStatus("error");
+      setErrorMessage("La cuenta destino seleccionada no existe. Elegí una cuenta válida.");
       return;
     }
 
@@ -174,8 +190,8 @@ export default function TransactionDraftCard({ data }: Props) {
           typeof editData.expense_date === "string" && editData.expense_date.trim()
             ? editData.expense_date
             : getCurrentLocalDateISO(),
-        account: selectedAccount,
-        account_destination: isTransfer ? selectedDestinationAccount || null : null,
+        account_id: selectedAccountRecord.id,
+        account_destination_id: isTransfer ? selectedDestinationAccountRecord?.id || null : null,
         category_id: isTransfer ? null : selectedCategoryId,
         subcategory_id: isTransfer ? null : selectedSubcategory,
         currency: selectedCurrency,
