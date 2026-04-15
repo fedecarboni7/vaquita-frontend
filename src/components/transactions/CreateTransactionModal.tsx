@@ -1,0 +1,401 @@
+import { useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  useCreateTransaction,
+  type CreateTransactionPayload,
+} from "@/hooks/useTransactions";
+import { useAccounts } from "@/hooks/useAccounts";
+import { useCategories } from "@/hooks/useCategories";
+import type { CurrencyCode, TransactionType } from "@/types/transaction";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const TYPE_OPTIONS: Array<{ value: TransactionType; label: string }> = [
+  { value: "expense", label: "Gasto" },
+  { value: "income", label: "Ingreso" },
+  { value: "transfer", label: "Transferencia" },
+];
+
+function getCurrentLocalDateISO(): string {
+  const now = new Date();
+  const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().split("T")[0];
+}
+
+function parseInstallments(value: string): number | null {
+  if (!value.trim()) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return null;
+  }
+  return parsed;
+}
+
+export default function CreateTransactionModal({ open, onOpenChange }: Props) {
+  const { data: accounts = [] } = useAccounts();
+  const { data: categories = [] } = useCategories();
+  const createMutation = useCreateTransaction();
+
+  const [transactionType, setTransactionType] = useState<TransactionType>("expense");
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState("__none__");
+  const [subcategoryId, setSubcategoryId] = useState("__none__");
+  const [accountId, setAccountId] = useState("");
+  const [accountDestinationId, setAccountDestinationId] = useState("");
+  const [expenseDate, setExpenseDate] = useState(getCurrentLocalDateISO());
+  const [note, setNote] = useState("");
+  const [installmentsInput, setInstallmentsInput] = useState("");
+
+  const isTransfer = transactionType === "transfer";
+  const isExpense = transactionType === "expense";
+  const selectedAccountId = accountId || accounts[0]?.id || "";
+  const selectedSourceAccount = useMemo(
+    () => accounts.find((item) => item.id === selectedAccountId) ?? null,
+    [accounts, selectedAccountId],
+  );
+  const resolvedCurrency: CurrencyCode = selectedSourceAccount?.currency ?? "ARS";
+
+  const categoriesForType = useMemo(
+    () =>
+      transactionType === "transfer"
+        ? []
+        : categories.filter((item) => item.type === transactionType),
+    [categories, transactionType],
+  );
+
+  const selectedCategory = useMemo(
+    () => categoriesForType.find((item) => item.id === categoryId) ?? null,
+    [categoriesForType, categoryId],
+  );
+
+  const availableSubcategories = useMemo(
+    () => selectedCategory?.subcategories ?? [],
+    [selectedCategory],
+  );
+
+  const safeCategoryValue = useMemo(() => {
+    if (categoryId === "__none__") {
+      return "__none__";
+    }
+
+    const categoryExists = categoriesForType.some((item) => item.id === categoryId);
+    return categoryExists ? categoryId : "__none__";
+  }, [categoriesForType, categoryId]);
+
+  const safeSubcategoryValue = useMemo(() => {
+    if (subcategoryId === "__none__") {
+      return "__none__";
+    }
+
+    const subcategoryExists = availableSubcategories.some((item) => item.id === subcategoryId);
+    return subcategoryExists ? subcategoryId : "__none__";
+  }, [availableSubcategories, subcategoryId]);
+
+  const selectedTypeLabel =
+    TYPE_OPTIONS.find((option) => option.value === transactionType)?.label || "Gasto";
+
+  const installments = parseInstallments(installmentsInput);
+  const hasInvalidInstallments = isExpense && installmentsInput !== "" && installments === null;
+
+  const handleTypeChange = (value: TransactionType) => {
+    setTransactionType(value);
+    setCategoryId("__none__");
+    setSubcategoryId("__none__");
+
+    if (value !== "transfer") {
+      setAccountDestinationId("");
+    }
+
+    if (value !== "expense") {
+      setInstallmentsInput("");
+    }
+  };
+
+  const handleSave = () => {
+    const parsedAmount = Number.parseFloat(amount);
+    const trimmedDescription = description.trim();
+
+    if (!selectedAccountId || !Number.isFinite(parsedAmount) || parsedAmount <= 0 || !trimmedDescription) {
+      return;
+    }
+
+    if (isTransfer && !accountDestinationId) {
+      return;
+    }
+
+    const commonData: CreateTransactionPayload = {
+      amount: parsedAmount,
+      description: trimmedDescription,
+      account_id: selectedAccountId,
+      expense_date: expenseDate || getCurrentLocalDateISO(),
+      currency: resolvedCurrency,
+      type: transactionType,
+      note: note.trim() ? note.trim() : null,
+    };
+
+    const transferData: CreateTransactionPayload = {
+      ...commonData,
+      category_id: null,
+      subcategory_id: null,
+      installments: null,
+      account_destination_id: accountDestinationId || null,
+    };
+
+    const defaultData: CreateTransactionPayload = {
+      ...commonData,
+      category_id: safeCategoryValue === "__none__" ? null : safeCategoryValue,
+      subcategory_id: safeSubcategoryValue === "__none__" ? null : safeSubcategoryValue,
+      installments: isExpense ? installments : null,
+      account_destination_id: null,
+    };
+
+    createMutation.mutate(isTransfer ? transferData : defaultData, {
+      onSuccess: () => {
+        toast.success("Registro creado correctamente");
+        onOpenChange(false);
+      },
+      onError: (error) => {
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : "No se pudo crear la transacción";
+        toast.error(message);
+      },
+    });
+  };
+
+  const disableSave =
+    createMutation.isPending ||
+    !selectedAccountId ||
+    !description.trim() ||
+    !Number.isFinite(Number.parseFloat(amount)) ||
+    Number.parseFloat(amount) <= 0 ||
+    (isTransfer && !accountDestinationId) ||
+    hasInvalidInstallments;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Nuevo registro</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+          <div>
+            <label className="text-sm font-medium mb-1 block">Fecha</label>
+            <input
+              type="date"
+              value={expenseDate}
+              onChange={(e) => setExpenseDate(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1 block">Tipo</label>
+            <Select
+              value={transactionType}
+              onValueChange={(value) => handleTypeChange((value as TransactionType) ?? "expense")}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Seleccionar tipo">{selectedTypeLabel}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {TYPE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1 block">Monto</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1 block">
+              {isTransfer ? "Cuenta de origen" : "Cuenta"}
+            </label>
+            <Select value={selectedAccountId} onValueChange={(v) => setAccountId(v ?? "") }>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Seleccionar cuenta" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isTransfer && (
+            <div>
+              <label className="text-sm font-medium mb-1 block">Cuenta destino</label>
+              <Select value={accountDestinationId} onValueChange={(v) => setAccountDestinationId(v ?? "")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar cuenta destino" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts
+                    .filter((account) => account.id !== selectedAccountId)
+                    .map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div>
+            <label className="text-sm font-medium mb-1 block">Descripción</label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+
+          {!isTransfer && (
+            <>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Categoría</label>
+                <Select
+                  value={safeCategoryValue}
+                  onValueChange={(value) => {
+                    setCategoryId(value ?? "__none__");
+                    setSubcategoryId("__none__");
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sin categoría">
+                      {safeCategoryValue === "__none__" ? "Sin categoría" : selectedCategory?.name}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sin categoría</SelectItem>
+                    {categoriesForType.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1 block">Subcategoría</label>
+                <Select
+                  value={safeSubcategoryValue}
+                  onValueChange={(value) => setSubcategoryId(value ?? "__none__")}
+                  disabled={safeCategoryValue === "__none__"}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sin subcategoría">
+                      {safeSubcategoryValue === "__none__"
+                        ? "Sin subcategoría"
+                        : availableSubcategories.find((item) => item.id === safeSubcategoryValue)?.name}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sin subcategoría</SelectItem>
+                    {availableSubcategories.map((subcategory) => (
+                      <SelectItem key={subcategory.id} value={subcategory.id}>
+                        {subcategory.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isExpense && (
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Cuotas</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={installmentsInput}
+                    onChange={(event) => setInstallmentsInput(event.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    placeholder="Sin cuotas"
+                  />
+                  {hasInvalidInstallments && (
+                    <p className="mt-1 text-xs text-destructive">
+                      Ingresá un número entero mayor a 0.
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          <div>
+            <label className="text-sm font-medium mb-1 block">Moneda</label>
+            <Select value={resolvedCurrency} disabled>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Seleccionar moneda" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ARS">ARS</SelectItem>
+                <SelectItem value="USD">USD</SelectItem>
+                <SelectItem value="EUR">EUR</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1 block">Nota</label>
+            <input
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+
+          <Button className="w-full" onClick={handleSave} disabled={disableSave}>
+            {createMutation.isPending && (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            )}
+            Guardar registro
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

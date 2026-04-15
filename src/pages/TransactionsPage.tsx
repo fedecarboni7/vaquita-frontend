@@ -9,6 +9,7 @@ import FilterBar from "@/components/transactions/FilterBar";
 import MonthSection from "@/components/transactions/MonthSection";
 import TransactionDetailDrawer from "@/components/transactions/TransactionDetailDrawer";
 import EditTransactionModal from "@/components/transactions/EditTransactionModal";
+import CreateTransactionModal from "@/components/transactions/CreateTransactionModal";
 import DeleteConfirmDialog from "@/components/transactions/DeleteConfirmDialog";
 import type { Transaction, TransactionType } from "@/types/transaction";
 
@@ -52,6 +53,7 @@ export default function TransactionsPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
@@ -163,25 +165,30 @@ export default function TransactionsPage() {
       <div className="flex-1 overflow-y-auto">
         <div className="px-2 py-2 sm:px-4">
           <div className="flex flex-col gap-2 py-3 mb-2 border-b border-border sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => handleMonthChange(-1)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <h2 className="text-sm font-semibold capitalize text-center min-w-0">
-                {formatMonthNav(month)}
-              </h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => handleMonthChange(1)}
-              >
-                <ChevronRight className="h-4 w-4" />
+            <div className="flex items-center gap-2 justify-between sm:justify-start">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleMonthChange(-1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <h2 className="text-sm font-semibold capitalize text-center min-w-0">
+                  {formatMonthNav(month)}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleMonthChange(1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button size="sm" onClick={() => setCreateOpen(true)}>
+                Nuevo
               </Button>
             </div>
             
@@ -238,6 +245,13 @@ export default function TransactionsPage() {
       </div>
 
       {/* Dialogs */}
+      {createOpen && (
+        <CreateTransactionModal
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+        />
+      )}
+
       <TransactionDetailDrawer
         transaction={selectedTx}
         open={detailOpen}

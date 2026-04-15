@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../api";
 import type {
+  CurrencyCode,
   TransactionType,
   PaginatedTransactions,
   Transaction,
@@ -14,6 +15,20 @@ interface UseTransactionsParams {
   subcategoryId?: string;
   limit?: number;
   offset?: number;
+}
+
+export interface CreateTransactionPayload {
+  amount: number;
+  description: string;
+  type: TransactionType;
+  account_id: string;
+  expense_date: string;
+  category_id?: string | null;
+  subcategory_id?: string | null;
+  currency?: CurrencyCode;
+  note?: string | null;
+  installments?: number | null;
+  account_destination_id?: string | null;
 }
 
 function buildSearchParams(params: UseTransactionsParams): string {
@@ -52,6 +67,20 @@ export function useDeleteTransaction() {
   return useMutation({
     mutationFn: (id: string) =>
       apiFetch<void>(`/expenses/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}
+
+export function useCreateTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateTransactionPayload) =>
+      apiFetch<Transaction>("/expenses", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
