@@ -54,6 +54,18 @@ function parseInstallments(value: string): number | null {
   return parsed;
 }
 
+function parsePositiveAmount(value: string): number | null {
+  if (!value.trim()) {
+    return null;
+  }
+
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return Number.NaN;
+  }
+  return parsed;
+}
+
 export default function CreateTransactionModal({ open, onOpenChange }: Props) {
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
@@ -69,6 +81,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
   const [expenseDate, setExpenseDate] = useState(getCurrentLocalDateISO());
   const [note, setNote] = useState("");
   const [installmentsInput, setInstallmentsInput] = useState("");
+  const [toAmountInput, setToAmountInput] = useState("");
 
   const isTransfer = transactionType === "transfer";
   const isExpense = transactionType === "expense";
@@ -82,6 +95,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
     [accounts, accountDestinationId],
   );
   const resolvedCurrency: CurrencyCode = selectedSourceAccount?.currency ?? "ARS";
+  const resolvedDestinationCurrency: CurrencyCode = selectedDestinationAccount?.currency ?? resolvedCurrency;
 
   const categoriesForType = useMemo(
     () =>
@@ -124,6 +138,9 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
 
   const installments = parseInstallments(installmentsInput);
   const hasInvalidInstallments = isExpense && installmentsInput !== "" && installments === null;
+  const parsedToAmount = parsePositiveAmount(toAmountInput);
+  const hasInvalidToAmount =
+    isTransfer && toAmountInput !== "" && (parsedToAmount == null || !Number.isFinite(parsedToAmount));
 
   const handleTypeChange = (value: TransactionType) => {
     setTransactionType(value);
@@ -132,6 +149,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
 
     if (value !== "transfer") {
       setAccountDestinationId("");
+      setToAmountInput("");
     }
 
     if (value !== "expense") {
@@ -161,6 +179,10 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
       return;
     }
 
+    if (hasInvalidToAmount) {
+      return;
+    }
+
     const commonData: CreateTransactionPayload = {
       amount: parsedAmount,
       description: trimmedDescription,
@@ -177,6 +199,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
       subcategory_id: null,
       installments: null,
       account_destination_id: accountDestinationId || null,
+      to_amount: toAmountInput.trim() ? parsedToAmount : null,
     };
 
     const defaultData: CreateTransactionPayload = {
@@ -209,6 +232,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
     Number.parseFloat(amount) <= 0 ||
     (isTransfer && !accountDestinationId) ||
     (isTransfer && selectedAccountId === accountDestinationId) ||
+    hasInvalidToAmount ||
     hasInvalidInstallments;
 
   return (
@@ -318,6 +342,36 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
               {selectedAccountId && accountDestinationId && selectedAccountId === accountDestinationId && (
                 <p className="mt-1 text-xs text-destructive">
                   La cuenta destino debe ser distinta de la cuenta de origen.
+                </p>
+              )}
+            </div>
+          )}
+
+          {isTransfer && (
+            <div>
+              <label className="text-sm font-medium mb-1 block">Monto destino (opcional)</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={toAmountInput}
+                  onChange={(e) => setToAmountInput(e.target.value)}
+                  onKeyDown={(event) => {
+                    if (["e", "E", "+", "-"].includes(event.key)) {
+                      event.preventDefault();
+                    }
+                  }}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pr-14 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  placeholder="Si es distinta moneda"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                  {resolvedDestinationCurrency}
+                </span>
+              </div>
+              {hasInvalidToAmount && (
+                <p className="mt-1 text-xs text-destructive">
+                  Ingresá un monto destino mayor a 0 o dejalo vacío.
                 </p>
               )}
             </div>

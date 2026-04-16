@@ -13,6 +13,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { formatCurrencyAmount, getWeakCurrencyExchangeRateFromAmounts } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
 
 interface Props {
@@ -48,11 +49,32 @@ function DetailContent({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const exchangeRate = getWeakCurrencyExchangeRateFromAmounts(
+    transaction.amount,
+    transaction.to_amount,
+    transaction.currency,
+    transaction.account_destination_currency ?? transaction.currency,
+  );
+
   const rows: { label: string; value: string | null | undefined }[] = [
     { label: "Tipo", value: TYPE_LABELS[transaction.type] },
     {
       label: "Monto",
-      value: `${transaction.currency} ${transaction.amount.toLocaleString("es-AR")}`,
+      value: formatCurrencyAmount(transaction.amount, transaction.currency),
+    },
+    {
+      label: "Monto destino",
+      value:
+        transaction.to_amount != null
+          ? formatCurrencyAmount(
+              transaction.to_amount,
+              transaction.account_destination_currency ?? transaction.currency,
+            )
+          : null,
+    },
+    {
+      label: "Tipo de cambio",
+      value: exchangeRate ? formatCurrencyAmount(exchangeRate.amount, exchangeRate.currency) : null,
     },
     { label: "Descripción", value: transaction.description },
     { label: "Categoría", value: transaction.category_name ?? transaction.category },
