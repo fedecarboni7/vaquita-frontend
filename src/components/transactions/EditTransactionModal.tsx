@@ -49,6 +49,18 @@ function parseInstallments(value: string): number | null {
   return parsed;
 }
 
+function parsePositiveAmount(value: string): number | null {
+  if (!value.trim()) {
+    return null;
+  }
+
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return Number.NaN;
+  }
+  return parsed;
+}
+
 export default function EditTransactionModal({
   transaction,
   open,
@@ -64,6 +76,9 @@ export default function EditTransactionModal({
   const [expenseDate, setExpenseDate] = useState(transaction.expense_date || getCurrentLocalDateISO());
   const [currency, setCurrency] = useState<CurrencyCode>(transaction.currency);
   const [note, setNote] = useState(transaction.note || "");
+  const [toAmountInput, setToAmountInput] = useState(
+    transaction.to_amount != null ? String(transaction.to_amount) : "",
+  );
   const [installmentsInput, setInstallmentsInput] = useState(
     transaction.installments != null ? String(transaction.installments) : "",
   );
@@ -110,6 +125,9 @@ export default function EditTransactionModal({
   const hasInvalidAmount = !Number.isFinite(parsedAmount) || parsedAmount <= 0;
   const installments = parseInstallments(installmentsInput);
   const hasInvalidInstallments = isExpense && installmentsInput !== "" && installments === null;
+  const parsedToAmount = parsePositiveAmount(toAmountInput);
+  const hasInvalidToAmount =
+    isTransfer && toAmountInput !== "" && (parsedToAmount == null || !Number.isFinite(parsedToAmount));
   const selectedTypeLabel =
     TYPE_OPTIONS.find((option) => option.value === transactionType)?.label || "Gasto";
 
@@ -120,6 +138,7 @@ export default function EditTransactionModal({
 
     if (value !== "transfer") {
       setAccountDestination("");
+      setToAmountInput("");
     }
 
     if (value !== "expense") {
@@ -140,6 +159,10 @@ export default function EditTransactionModal({
       return;
     }
 
+    if (isTransfer && hasInvalidToAmount) {
+      return;
+    }
+
     const commonData = {
       amount: parsedAmount,
       description,
@@ -157,6 +180,7 @@ export default function EditTransactionModal({
       installments: null,
       account_destination_id:
         (selectedDestinationAccount?.id ?? transaction.account_destination_id) || null,
+      to_amount: toAmountInput.trim() ? parsedToAmount : null,
     };
 
     const defaultData = {
@@ -274,6 +298,31 @@ export default function EditTransactionModal({
             </div>
           )}
 
+          {isTransfer && (
+            <div>
+              <label className="text-sm font-medium mb-1 block">Monto destino (opcional)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={toAmountInput}
+                onChange={(e) => setToAmountInput(e.target.value)}
+                onKeyDown={(event) => {
+                  if (["e", "E", "+", "-"].includes(event.key)) {
+                    event.preventDefault();
+                  }
+                }}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="Si es distinta moneda"
+              />
+              {hasInvalidToAmount && (
+                <p className="mt-1 text-xs text-destructive">
+                  Ingresá un monto destino mayor a 0 o dejalo vacío.
+                </p>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="text-sm font-medium mb-1 block">Descripción</label>
             <input
@@ -388,6 +437,7 @@ export default function EditTransactionModal({
               updateMutation.isPending ||
               hasInvalidAmount ||
               (isTransfer && !accountDestination) ||
+              hasInvalidToAmount ||
               hasInvalidInstallments
             }
           >

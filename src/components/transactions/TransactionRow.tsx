@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrencyAmount, getWeakCurrencyExchangeRateFromAmounts } from "@/lib/utils";
 import type { Transaction } from "@/types/transaction";
 
 interface Props {
@@ -27,21 +27,19 @@ function getCategoryTagClass(category: string | null): string {
   return "tag-home";
 }
 
-function formatAmount(amount: number, currency: string): string {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
 export default function TransactionRow({
   transaction,
   onSelect,
   onEdit,
   onDelete,
 }: Props) {
+  const exchangeRate = getWeakCurrencyExchangeRateFromAmounts(
+    transaction.amount,
+    transaction.to_amount,
+    transaction.currency,
+    transaction.account_destination_currency ?? transaction.currency,
+  );
+
   const categoryLabel = transaction.category_name ?? transaction.category ?? null;
   // Parse date safely, splitting YYYY-MM-DD to avoid timezone shifts
   const [year, month, day] = transaction.expense_date.split("-").map(Number);
@@ -72,8 +70,23 @@ export default function TransactionRow({
         transaction.type === "expense" && "neg",
         transaction.type === "income" && "pos",
       )}>
-        {transaction.type === "expense" ? "-" : ""}
-        {formatAmount(transaction.amount, transaction.currency)}
+        {transaction.type === "transfer" && transaction.to_amount != null ? (
+          <div className="flex flex-col items-end gap-0.5">
+            <span>{formatCurrencyAmount(transaction.amount, transaction.currency)}</span>
+            <span className="text-[11px] text-muted-foreground">
+              → {formatCurrencyAmount(
+                transaction.to_amount,
+                transaction.account_destination_currency ?? transaction.currency,
+              )}
+              {exchangeRate && ` · TC ${formatCurrencyAmount(exchangeRate.amount, exchangeRate.currency)}`}
+            </span>
+          </div>
+        ) : (
+          <>
+            {transaction.type === "expense" ? "-" : ""}
+            {formatCurrencyAmount(transaction.amount, transaction.currency)}
+          </>
+        )}
       </td>
       <td className="w-10 text-right">
         <DropdownMenu>

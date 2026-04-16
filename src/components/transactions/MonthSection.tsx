@@ -5,20 +5,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrencyAmount, getWeakCurrencyExchangeRateFromAmounts } from "@/lib/utils";
 import { Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import TransactionRow from "./TransactionRow";
 import type { Transaction } from "@/types/transaction";
-
-function formatAmount(amount: number, currency: string): string {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
 
 function getDateLabel(dateIso: string): string {
   const [year, month, day] = dateIso.split("-").map(Number);
@@ -113,7 +104,7 @@ export default function MonthSection({
                       )}
                     >
                       {t.type === "expense" ? "-" : ""}
-                      {formatAmount(t.amount, t.currency)}
+                      {formatCurrencyAmount(t.amount, t.currency)}
                     </span>
 
                     <DropdownMenu>
@@ -149,6 +140,34 @@ export default function MonthSection({
                     {t.account}
                     <span className="mx-1.5">→</span>
                     {t.account_destination || "Sin cuenta destino"}
+                    {t.to_amount != null && (
+                      <>
+                        <span className="mx-1.5">·</span>
+                        {formatCurrencyAmount(t.amount, t.currency)}
+                        <span className="mx-1.5">→</span>
+                        {formatCurrencyAmount(
+                          t.to_amount,
+                          t.account_destination_currency ?? t.currency,
+                        )}
+                        {(() => {
+                          const exchangeRate = getWeakCurrencyExchangeRateFromAmounts(
+                            t.amount,
+                            t.to_amount,
+                            t.currency,
+                            t.account_destination_currency ?? t.currency,
+                          )
+
+                          if (!exchangeRate) return null
+
+                          return (
+                            <>
+                              <span className="mx-1.5">·</span>
+                              TC {formatCurrencyAmount(exchangeRate.amount, exchangeRate.currency)}
+                            </>
+                          )
+                        })()}
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="mt-2 flex items-center gap-2 flex-wrap min-w-0">

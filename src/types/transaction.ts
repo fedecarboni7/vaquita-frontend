@@ -26,6 +26,8 @@ export interface Transaction {
   installments?: number | null;
   account_destination_id?: string | null;
   account_destination?: string | null;
+  account_destination_currency?: CurrencyCode | null;
+  to_amount?: number | null;
   created_at: string;
   updated_at: string;
 }
