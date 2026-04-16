@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,13 +15,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useUpdateTransaction } from "@/hooks/useTransactions";
+import {
+  useCreateTransaction,
+  type CreateTransactionPayload,
+} from "@/hooks/useTransactions";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
-import type { CurrencyCode, Transaction, TransactionType } from "@/types/transaction";
+import type { CurrencyCode, TransactionType } from "@/types/transaction";
 
 interface Props {
-  transaction: Transaction;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -30,6 +33,8 @@ const TYPE_OPTIONS: Array<{ value: TransactionType; label: string }> = [
   { value: "income", label: "Ingreso" },
   { value: "transfer", label: "Transferencia" },
 ];
+
+const NO_DESTINATION_VALUE = "__none__";
 
 function getCurrentLocalDateISO(): string {
   const now = new Date();
@@ -49,31 +54,35 @@ function parseInstallments(value: string): number | null {
   return parsed;
 }
 
-export default function EditTransactionModal({
-  transaction,
-  open,
-  onOpenChange,
-}: Props) {
-  const [transactionType, setTransactionType] = useState<TransactionType>(transaction.type);
-  const [amount, setAmount] = useState(String(transaction.amount));
-  const [description, setDescription] = useState(transaction.description || "");
-  const [categoryId, setCategoryId] = useState(transaction.category_id || "__none__");
-  const [subcategoryId, setSubcategoryId] = useState(transaction.subcategory_id || "__none__");
-  const [account, setAccount] = useState(transaction.account || "");
-  const [accountDestination, setAccountDestination] = useState(transaction.account_destination || "");
-  const [expenseDate, setExpenseDate] = useState(transaction.expense_date || getCurrentLocalDateISO());
-  const [currency, setCurrency] = useState<CurrencyCode>(transaction.currency);
-  const [note, setNote] = useState(transaction.note || "");
-  const [installmentsInput, setInstallmentsInput] = useState(
-    transaction.installments != null ? String(transaction.installments) : "",
-  );
-
-  const updateMutation = useUpdateTransaction();
+export default function CreateTransactionModal({ open, onOpenChange }: Props) {
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
+  const createMutation = useCreateTransaction();
+
+  const [transactionType, setTransactionType] = useState<TransactionType>("expense");
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState("__none__");
+  const [subcategoryId, setSubcategoryId] = useState("__none__");
+  const [accountId, setAccountId] = useState("");
+  const [accountDestinationId, setAccountDestinationId] = useState("");
+  const [expenseDate, setExpenseDate] = useState(getCurrentLocalDateISO());
+  const [note, setNote] = useState("");
+  const [installmentsInput, setInstallmentsInput] = useState("");
 
   const isTransfer = transactionType === "transfer";
   const isExpense = transactionType === "expense";
+  const selectedAccountId = accountId || accounts[0]?.id || "";
+  const selectedSourceAccount = useMemo(
+    () => accounts.find((item) => item.id === selectedAccountId) ?? null,
+    [accounts, selectedAccountId],
+  );
+  const selectedDestinationAccount = useMemo(
+    () => accounts.find((item) => item.id === accountDestinationId) ?? null,
+    [accounts, accountDestinationId],
+  );
+  const resolvedCurrency: CurrencyCode = selectedSourceAccount?.currency ?? "ARS";
+
   const categoriesForType = useMemo(
     () =>
       transactionType === "transfer"
@@ -86,10 +95,12 @@ export default function EditTransactionModal({
     () => categoriesForType.find((item) => item.id === categoryId) ?? null,
     [categoriesForType, categoryId],
   );
+
   const availableSubcategories = useMemo(
     () => selectedCategory?.subcategories ?? [],
     [selectedCategory],
   );
+
   const safeCategoryValue = useMemo(() => {
     if (categoryId === "__none__") {
       return "__none__";
@@ -98,6 +109,7 @@ export default function EditTransactionModal({
     const categoryExists = categoriesForType.some((item) => item.id === categoryId);
     return categoryExists ? categoryId : "__none__";
   }, [categoriesForType, categoryId]);
+
   const safeSubcategoryValue = useMemo(() => {
     if (subcategoryId === "__none__") {
       return "__none__";
@@ -106,12 +118,12 @@ export default function EditTransactionModal({
     const subcategoryExists = availableSubcategories.some((item) => item.id === subcategoryId);
     return subcategoryExists ? subcategoryId : "__none__";
   }, [availableSubcategories, subcategoryId]);
-  const parsedAmount = Number.parseFloat(amount);
-  const hasInvalidAmount = !Number.isFinite(parsedAmount) || parsedAmount <= 0;
-  const installments = parseInstallments(installmentsInput);
-  const hasInvalidInstallments = isExpense && installmentsInput !== "" && installments === null;
+
   const selectedTypeLabel =
     TYPE_OPTIONS.find((option) => option.value === transactionType)?.label || "Gasto";
+
+  const installments = parseInstallments(installmentsInput);
+  const hasInvalidInstallments = isExpense && installmentsInput !== "" && installments === null;
 
   const handleTypeChange = (value: TransactionType) => {
     setTransactionType(value);
@@ -119,7 +131,7 @@ export default function EditTransactionModal({
     setSubcategoryId("__none__");
 
     if (value !== "transfer") {
-      setAccountDestination("");
+      setAccountDestinationId("");
     }
 
     if (value !== "expense") {
@@ -127,39 +139,47 @@ export default function EditTransactionModal({
     }
   };
 
+  const handleOriginAccountChange = (value: string | null) => {
+    const nextAccountId = value ?? "";
+    setAccountId(nextAccountId);
+
+    // Avoid invalid transfer state when user picks destination first and then matches origin.
+    if (transactionType === "transfer" && nextAccountId === accountDestinationId) {
+      setAccountDestinationId("");
+    }
+  };
+
   const handleSave = () => {
-    const selectedSourceAccount = accounts.find((item) => item.name === account);
-    const selectedDestinationAccount = accounts.find((item) => item.name === accountDestination);
-    const resolvedAccountId = selectedSourceAccount?.id ?? transaction.account_id;
+    const parsedAmount = Number.parseFloat(amount);
+    const trimmedDescription = description.trim();
 
-    if (!resolvedAccountId) {
+    if (!selectedAccountId || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       return;
     }
 
-    if (hasInvalidAmount) {
+    if (isTransfer && !accountDestinationId) {
       return;
     }
 
-    const commonData = {
+    const commonData: CreateTransactionPayload = {
       amount: parsedAmount,
-      description,
-      account_id: resolvedAccountId,
+      description: trimmedDescription,
+      account_id: selectedAccountId,
       expense_date: expenseDate || getCurrentLocalDateISO(),
-      currency,
+      currency: resolvedCurrency,
       type: transactionType,
       note: note.trim() ? note.trim() : null,
     };
 
-    const transferData = {
+    const transferData: CreateTransactionPayload = {
       ...commonData,
       category_id: null,
       subcategory_id: null,
       installments: null,
-      account_destination_id:
-        (selectedDestinationAccount?.id ?? transaction.account_destination_id) || null,
+      account_destination_id: accountDestinationId || null,
     };
 
-    const defaultData = {
+    const defaultData: CreateTransactionPayload = {
       ...commonData,
       category_id: safeCategoryValue === "__none__" ? null : safeCategoryValue,
       subcategory_id: safeSubcategoryValue === "__none__" ? null : safeSubcategoryValue,
@@ -167,22 +187,35 @@ export default function EditTransactionModal({
       account_destination_id: null,
     };
 
-    updateMutation.mutate(
-      {
-        id: transaction.id,
-        data: isTransfer ? transferData : defaultData,
+    createMutation.mutate(isTransfer ? transferData : defaultData, {
+      onSuccess: () => {
+        toast.success("Registro creado correctamente");
+        onOpenChange(false);
       },
-      {
-        onSuccess: () => onOpenChange(false),
+      onError: (error) => {
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : "No se pudo crear la transacción";
+        toast.error(message);
       },
-    );
+    });
   };
+
+  const disableSave =
+    createMutation.isPending ||
+    !selectedAccountId ||
+    !Number.isFinite(Number.parseFloat(amount)) ||
+    Number.parseFloat(amount) <= 0 ||
+    (isTransfer && !accountDestinationId) ||
+    (isTransfer && selectedAccountId === accountDestinationId) ||
+    hasInvalidInstallments;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Editar transacción</DialogTitle>
+          <DialogTitle>Nuevo registro</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
           <div>
@@ -216,38 +249,40 @@ export default function EditTransactionModal({
 
           <div>
             <label className="text-sm font-medium mb-1 block">Monto</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              onKeyDown={(event) => {
-                if (["e", "E", "+", "-"].includes(event.key)) {
-                  event.preventDefault();
-                }
-              }}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-            {hasInvalidAmount && (
-              <p className="mt-1 text-xs text-destructive">
-                Ingresá un monto numérico mayor a 0.
-              </p>
-            )}
+            <div className="relative">
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onKeyDown={(event) => {
+                  if (["e", "E", "+", "-"].includes(event.key)) {
+                    event.preventDefault();
+                  }
+                }}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pr-14 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                {resolvedCurrency}
+              </span>
+            </div>
           </div>
 
           <div>
             <label className="text-sm font-medium mb-1 block">
               {isTransfer ? "Cuenta de origen" : "Cuenta"}
             </label>
-            <Select value={account} onValueChange={(v) => setAccount(v ?? "")}>
+            <Select value={selectedAccountId} onValueChange={handleOriginAccountChange}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleccionar cuenta" />
+                <SelectValue placeholder="Seleccionar cuenta">
+                  {selectedSourceAccount?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.name}>
-                    {a.name}
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -257,20 +292,34 @@ export default function EditTransactionModal({
           {isTransfer && (
             <div>
               <label className="text-sm font-medium mb-1 block">Cuenta destino</label>
-              <Select value={accountDestination} onValueChange={(v) => setAccountDestination(v ?? "")}> 
+              <Select
+                key={selectedAccountId}
+                value={accountDestinationId || NO_DESTINATION_VALUE}
+                onValueChange={(v) =>
+                  setAccountDestinationId(v === NO_DESTINATION_VALUE ? "" : (v ?? ""))
+                }
+              >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar cuenta destino" />
+                  <SelectValue placeholder="Seleccionar cuenta destino">
+                    {selectedDestinationAccount?.name ?? "Seleccionar cuenta destino"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NO_DESTINATION_VALUE}>Seleccionar cuenta destino</SelectItem>
                   {accounts
-                    .filter((a) => a.name !== account)
-                    .map((a) => (
-                      <SelectItem key={a.id} value={a.name}>
-                        {a.name}
+                    .filter((account) => account.id !== selectedAccountId)
+                    .map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
                       </SelectItem>
                     ))}
                 </SelectContent>
               </Select>
+              {selectedAccountId && accountDestinationId && selectedAccountId === accountDestinationId && (
+                <p className="mt-1 text-xs text-destructive">
+                  La cuenta destino debe ser distinta de la cuenta de origen.
+                </p>
+              )}
             </div>
           )}
 
@@ -302,9 +351,9 @@ export default function EditTransactionModal({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Sin categoría</SelectItem>
-                    {categoriesForType.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
+                    {categoriesForType.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -358,20 +407,6 @@ export default function EditTransactionModal({
           )}
 
           <div>
-            <label className="text-sm font-medium mb-1 block">Moneda</label>
-            <Select value={currency} onValueChange={(value) => setCurrency((value as CurrencyCode) ?? "ARS")}> 
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleccionar moneda" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ARS">ARS</SelectItem>
-                <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="EUR">EUR</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
             <label className="text-sm font-medium mb-1 block">Nota</label>
             <input
               type="text"
@@ -381,20 +416,11 @@ export default function EditTransactionModal({
             />
           </div>
 
-          <Button
-            className="w-full"
-            onClick={handleSave}
-            disabled={
-              updateMutation.isPending ||
-              hasInvalidAmount ||
-              (isTransfer && !accountDestination) ||
-              hasInvalidInstallments
-            }
-          >
-            {updateMutation.isPending && (
+          <Button className="w-full" onClick={handleSave} disabled={disableSave}>
+            {createMutation.isPending && (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             )}
-            Guardar
+            Guardar registro
           </Button>
         </div>
       </DialogContent>
