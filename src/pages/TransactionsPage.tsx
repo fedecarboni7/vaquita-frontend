@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,10 +41,10 @@ function calculateNetTotal(transactions: Transaction[]): number {
 export default function TransactionsPage() {
   const [month, setMonth] = useState(getCurrentMonth);
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<TransactionType | undefined>();
-  const [accountFilter, setAccountFilter] = useState<string | undefined>();
-  const [categoryFilter, setCategoryFilter] = useState<string | undefined>();
-  const [subcategoryFilter, setSubcategoryFilter] = useState<string | undefined>();
+  const [typeFilters, setTypeFilters] = useState<TransactionType[]>([]);
+  const [accountFilters, setAccountFilters] = useState<string[]>([]);
+  const [categoryFilters, setCategoryFilters] = useState<string[]>([]);
+  const [subcategoryFilters, setSubcategoryFilters] = useState<string[]>([]);
   const [offset, setOffset] = useState(0);
   const [accumulated, setAccumulated] = useState<Transaction[]>([]);
 
@@ -60,10 +60,10 @@ export default function TransactionsPage() {
 
   const { data, isLoading, isError, refetch } = useTransactions({
     month,
-    type: typeFilter,
-    account: accountFilter,
-    category: categoryFilter,
-    subcategoryId: subcategoryFilter,
+    types: typeFilters,
+    accountIds: accountFilters,
+    categoryIds: categoryFilters,
+    subcategoryIds: subcategoryFilters,
     limit: 100,
     offset,
   });
@@ -87,35 +87,58 @@ export default function TransactionsPage() {
     );
   }, [transactions, search]);
 
-  const resetFilters = useCallback(() => {
+  const resetPagination = useCallback(() => {
     setOffset(0);
     setAccumulated([]);
   }, []);
 
+  useEffect(() => {
+    const allowedSubcategoryIds = new Set(
+      (categoryFilters.length === 0
+        ? categories.flatMap((category) => category.subcategories)
+        : categories
+            .filter((category) => categoryFilters.includes(category.id))
+            .flatMap((category) => category.subcategories)
+      ).map((subcategory) => subcategory.id)
+    );
+
+    setSubcategoryFilters((previous) =>
+      previous.filter((subcategoryId) => allowedSubcategoryIds.has(subcategoryId))
+    );
+  }, [categories, categoryFilters]);
+
   const handleMonthChange = (delta: number) => {
     setMonth((prev) => shiftMonth(prev, delta));
-    resetFilters();
+    resetPagination();
   };
 
-  const handleTypeChange = (t: TransactionType | undefined) => {
-    setTypeFilter(t);
-    resetFilters();
+  const handleTypesChange = (types: TransactionType[]) => {
+    setTypeFilters(types);
+    resetPagination();
   };
 
-  const handleAccountChange = (a: string | undefined) => {
-    setAccountFilter(a);
-    resetFilters();
+  const handleAccountsChange = (accountIds: string[]) => {
+    setAccountFilters(accountIds);
+    resetPagination();
   };
 
-  const handleCategoryChange = (c: string | undefined) => {
-    setCategoryFilter(c);
-    setSubcategoryFilter(undefined);
-    resetFilters();
+  const handleCategoriesChange = (categoryIds: string[]) => {
+    setCategoryFilters(categoryIds);
+    resetPagination();
   };
 
-  const handleSubcategoryChange = (subcategoryId: string | undefined) => {
-    setSubcategoryFilter(subcategoryId);
-    resetFilters();
+  const handleSubcategoriesChange = (subcategoryIds: string[]) => {
+    setSubcategoryFilters(subcategoryIds);
+    resetPagination();
+  };
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setTypeFilters([]);
+    setAccountFilters([]);
+    setCategoryFilters([]);
+    setSubcategoryFilters([]);
+    resetPagination();
   };
 
   const handleLoadMore = () => {
@@ -147,18 +170,19 @@ export default function TransactionsPage() {
     <div className="flex flex-col h-full">
       {/* Filters */}
       <FilterBar
-        type={typeFilter}
-        account={accountFilter}
-        category={categoryFilter}
-        subcategoryId={subcategoryFilter}
+        types={typeFilters}
+        accountIds={accountFilters}
+        categoryIds={categoryFilters}
+        subcategoryIds={subcategoryFilters}
         search={search}
         accounts={accounts}
         categories={categories}
-        onTypeChange={handleTypeChange}
-        onAccountChange={handleAccountChange}
-        onCategoryChange={handleCategoryChange}
-        onSubcategoryChange={handleSubcategoryChange}
+        onTypesChange={handleTypesChange}
+        onAccountsChange={handleAccountsChange}
+        onCategoriesChange={handleCategoriesChange}
+        onSubcategoriesChange={handleSubcategoriesChange}
         onSearchChange={setSearch}
+        onClearFilters={handleClearFilters}
       />
 
       {/* Content */}
@@ -229,7 +253,11 @@ export default function TransactionsPage() {
             </div>
           ) : filteredTransactions.length === 0 ? (
             <div className="flex items-center justify-center p-8 text-muted-foreground">
-              <p className="text-sm">No hay transacciones en este mes</p>
+              <p className="text-sm">
+                {search || typeFilters.length || accountFilters.length || categoryFilters.length || subcategoryFilters.length
+                  ? "No hay transacciones con los filtros actuales"
+                  : "No hay transacciones en este mes"}
+              </p>
             </div>
           ) : (
             <MonthSection
