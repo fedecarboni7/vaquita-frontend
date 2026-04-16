@@ -29,6 +29,7 @@ export interface CreateTransactionPayload {
   note?: string | null;
   installments?: number | null;
   account_destination_id?: string | null;
+  to_amount?: number | null;
 }
 
 function buildSearchParams(params: UseTransactionsParams): string {
