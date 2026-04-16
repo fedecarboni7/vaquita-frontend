@@ -12,6 +12,7 @@ interface Props {
 
 const FIELD_LABELS: Record<string, string> = {
   amount: "Monto",
+  to_amount: "Monto destino",
   installment_amount: "Monto por cuota",
   description: "Descripción",
   type: "Tipo",
@@ -65,6 +66,18 @@ function parsePositiveInteger(value: string): number | null {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed) || parsed <= 0) {
     return null;
+  }
+  return parsed;
+}
+
+function normalizePositiveAmount(value: unknown): number | null {
+  if (value == null || value === "") {
+    return null;
+  }
+
+  const parsed = typeof value === "number" ? value : Number.parseFloat(String(value));
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return Number.NaN;
   }
   return parsed;
 }
@@ -129,15 +142,21 @@ export default function TransactionDraftCard({ data }: Props) {
   const selectedDestinationAccountRecord = accounts.find(
     (account) => account.name === selectedDestinationAccount,
   );
+  const selectedDestinationCurrency = selectedDestinationAccountRecord?.currency ?? selectedCurrency;
   const destinationAccountOptions = accounts.filter((account) => account.name !== selectedAccount);
 
   const installmentsValue = editData.installments == null ? "" : String(editData.installments);
   const parsedInstallments = parsePositiveInteger(installmentsValue);
+  const parsedToAmount = normalizePositiveAmount(editData.to_amount);
+  const hasToAmount = editData.to_amount != null && String(editData.to_amount).trim() !== "";
+  const hasInvalidToAmount =
+    hasToAmount && (parsedToAmount == null || !Number.isFinite(parsedToAmount) || parsedToAmount <= 0);
 
   const canConfirm =
     status !== "saving" &&
     !!selectedAccountRecord &&
     (!isTransfer || !!selectedDestinationAccountRecord) &&
+    (!isTransfer || !hasInvalidToAmount) &&
     (!isExpense || installmentsValue === "" || parsedInstallments !== null);
 
   const handleConfirm = async () => {
@@ -171,6 +190,12 @@ export default function TransactionDraftCard({ data }: Props) {
       return;
     }
 
+    if (isTransfer && hasInvalidToAmount) {
+      setStatus("error");
+      setErrorMessage("El monto destino debe ser un número mayor a 0.");
+      return;
+    }
+
     setStatus("saving");
     setErrorMessage("");
 
@@ -196,6 +221,7 @@ export default function TransactionDraftCard({ data }: Props) {
         subcategory_id: isTransfer ? null : selectedSubcategory,
         currency: selectedCurrency,
         installments: isExpense ? parsedInstallments : null,
+        to_amount: isTransfer && hasToAmount ? parsedToAmount : null,
         note:
           typeof editData.note === "string" && editData.note.trim()
             ? editData.note.trim()
@@ -221,6 +247,8 @@ export default function TransactionDraftCard({ data }: Props) {
       [field]:
         field === "amount"
           ? parseFloat(value) || 0
+          : field === "to_amount"
+            ? (value.trim() === "" ? null : Number.parseFloat(value))
           : field === "installments"
             ? parsePositiveInteger(value)
             : field === "currency"
@@ -247,6 +275,7 @@ export default function TransactionDraftCard({ data }: Props) {
 
       if (value !== "transfer") {
         next.account_destination = null;
+        next.to_amount = null;
       }
 
       return next;
@@ -366,6 +395,38 @@ export default function TransactionDraftCard({ data }: Props) {
             </span>
           ),
         )}
+
+        {isTransfer &&
+          renderRow(
+            FIELD_LABELS.to_amount,
+            isEditing ? (
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={editData.to_amount == null ? "" : String(editData.to_amount)}
+                onChange={(event) => handleFieldChange("to_amount", event.target.value)}
+                className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+                placeholder="Opcional"
+              />
+            ) : (
+              <span className="text-white break-words">
+                {hasToAmount
+                  ? buildFormattedAmount(parsedToAmount, selectedDestinationCurrency)
+                  : "Misma moneda"}
+              </span>
+            ),
+          )}
+
+        {isTransfer && hasToAmount && !isEditing &&
+          renderRow(
+            "Conversión",
+            <span className="text-white break-words">
+              {buildFormattedAmount(editData.amount, selectedCurrency)}
+              <span className="mx-1.5">→</span>
+              {buildFormattedAmount(parsedToAmount, selectedDestinationCurrency)}
+            </span>,
+          )}
 
         {renderRow(
           FIELD_LABELS.account,
