@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,12 +58,30 @@ export default function TransactionsPage() {
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
 
+  const getAllowedSubcategoryIds = useCallback(
+    (selectedCategoryIds: string[]) =>
+      new Set(
+        (selectedCategoryIds.length === 0
+          ? categories.flatMap((category) => category.subcategories)
+          : categories
+              .filter((category) => selectedCategoryIds.includes(category.id))
+              .flatMap((category) => category.subcategories)
+        ).map((subcategory) => subcategory.id)
+      ),
+    [categories]
+  );
+
+  const effectiveSubcategoryFilters = useMemo(() => {
+    const allowed = getAllowedSubcategoryIds(categoryFilters);
+    return subcategoryFilters.filter((subcategoryId) => allowed.has(subcategoryId));
+  }, [subcategoryFilters, categoryFilters, getAllowedSubcategoryIds]);
+
   const { data, isLoading, isError, refetch } = useTransactions({
     month,
     types: typeFilters,
     accountIds: accountFilters,
     categoryIds: categoryFilters,
-    subcategoryIds: subcategoryFilters,
+    subcategoryIds: effectiveSubcategoryFilters,
     limit: 100,
     offset,
   });
@@ -92,21 +110,6 @@ export default function TransactionsPage() {
     setAccumulated([]);
   }, []);
 
-  useEffect(() => {
-    const allowedSubcategoryIds = new Set(
-      (categoryFilters.length === 0
-        ? categories.flatMap((category) => category.subcategories)
-        : categories
-            .filter((category) => categoryFilters.includes(category.id))
-            .flatMap((category) => category.subcategories)
-      ).map((subcategory) => subcategory.id)
-    );
-
-    setSubcategoryFilters((previous) =>
-      previous.filter((subcategoryId) => allowedSubcategoryIds.has(subcategoryId))
-    );
-  }, [categories, categoryFilters]);
-
   const handleMonthChange = (delta: number) => {
     setMonth((prev) => shiftMonth(prev, delta));
     resetPagination();
@@ -124,11 +127,18 @@ export default function TransactionsPage() {
 
   const handleCategoriesChange = (categoryIds: string[]) => {
     setCategoryFilters(categoryIds);
+    const allowedSubcategoryIds = getAllowedSubcategoryIds(categoryIds);
+    setSubcategoryFilters((previous) =>
+      previous.filter((subcategoryId) => allowedSubcategoryIds.has(subcategoryId))
+    );
     resetPagination();
   };
 
   const handleSubcategoriesChange = (subcategoryIds: string[]) => {
-    setSubcategoryFilters(subcategoryIds);
+    const allowedSubcategoryIds = getAllowedSubcategoryIds(categoryFilters);
+    setSubcategoryFilters(
+      subcategoryIds.filter((subcategoryId) => allowedSubcategoryIds.has(subcategoryId))
+    );
     resetPagination();
   };
 
@@ -173,7 +183,7 @@ export default function TransactionsPage() {
         types={typeFilters}
         accountIds={accountFilters}
         categoryIds={categoryFilters}
-        subcategoryIds={subcategoryFilters}
+        subcategoryIds={effectiveSubcategoryFilters}
         search={search}
         accounts={accounts}
         categories={categories}
@@ -254,7 +264,7 @@ export default function TransactionsPage() {
           ) : filteredTransactions.length === 0 ? (
             <div className="flex items-center justify-center p-8 text-muted-foreground">
               <p className="text-sm">
-                {search || typeFilters.length || accountFilters.length || categoryFilters.length || subcategoryFilters.length
+                {search || typeFilters.length || accountFilters.length || categoryFilters.length || effectiveSubcategoryFilters.length
                   ? "No hay transacciones con los filtros actuales"
                   : "No hay transacciones en este mes"}
               </p>
