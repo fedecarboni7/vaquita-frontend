@@ -106,6 +106,8 @@ export default function EditTransactionModal({
     const subcategoryExists = availableSubcategories.some((item) => item.id === subcategoryId);
     return subcategoryExists ? subcategoryId : "__none__";
   }, [availableSubcategories, subcategoryId]);
+  const parsedAmount = Number.parseFloat(amount);
+  const hasInvalidAmount = !Number.isFinite(parsedAmount) || parsedAmount <= 0;
   const installments = parseInstallments(installmentsInput);
   const hasInvalidInstallments = isExpense && installmentsInput !== "" && installments === null;
   const selectedTypeLabel =
@@ -134,8 +136,12 @@ export default function EditTransactionModal({
       return;
     }
 
+    if (hasInvalidAmount) {
+      return;
+    }
+
     const commonData = {
-      amount: parseFloat(amount),
+      amount: parsedAmount,
       description,
       account_id: resolvedAccountId,
       expense_date: expenseDate || getCurrentLocalDateISO(),
@@ -213,10 +219,21 @@ export default function EditTransactionModal({
             <input
               type="number"
               step="0.01"
+              min="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              onKeyDown={(event) => {
+                if (["e", "E", "+", "-"].includes(event.key)) {
+                  event.preventDefault();
+                }
+              }}
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
+            {hasInvalidAmount && (
+              <p className="mt-1 text-xs text-destructive">
+                Ingresá un monto numérico mayor a 0.
+              </p>
+            )}
           </div>
 
           <div>
@@ -369,6 +386,7 @@ export default function EditTransactionModal({
             onClick={handleSave}
             disabled={
               updateMutation.isPending ||
+              hasInvalidAmount ||
               (isTransfer && !accountDestination) ||
               hasInvalidInstallments
             }

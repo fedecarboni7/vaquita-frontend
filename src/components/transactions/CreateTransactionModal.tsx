@@ -34,6 +34,8 @@ const TYPE_OPTIONS: Array<{ value: TransactionType; label: string }> = [
   { value: "transfer", label: "Transferencia" },
 ];
 
+const NO_DESTINATION_VALUE = "__none__";
+
 function getCurrentLocalDateISO(): string {
   const now = new Date();
   const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
@@ -74,6 +76,10 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
   const selectedSourceAccount = useMemo(
     () => accounts.find((item) => item.id === selectedAccountId) ?? null,
     [accounts, selectedAccountId],
+  );
+  const selectedDestinationAccount = useMemo(
+    () => accounts.find((item) => item.id === accountDestinationId) ?? null,
+    [accounts, accountDestinationId],
   );
   const resolvedCurrency: CurrencyCode = selectedSourceAccount?.currency ?? "ARS";
 
@@ -133,11 +139,21 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
     }
   };
 
+  const handleOriginAccountChange = (value: string | null) => {
+    const nextAccountId = value ?? "";
+    setAccountId(nextAccountId);
+
+    // Avoid invalid transfer state when user picks destination first and then matches origin.
+    if (transactionType === "transfer" && nextAccountId === accountDestinationId) {
+      setAccountDestinationId("");
+    }
+  };
+
   const handleSave = () => {
     const parsedAmount = Number.parseFloat(amount);
     const trimmedDescription = description.trim();
 
-    if (!selectedAccountId || !Number.isFinite(parsedAmount) || parsedAmount <= 0 || !trimmedDescription) {
+    if (!selectedAccountId || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       return;
     }
 
@@ -189,10 +205,10 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
   const disableSave =
     createMutation.isPending ||
     !selectedAccountId ||
-    !description.trim() ||
     !Number.isFinite(Number.parseFloat(amount)) ||
     Number.parseFloat(amount) <= 0 ||
     (isTransfer && !accountDestinationId) ||
+    (isTransfer && selectedAccountId === accountDestinationId) ||
     hasInvalidInstallments;
 
   return (
@@ -233,23 +249,35 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
 
           <div>
             <label className="text-sm font-medium mb-1 block">Monto</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
+            <div className="relative">
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onKeyDown={(event) => {
+                  if (["e", "E", "+", "-"].includes(event.key)) {
+                    event.preventDefault();
+                  }
+                }}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pr-14 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                {resolvedCurrency}
+              </span>
+            </div>
           </div>
 
           <div>
             <label className="text-sm font-medium mb-1 block">
               {isTransfer ? "Cuenta de origen" : "Cuenta"}
             </label>
-            <Select value={selectedAccountId} onValueChange={(v) => setAccountId(v ?? "") }>
+            <Select value={selectedAccountId} onValueChange={handleOriginAccountChange}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleccionar cuenta" />
+                <SelectValue placeholder="Seleccionar cuenta">
+                  {selectedSourceAccount?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {accounts.map((account) => (
@@ -264,11 +292,20 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
           {isTransfer && (
             <div>
               <label className="text-sm font-medium mb-1 block">Cuenta destino</label>
-              <Select value={accountDestinationId} onValueChange={(v) => setAccountDestinationId(v ?? "")}>
+              <Select
+                key={selectedAccountId}
+                value={accountDestinationId || NO_DESTINATION_VALUE}
+                onValueChange={(v) =>
+                  setAccountDestinationId(v === NO_DESTINATION_VALUE ? "" : (v ?? ""))
+                }
+              >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar cuenta destino" />
+                  <SelectValue placeholder="Seleccionar cuenta destino">
+                    {selectedDestinationAccount?.name ?? "Seleccionar cuenta destino"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NO_DESTINATION_VALUE}>Seleccionar cuenta destino</SelectItem>
                   {accounts
                     .filter((account) => account.id !== selectedAccountId)
                     .map((account) => (
@@ -278,6 +315,11 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
                     ))}
                 </SelectContent>
               </Select>
+              {selectedAccountId && accountDestinationId && selectedAccountId === accountDestinationId && (
+                <p className="mt-1 text-xs text-destructive">
+                  La cuenta destino debe ser distinta de la cuenta de origen.
+                </p>
+              )}
             </div>
           )}
 
@@ -363,20 +405,6 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
               )}
             </>
           )}
-
-          <div>
-            <label className="text-sm font-medium mb-1 block">Moneda</label>
-            <Select value={resolvedCurrency} disabled>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleccionar moneda" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ARS">ARS</SelectItem>
-                <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="EUR">EUR</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           <div>
             <label className="text-sm font-medium mb-1 block">Nota</label>
