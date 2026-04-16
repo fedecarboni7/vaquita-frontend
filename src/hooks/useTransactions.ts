@@ -9,10 +9,10 @@ import type {
 
 interface UseTransactionsParams {
   month: string; // 'YYYY-MM'
-  type?: TransactionType;
-  account?: string;
-  category?: string;
-  subcategoryId?: string;
+  types?: TransactionType[];
+  accountIds?: string[];
+  categoryIds?: string[];
+  subcategoryIds?: string[];
   limit?: number;
   offset?: number;
 }
@@ -33,7 +33,15 @@ export interface CreateTransactionPayload {
 }
 
 function buildSearchParams(params: UseTransactionsParams): string {
-  const { month, type, account, category, subcategoryId, limit = 20, offset = 0 } = params;
+  const {
+    month,
+    types,
+    accountIds,
+    categoryIds,
+    subcategoryIds,
+    limit = 20,
+    offset = 0,
+  } = params;
 
   const [year, monthNum] = month.split("-").map(Number);
   const dateFrom = `${year}-${String(monthNum).padStart(2, "0")}-01`;
@@ -45,10 +53,19 @@ function buildSearchParams(params: UseTransactionsParams): string {
   sp.set("date_to", dateTo);
   sp.set("limit", String(limit));
   sp.set("offset", String(offset));
-  if (type) sp.set("type", type);
-  if (account) sp.set("account", account);
-  if (category) sp.set("category", category);
-  if (subcategoryId) sp.set("subcategory_id", subcategoryId);
+
+  for (const transactionType of types ?? []) {
+    sp.append("types", transactionType);
+  }
+  for (const accountId of accountIds ?? []) {
+    sp.append("account_ids", accountId);
+  }
+  for (const categoryId of categoryIds ?? []) {
+    sp.append("category_ids", categoryId);
+  }
+  for (const subcategoryId of subcategoryIds ?? []) {
+    sp.append("subcategory_ids", subcategoryId);
+  }
 
   return sp.toString();
 }

@@ -1,104 +1,265 @@
-import { useState } from "react";
-import { SlidersHorizontal } from "lucide-react";
+import { useMemo, useState } from "react";
+import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { TransactionType, Account, Category } from "@/types/transaction";
 
+interface MultiSelectOption {
+  value: string;
+  label: string;
+}
+
+interface MultiSelectDropdownProps {
+  label: string;
+  options: MultiSelectOption[];
+  selectedValues: string[];
+  onChange: (values: string[]) => void;
+  emptyLabel: string;
+  className?: string;
+}
+
+function MultiSelectDropdown({
+  label,
+  options,
+  selectedValues,
+  onChange,
+  emptyLabel,
+  className,
+}: MultiSelectDropdownProps) {
+  const selectedSet = useMemo(() => new Set(selectedValues), [selectedValues]);
+  const triggerLabel = selectedValues.length > 0 ? `${label}: ${selectedValues.length}` : label;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={`inline-flex h-9 items-center justify-between rounded-md border border-input bg-background px-3 text-sm ${className ?? ""}`}
+      >
+        <span className="truncate">{triggerLabel}</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-64">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>{label}</DropdownMenuLabel>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        {options.length === 0 ? (
+          <div className="px-2 py-1.5 text-sm text-muted-foreground">{emptyLabel}</div>
+        ) : (
+          options.map((option) => {
+            const isChecked = selectedSet.has(option.value);
+            return (
+              <DropdownMenuCheckboxItem
+                key={option.value}
+                checked={isChecked}
+                onCheckedChange={(checked) => {
+                  const nextChecked = checked === true;
+                  if (nextChecked && !isChecked) {
+                    onChange([...selectedValues, option.value]);
+                    return;
+                  }
+                  if (!nextChecked && isChecked) {
+                    onChange(selectedValues.filter((value) => value !== option.value));
+                  }
+                }}
+              >
+                {option.label}
+              </DropdownMenuCheckboxItem>
+            );
+          })
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 interface Props {
-  type: TransactionType | undefined;
-  account: string | undefined;
-  category: string | undefined;
-  subcategoryId: string | undefined;
+  types: TransactionType[];
+  accountIds: string[];
+  categoryIds: string[];
+  subcategoryIds: string[];
   search: string;
   accounts: Account[];
   categories: Category[];
-  onTypeChange: (type: TransactionType | undefined) => void;
-  onAccountChange: (account: string | undefined) => void;
-  onCategoryChange: (category: string | undefined) => void;
-  onSubcategoryChange: (subcategoryId: string | undefined) => void;
+  onTypesChange: (types: TransactionType[]) => void;
+  onAccountsChange: (accountIds: string[]) => void;
+  onCategoriesChange: (categoryIds: string[]) => void;
+  onSubcategoriesChange: (subcategoryIds: string[]) => void;
   onSearchChange: (search: string) => void;
+  onClearFilters: () => void;
 }
 
-const typeOptions: { value: TransactionType | "all"; label: string }[] = [
-  { value: "all", label: "Tipo: Todos" },
+const typeOptions: { value: TransactionType; label: string }[] = [
   { value: "expense", label: "Gastos" },
   { value: "income", label: "Ingresos" },
   { value: "transfer", label: "Transferencias" },
 ];
 
 export default function FilterBar({
-  type,
-  account,
-  category,
-  subcategoryId,
+  types,
+  accountIds,
+  categoryIds,
+  subcategoryIds,
   search,
   accounts,
   categories,
-  onTypeChange,
-  onAccountChange,
-  onCategoryChange,
-  onSubcategoryChange,
+  onTypesChange,
+  onAccountsChange,
+  onCategoriesChange,
+  onSubcategoriesChange,
   onSearchChange,
+  onClearFilters,
 }: Props) {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const selectedCategory = categories.find((item) => item.name === category);
-  const availableSubcategories = selectedCategory?.subcategories ?? [];
+
+  const accountOptions = useMemo(
+    () => accounts.map((account) => ({ value: account.id, label: account.name })),
+    [accounts]
+  );
+
+  const categoryOptions = useMemo(
+    () => categories.map((category) => ({ value: category.id, label: category.name })),
+    [categories]
+  );
+
+  const availableSubcategories = useMemo(() => {
+    const selectedCategorySet = new Set(categoryIds);
+    const sourceCategories =
+      selectedCategorySet.size === 0
+        ? categories
+        : categories.filter((category) => selectedCategorySet.has(category.id));
+
+    return sourceCategories.flatMap((category) =>
+      category.subcategories.map((subcategory) => ({
+        value: subcategory.id,
+        label: subcategory.name,
+      }))
+    );
+  }, [categories, categoryIds]);
+
+  const accountNameById = useMemo(
+    () => new Map(accounts.map((account) => [account.id, account.name])),
+    [accounts]
+  );
+  const categoryNameById = useMemo(
+    () => new Map(categories.map((category) => [category.id, category.name])),
+    [categories]
+  );
+  const subcategoryNameById = useMemo(
+    () =>
+      new Map(
+        categories
+          .flatMap((category) => category.subcategories)
+          .map((subcategory) => [subcategory.id, subcategory.name])
+      ),
+    [categories]
+  );
+  const typeLabelByValue = useMemo(
+    () => new Map(typeOptions.map((option) => [option.value, option.label])),
+    []
+  );
+
+  const selectedChips = [
+    ...accountIds
+      .filter((accountId) => accountNameById.has(accountId))
+      .map((accountId) => ({
+        key: `account:${accountId}`,
+        label: `Cuenta: ${accountNameById.get(accountId)}`,
+        onRemove: () => onAccountsChange(accountIds.filter((value) => value !== accountId)),
+      })),
+    ...categoryIds
+      .filter((categoryId) => categoryNameById.has(categoryId))
+      .map((categoryId) => ({
+        key: `category:${categoryId}`,
+        label: `Categoria: ${categoryNameById.get(categoryId)}`,
+        onRemove: () => onCategoriesChange(categoryIds.filter((value) => value !== categoryId)),
+      })),
+    ...subcategoryIds
+      .filter((subcategoryId) => subcategoryNameById.has(subcategoryId))
+      .map((subcategoryId) => ({
+        key: `subcategory:${subcategoryId}`,
+        label: `Subcategoria: ${subcategoryNameById.get(subcategoryId)}`,
+        onRemove: () => onSubcategoriesChange(subcategoryIds.filter((value) => value !== subcategoryId)),
+      })),
+    ...types
+      .filter((type) => typeLabelByValue.has(type))
+      .map((type) => ({
+        key: `type:${type}`,
+        label: `Tipo: ${typeLabelByValue.get(type)}`,
+        onRemove: () => onTypesChange(types.filter((value) => value !== type)),
+      })),
+  ];
+
+  const hasActiveFilters =
+    search.trim().length > 0 ||
+    accountIds.length > 0 ||
+    categoryIds.length > 0 ||
+    subcategoryIds.length > 0 ||
+    types.length > 0;
 
   const filterControls = (
     <>
       <input
-        className="filter-input w-full md:w-auto"
+        className="filter-input w-full md:w-64"
         type="text"
         placeholder="Buscar descripción..."
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
       />
 
-      <select
-        className="filter-select w-full md:w-auto"
-        value={category ?? "__all__"}
-        onChange={(e) => onCategoryChange(e.target.value === "__all__" ? undefined : e.target.value)}
-      >
-        <option value="__all__">Todas las categorías</option>
-        {categories.map((c) => (
-          <option key={c.id} value={c.name}>{c.name}</option>
-        ))}
-      </select>
+      <MultiSelectDropdown
+        label="Categorias"
+        options={categoryOptions}
+        selectedValues={categoryIds}
+        onChange={onCategoriesChange}
+        emptyLabel="No hay categorias disponibles"
+        className="w-full md:w-52"
+      />
 
-      <select
-        className="filter-select w-full md:w-auto"
-        value={account ?? "__all__"}
-        onChange={(e) => onAccountChange(e.target.value === "__all__" ? undefined : e.target.value)}
-      >
-        <option value="__all__">Todas las cuentas</option>
-        {accounts.map((a) => (
-          <option key={a.id} value={a.name}>{a.name}</option>
-        ))}
-      </select>
+      <MultiSelectDropdown
+        label="Subcategorias"
+        options={availableSubcategories}
+        selectedValues={subcategoryIds}
+        onChange={onSubcategoriesChange}
+        emptyLabel="No hay subcategorias para las categorias seleccionadas"
+        className="w-full md:w-52"
+      />
 
-      <select
-        className="filter-select w-full md:w-auto"
-        value={type ?? "all"}
-        onChange={(e) => onTypeChange(e.target.value === "all" ? undefined : e.target.value as TransactionType)}
-      >
-        {typeOptions.map((t) => (
-          <option key={t.value} value={t.value}>{t.label}</option>
-        ))}
-      </select>
+      <MultiSelectDropdown
+        label="Cuentas"
+        options={accountOptions}
+        selectedValues={accountIds}
+        onChange={onAccountsChange}
+        emptyLabel="No hay cuentas disponibles"
+        className="w-full md:w-52"
+      />
 
-      {category && (
-        <select
-          className="filter-select w-full md:w-auto"
-          value={subcategoryId ?? "__all__"}
-          onChange={(e) => onSubcategoryChange(e.target.value === "__all__" ? undefined : e.target.value)}
-        >
-          <option value="__all__">Todas las subcategorías</option>
-          {availableSubcategories.map((subcategory) => (
-            <option key={subcategory.id} value={subcategory.id}>
-              {subcategory.name}
-            </option>
-          ))}
-        </select>
-      )}
+      <MultiSelectDropdown
+        label="Tipos"
+        options={typeOptions}
+        selectedValues={types}
+        onChange={(values) => onTypesChange(values as TransactionType[])}
+        emptyLabel="No hay tipos disponibles"
+        className="w-full md:w-44"
+      />
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={onClearFilters}
+        disabled={!hasActiveFilters}
+        className="justify-center md:justify-start"
+      >
+        Limpiar filtros
+      </Button>
     </>
   );
   
@@ -124,13 +285,48 @@ export default function FilterBar({
         {mobileFiltersOpen && (
           <div className="mt-2 grid gap-2">
             {filterControls}
+            {selectedChips.length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-1">
+                {selectedChips.map((chip) => (
+                  <Badge key={chip.key} variant="secondary" className="gap-1.5 pr-1">
+                    <span>{chip.label}</span>
+                    <button
+                      type="button"
+                      onClick={chip.onRemove}
+                      className="rounded-sm p-0.5 hover:bg-foreground/10"
+                      aria-label={`Quitar ${chip.label}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      <div className="hidden md:flex md:items-center md:gap-2.5 md:mb-4 md:flex-wrap">
+      <div className="hidden md:flex md:items-center md:gap-2.5 md:mb-3 md:flex-wrap">
         {filterControls}
       </div>
+
+      {selectedChips.length > 0 && (
+        <div className="hidden md:flex md:flex-wrap md:gap-1.5">
+          {selectedChips.map((chip) => (
+            <Badge key={chip.key} variant="secondary" className="gap-1.5 pr-1">
+              <span>{chip.label}</span>
+              <button
+                type="button"
+                onClick={chip.onRemove}
+                className="rounded-sm p-0.5 hover:bg-foreground/10"
+                aria-label={`Quitar ${chip.label}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
