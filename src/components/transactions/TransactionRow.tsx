@@ -54,6 +54,9 @@ export default function TransactionRow({
       <td>
         <div className="font-medium">{label}</div>
         {transaction.note && <div className="note">{transaction.note}</div>}
+        {transaction.affects_balance === false && (
+          <div className="text-[11px] text-muted-foreground">No afecta balance</div>
+        )}
       </td>
       <td>
         {categoryLabel && (

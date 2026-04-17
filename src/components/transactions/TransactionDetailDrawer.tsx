@@ -89,6 +89,10 @@ function DetailContent({
         ? String(transaction.installments)
         : null,
     },
+    {
+      label: "Afecta balance en Registros",
+      value: transaction.affects_balance === false ? "No" : "Si",
+    },
   ];
 
   return (

@@ -30,12 +30,25 @@ function formatMonthNav(month: string): string {
   return d.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
 }
 
-function calculateNetTotal(transactions: Transaction[]): number {
-  return transactions.reduce((acc, t) => {
-    if (t.type === "income") return acc + t.amount;
-    if (t.type === "expense") return acc - t.amount;
-    return acc;
-  }, 0);
+function calculateNetTotalsByCurrency(
+  transactions: Transaction[]
+): Array<{ currency: Transaction["currency"]; total: number }> {
+  const totals = new Map<Transaction["currency"], number>();
+
+  for (const transaction of transactions) {
+    if (transaction.affects_balance === false) {
+      continue;
+    }
+
+    const signal = transaction.type === "income" ? 1 : transaction.type === "expense" ? -1 : 0;
+    if (signal === 0) continue;
+
+    totals.set(transaction.currency, (totals.get(transaction.currency) ?? 0) + signal * transaction.amount);
+  }
+
+  return Array.from(totals.entries())
+    .sort(([currencyA], [currencyB]) => currencyA.localeCompare(currencyB))
+    .map(([currency, total]) => ({ currency, total }));
 }
 
 export default function TransactionsPage() {
@@ -173,8 +186,14 @@ export default function TransactionsPage() {
     setDetailOpen(false);
   };
 
-  const netTotal = calculateNetTotal(filteredTransactions);
-  const currency = filteredTransactions[0]?.currency ?? "ARS";
+  const netTotalsByCurrency = useMemo(
+    () => calculateNetTotalsByCurrency(filteredTransactions),
+    [filteredTransactions]
+  );
+  const balancesByCurrency =
+    netTotalsByCurrency.length > 0
+      ? netTotalsByCurrency
+      : [{ currency: "ARS" as Transaction["currency"], total: 0 }];
 
   return (
     <div className="flex flex-col h-full">
@@ -226,19 +245,24 @@ export default function TransactionsPage() {
               </Button>
             </div>
             
-            <span
-              className={`text-xs sm:text-sm font-medium tabular-nums self-end sm:self-auto ${
-                netTotal >= 0 ? "text-green-500" : "text-red-500"
-              }`}
-            >
-              {netTotal >= 0 ? "+" : ""}
-              {new Intl.NumberFormat("es-AR", {
-                style: "currency",
-                currency,
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2,
-              }).format(netTotal)}
-            </span>
+            <div className="flex flex-col items-end gap-0.5 self-end sm:self-auto">
+              {balancesByCurrency.map(({ currency, total }) => (
+                <span
+                  key={currency}
+                  className={`text-xs sm:text-sm font-medium tabular-nums ${
+                    total >= 0 ? "text-green-500" : "text-red-500"
+                  }`}
+                >
+                  {total >= 0 ? "+" : ""}
+                  {new Intl.NumberFormat("es-AR", {
+                    style: "currency",
+                    currency,
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  }).format(total)}
+                </span>
+              ))}
+            </div>
           </div>
 
           {isLoading && offset === 0 ? (
