@@ -82,6 +82,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
   const [note, setNote] = useState("");
   const [installmentsInput, setInstallmentsInput] = useState("");
   const [toAmountInput, setToAmountInput] = useState("");
+  const [affectsBalance, setAffectsBalance] = useState(true);
 
   const isTransfer = transactionType === "transfer";
   const isExpense = transactionType === "expense";
@@ -191,6 +192,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
       currency: resolvedCurrency,
       type: transactionType,
       note: note.trim() ? note.trim() : null,
+      affects_balance: affectsBalance,
     };
 
     const transferData: CreateTransactionPayload = {
@@ -213,6 +215,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
     createMutation.mutate(isTransfer ? transferData : defaultData, {
       onSuccess: () => {
         toast.success("Registro creado correctamente");
+        setAffectsBalance(true);
         onOpenChange(false);
       },
       onError: (error) => {
@@ -469,6 +472,16 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={affectsBalance}
+              onChange={(event) => setAffectsBalance(event.target.checked)}
+              className="h-4 w-4"
+            />
+            Afecta balance en Registros
+          </label>
 
           <Button className="w-full" onClick={handleSave} disabled={disableSave}>
             {createMutation.isPending && (

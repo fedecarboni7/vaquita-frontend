@@ -114,6 +114,7 @@ export default function AccountsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Account | null>(null);
   const [adjustTarget, setAdjustTarget] = useState<Account | null>(null);
   const [adjustBalance, setAdjustBalance] = useState("");
+  const [adjustAffectsBalance, setAdjustAffectsBalance] = useState(false);
 
   const totalsByCurrency = useMemo(() => {
     return accounts
@@ -194,6 +195,7 @@ export default function AccountsPage() {
   const openAdjust = (account: Account) => {
     setAdjustTarget(account);
     setAdjustBalance(account.balance.toFixed(2));
+    setAdjustAffectsBalance(false);
     setAdjustOpen(true);
   };
 
@@ -233,11 +235,13 @@ export default function AccountsPage() {
       {
         id: adjustTarget.id,
         balance: parsedBalance,
+        affects_balance: adjustAffectsBalance,
       },
       {
         onSuccess: () => {
           setAdjustOpen(false);
           setAdjustTarget(null);
+          setAdjustAffectsBalance(false);
         },
       },
     );
@@ -677,6 +681,17 @@ export default function AccountsPage() {
                 autoFocus
               />
             </div>
+            <div className="mb-4 rounded-lg border border-border bg-card px-3 py-2.5">
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={adjustAffectsBalance}
+                  onChange={(event) => setAdjustAffectsBalance(event.target.checked)}
+                  className="h-4 w-4"
+                />
+                Afecta balance en Registros
+              </label>
+            </div>
             <DialogFooter>
               <Button
                 type="button"
@@ -684,6 +699,7 @@ export default function AccountsPage() {
                 onClick={() => {
                   setAdjustOpen(false);
                   setAdjustTarget(null);
+                  setAdjustAffectsBalance(false);
                 }}
               >
                 Cancelar

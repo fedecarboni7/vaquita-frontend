@@ -76,6 +76,7 @@ export default function EditTransactionModal({
   const [expenseDate, setExpenseDate] = useState(transaction.expense_date || getCurrentLocalDateISO());
   const [currency, setCurrency] = useState<CurrencyCode>(transaction.currency);
   const [note, setNote] = useState(transaction.note || "");
+  const [affectsBalance, setAffectsBalance] = useState(transaction.affects_balance !== false);
   const [toAmountInput, setToAmountInput] = useState(
     transaction.to_amount != null ? String(transaction.to_amount) : "",
   );
@@ -171,6 +172,7 @@ export default function EditTransactionModal({
       currency,
       type: transactionType,
       note: note.trim() ? note.trim() : null,
+      affects_balance: affectsBalance,
     };
 
     const transferData = {
@@ -429,6 +431,16 @@ export default function EditTransactionModal({
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={affectsBalance}
+              onChange={(event) => setAffectsBalance(event.target.checked)}
+              className="h-4 w-4"
+            />
+            Afecta balance en Registros
+          </label>
 
           <Button
             className="w-full"

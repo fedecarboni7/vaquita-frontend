@@ -28,6 +28,7 @@ export interface Transaction {
   account_destination?: string | null;
   account_destination_currency?: CurrencyCode | null;
   to_amount?: number | null;
+  affects_balance?: boolean;
   created_at: string;
   updated_at: string;
 }

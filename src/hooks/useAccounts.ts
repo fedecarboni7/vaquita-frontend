@@ -19,6 +19,7 @@ interface AccountUpdatePayload extends AccountCreatePayload {
 interface AccountAdjustPayload {
   id: string;
   balance: number;
+  affects_balance?: boolean;
 }
 
 interface AccountAdjustResponse {
@@ -76,10 +77,10 @@ export function useUpdateAccount() {
 export function useAdjustAccountBalance() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, balance }: AccountAdjustPayload) =>
+    mutationFn: ({ id, balance, affects_balance }: AccountAdjustPayload) =>
       apiFetch<AccountAdjustResponse>(`/accounts/${id}/adjust`, {
         method: "POST",
-        body: JSON.stringify({ balance }),
+        body: JSON.stringify({ balance, affects_balance }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounts"] });
