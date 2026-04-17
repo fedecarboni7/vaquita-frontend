@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+    {
+        "name": "Run Frontend Dev Server (pnpm dev)",
+        "request": "launch",
+        "type": "node-terminal",
+        "command": "pnpm dev",
+        "cwd": "${workspaceFolder}"
+    }
+    ]
+}
