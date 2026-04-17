@@ -117,7 +117,7 @@ export default function EditTransactionModal({
     return subcategoryExists ? subcategoryId : "__none__";
   }, [availableSubcategories, subcategoryId]);
   const parsedAmount = parseNormalizedAmount(amount);
-  const hasInvalidAmount = !Number.isFinite(parsedAmount) || parsedAmount <= 0;
+  const hasInvalidAmount = parsedAmount == null || parsedAmount <= 0;
   const installments = parseInstallments(installmentsInput);
   const hasInvalidInstallments = isExpense && installmentsInput !== "" && installments === null;
   const parsedToAmount = parseNormalizedAmount(toAmountInput);
@@ -150,7 +150,7 @@ export default function EditTransactionModal({
       return;
     }
 
-    if (hasInvalidAmount) {
+    if (parsedAmount == null || parsedAmount <= 0) {
       return;
     }
 
