@@ -20,6 +20,18 @@ pnpm install
 pnpm dev
 ```
 
+# Required Post-Task Validation (Mirror CI)
+
+After finishing any task or code edit in the frontend repo, run the same checks used in CI:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm build
+```
+
+In a multi-repo task, run these frontend commands only when frontend files were changed.
+
 # Auth Flow
 
 1. User clicks Google sign-in button (`@react-oauth/google`)
