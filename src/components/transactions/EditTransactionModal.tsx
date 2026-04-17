@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,6 +18,11 @@ import {
 import { useUpdateTransaction } from "@/hooks/useTransactions";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
+import {
+  formatArAmountInput,
+  normalizeArAmountInput,
+  parseNormalizedAmount,
+} from "@/lib/amountInput";
 import type { CurrencyCode, Transaction, TransactionType } from "@/types/transaction";
 
 interface Props {
@@ -45,18 +51,6 @@ function parseInstallments(value: string): number | null {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed) || parsed <= 0) {
     return null;
-  }
-  return parsed;
-}
-
-function parsePositiveAmount(value: string): number | null {
-  if (!value.trim()) {
-    return null;
-  }
-
-  const parsed = Number.parseFloat(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return Number.NaN;
   }
   return parsed;
 }
@@ -122,13 +116,13 @@ export default function EditTransactionModal({
     const subcategoryExists = availableSubcategories.some((item) => item.id === subcategoryId);
     return subcategoryExists ? subcategoryId : "__none__";
   }, [availableSubcategories, subcategoryId]);
-  const parsedAmount = Number.parseFloat(amount);
+  const parsedAmount = parseNormalizedAmount(amount);
   const hasInvalidAmount = !Number.isFinite(parsedAmount) || parsedAmount <= 0;
   const installments = parseInstallments(installmentsInput);
   const hasInvalidInstallments = isExpense && installmentsInput !== "" && installments === null;
-  const parsedToAmount = parsePositiveAmount(toAmountInput);
+  const parsedToAmount = parseNormalizedAmount(toAmountInput);
   const hasInvalidToAmount =
-    isTransfer && toAmountInput !== "" && (parsedToAmount == null || !Number.isFinite(parsedToAmount));
+    isTransfer && toAmountInput !== "" && (parsedToAmount == null || parsedToAmount <= 0);
   const selectedTypeLabel =
     TYPE_OPTIONS.find((option) => option.value === transactionType)?.label || "Gasto";
 
@@ -199,10 +193,66 @@ export default function EditTransactionModal({
         data: isTransfer ? transferData : defaultData,
       },
       {
-        onSuccess: () => onOpenChange(false),
+        onSuccess: () => {
+          toast.success("Registro actualizado correctamente");
+          onOpenChange(false);
+        },
+        onError: (error) => {
+          const message =
+            error instanceof Error && error.message
+              ? error.message
+              : "No se pudo actualizar la transacción";
+          toast.error(message);
+        },
       },
     );
   };
+
+  const disableSave =
+    updateMutation.isPending ||
+    hasInvalidAmount ||
+    (isTransfer && !accountDestination) ||
+    hasInvalidToAmount ||
+    hasInvalidInstallments;
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (
+        event.key !== "Enter" ||
+        !event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        event.metaKey ||
+        event.isComposing ||
+        event.repeat ||
+        disableSave
+      ) {
+        return;
+      }
+
+      if (event.target instanceof HTMLElement) {
+        const isSelectInteraction = event.target.closest(
+          '[role="combobox"], [role="listbox"], [role="option"]',
+        );
+        if (isSelectInteraction) {
+          return;
+        }
+      }
+
+      event.preventDefault();
+      handleSave();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [disableSave, handleSave, open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -243,17 +293,12 @@ export default function EditTransactionModal({
           <div>
             <label className="text-sm font-medium mb-1 block">Monto</label>
             <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              onKeyDown={(event) => {
-                if (["e", "E", "+", "-"].includes(event.key)) {
-                  event.preventDefault();
-                }
-              }}
+              type="text"
+              inputMode="decimal"
+              value={formatArAmountInput(amount)}
+              onChange={(e) => setAmount(normalizeArAmountInput(e.target.value))}
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              placeholder="0,00"
             />
             {hasInvalidAmount && (
               <p className="mt-1 text-xs text-destructive">
@@ -304,18 +349,12 @@ export default function EditTransactionModal({
             <div>
               <label className="text-sm font-medium mb-1 block">Monto destino (opcional)</label>
               <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={toAmountInput}
-                onChange={(e) => setToAmountInput(e.target.value)}
-                onKeyDown={(event) => {
-                  if (["e", "E", "+", "-"].includes(event.key)) {
-                    event.preventDefault();
-                  }
-                }}
+                type="text"
+                inputMode="decimal"
+                value={formatArAmountInput(toAmountInput)}
+                onChange={(e) => setToAmountInput(normalizeArAmountInput(e.target.value))}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                placeholder="Si es distinta moneda"
+                placeholder="0,00"
               />
               {hasInvalidToAmount && (
                 <p className="mt-1 text-xs text-destructive">
@@ -445,13 +484,7 @@ export default function EditTransactionModal({
           <Button
             className="w-full"
             onClick={handleSave}
-            disabled={
-              updateMutation.isPending ||
-              hasInvalidAmount ||
-              (isTransfer && !accountDestination) ||
-              hasInvalidToAmount ||
-              hasInvalidInstallments
-            }
+            disabled={disableSave}
           >
             {updateMutation.isPending && (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

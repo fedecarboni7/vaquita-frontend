@@ -21,6 +21,11 @@ import {
 } from "@/hooks/useTransactions";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
+import {
+  formatArAmountInput,
+  normalizeArAmountInput,
+  parseNormalizedAmount,
+} from "@/lib/amountInput";
 import type { CurrencyCode, TransactionType } from "@/types/transaction";
 
 interface Props {
@@ -52,18 +57,6 @@ function parseInstallments(value: string): number | null {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed) || parsed <= 0) {
     return null;
-  }
-  return parsed;
-}
-
-function parsePositiveAmount(value: string): number | null {
-  if (!value.trim()) {
-    return null;
-  }
-
-  const parsed = Number.parseFloat(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return Number.NaN;
   }
   return parsed;
 }
@@ -142,9 +135,11 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
 
   const installments = parseInstallments(installmentsInput);
   const hasInvalidInstallments = isExpense && installmentsInput !== "" && installments === null;
-  const parsedToAmount = parsePositiveAmount(toAmountInput);
+  const parsedAmount = parseNormalizedAmount(amount);
+  const hasInvalidAmount = parsedAmount == null || parsedAmount <= 0;
+  const parsedToAmount = parseNormalizedAmount(toAmountInput);
   const hasInvalidToAmount =
-    isTransfer && toAmountInput !== "" && (parsedToAmount == null || !Number.isFinite(parsedToAmount));
+    isTransfer && toAmountInput !== "" && (parsedToAmount == null || parsedToAmount <= 0);
 
   const handleTypeChange = (value: TransactionType) => {
     setTransactionType(value);
@@ -191,13 +186,12 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
   };
 
   const handleSave = (mode: SubmitMode) => {
-    const parsedAmount = Number.parseFloat(amount);
     const trimmedDescription = description.trim();
     const nextExpenseDate = expenseDate || getCurrentLocalDateISO();
     const nextTransactionType = transactionType;
     const nextAccountId = selectedAccountId;
 
-    if (!selectedAccountId || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    if (!selectedAccountId || parsedAmount == null || parsedAmount <= 0) {
       return;
     }
 
@@ -265,8 +259,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
   const disableSave =
     createMutation.isPending ||
     !selectedAccountId ||
-    !Number.isFinite(Number.parseFloat(amount)) ||
-    Number.parseFloat(amount) <= 0 ||
+    hasInvalidAmount ||
     (isTransfer && !accountDestinationId) ||
     (isTransfer && selectedAccountId === accountDestinationId) ||
     hasInvalidToAmount ||
@@ -359,17 +352,12 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
             <label className="text-sm font-medium mb-1 block">Monto</label>
             <div className="relative">
               <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                onKeyDown={(event) => {
-                  if (["e", "E", "+", "-"].includes(event.key)) {
-                    event.preventDefault();
-                  }
-                }}
+                type="text"
+                inputMode="decimal"
+                value={formatArAmountInput(amount)}
+                onChange={(e) => setAmount(normalizeArAmountInput(e.target.value))}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pr-14 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="0,00"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                 {resolvedCurrency}
@@ -436,18 +424,12 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
               <label className="text-sm font-medium mb-1 block">Monto destino (opcional)</label>
               <div className="relative">
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={toAmountInput}
-                  onChange={(e) => setToAmountInput(e.target.value)}
-                  onKeyDown={(event) => {
-                    if (["e", "E", "+", "-"].includes(event.key)) {
-                      event.preventDefault();
-                    }
-                  }}
+                  type="text"
+                  inputMode="decimal"
+                  value={formatArAmountInput(toAmountInput)}
+                  onChange={(e) => setToAmountInput(normalizeArAmountInput(e.target.value))}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pr-14 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  placeholder="Si es distinta moneda"
+                  placeholder="0,00"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                   {resolvedDestinationCurrency}

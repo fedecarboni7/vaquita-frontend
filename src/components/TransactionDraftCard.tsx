@@ -3,6 +3,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../api";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
+import {
+  formatArAmountInput,
+  normalizeArAmountInput,
+} from "@/lib/amountInput";
 import { formatCurrencyAmount } from "@/lib/utils";
 import type { Category, CurrencyCode, TransactionType } from "@/types/transaction";
 
@@ -147,6 +151,8 @@ export default function TransactionDraftCard({ data }: Props) {
 
   const installmentsValue = editData.installments == null ? "" : String(editData.installments);
   const parsedInstallments = parsePositiveInteger(installmentsValue);
+  const parsedAmount = normalizePositiveAmount(editData.amount);
+  const hasInvalidAmount = parsedAmount == null || !Number.isFinite(parsedAmount) || parsedAmount <= 0;
   const parsedToAmount = normalizePositiveAmount(editData.to_amount);
   const hasToAmount = editData.to_amount != null && String(editData.to_amount).trim() !== "";
   const hasInvalidToAmount =
@@ -154,6 +160,7 @@ export default function TransactionDraftCard({ data }: Props) {
 
   const canConfirm =
     status !== "saving" &&
+    !hasInvalidAmount &&
     !!selectedAccountRecord &&
     (!isTransfer || !!selectedDestinationAccountRecord) &&
     (!isTransfer || !hasInvalidToAmount) &&
@@ -175,6 +182,12 @@ export default function TransactionDraftCard({ data }: Props) {
     if (isExpense && installmentsValue !== "" && parsedInstallments === null) {
       setStatus("error");
       setErrorMessage("La cantidad de cuotas debe ser un número mayor a 0.");
+      return;
+    }
+
+    if (hasInvalidAmount) {
+      setStatus("error");
+      setErrorMessage("El monto debe ser un número mayor a 0.");
       return;
     }
 
@@ -208,7 +221,7 @@ export default function TransactionDraftCard({ data }: Props) {
         typeof editData.subcategory_id === "string" ? editData.subcategory_id : null;
 
       const payload = {
-        amount: typeof editData.amount === "number" ? editData.amount : Number(editData.amount) || 0,
+        amount: parsedAmount ?? 0,
         description: String(editData.description ?? ""),
         type: selectedType,
         expense_date:
@@ -242,13 +255,15 @@ export default function TransactionDraftCard({ data }: Props) {
   };
 
   const handleFieldChange = (field: string, value: string) => {
+    const normalizedAmountValue = normalizeArAmountInput(value);
+
     setEditData((prev) => ({
       ...prev,
       [field]:
         field === "amount"
-          ? parseFloat(value) || 0
+          ? normalizedAmountValue
           : field === "to_amount"
-            ? (value.trim() === "" ? null : Number.parseFloat(value))
+            ? (value.trim() === "" ? null : normalizedAmountValue)
           : field === "installments"
             ? parsePositiveInteger(value)
             : field === "currency"
@@ -383,11 +398,12 @@ export default function TransactionDraftCard({ data }: Props) {
           FIELD_LABELS.amount,
           isEditing ? (
             <input
-              type="number"
-              step="0.01"
-              value={String(editData.amount ?? "")}
+              type="text"
+              inputMode="decimal"
+              value={formatArAmountInput(normalizeArAmountInput(String(editData.amount ?? "")))}
               onChange={(event) => handleFieldChange("amount", event.target.value)}
               className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+              placeholder="0,00"
             />
           ) : (
             <span className="text-white break-words">
@@ -401,13 +417,16 @@ export default function TransactionDraftCard({ data }: Props) {
             FIELD_LABELS.to_amount,
             isEditing ? (
               <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={editData.to_amount == null ? "" : String(editData.to_amount)}
+                type="text"
+                inputMode="decimal"
+                value={
+                  editData.to_amount == null
+                    ? ""
+                    : formatArAmountInput(normalizeArAmountInput(String(editData.to_amount)))
+                }
                 onChange={(event) => handleFieldChange("to_amount", event.target.value)}
                 className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
-                placeholder="Opcional"
+                placeholder="0,00"
               />
             ) : (
               <span className="text-white break-words">
