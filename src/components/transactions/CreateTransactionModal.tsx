@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,8 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+type SubmitMode = "close" | "continue";
 
 const TYPE_OPTIONS: Array<{ value: TransactionType; label: string }> = [
   { value: "expense", label: "Gasto" },
@@ -83,10 +85,11 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
   const [installmentsInput, setInstallmentsInput] = useState("");
   const [toAmountInput, setToAmountInput] = useState("");
   const [affectsBalance, setAffectsBalance] = useState(true);
+  const [submitMode, setSubmitMode] = useState<SubmitMode>("close");
 
   const isTransfer = transactionType === "transfer";
   const isExpense = transactionType === "expense";
-  const selectedAccountId = accountId || accounts[0]?.id || "";
+  const selectedAccountId = accountId;
   const selectedSourceAccount = useMemo(
     () => accounts.find((item) => item.id === selectedAccountId) ?? null,
     [accounts, selectedAccountId],
@@ -168,9 +171,31 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
     }
   };
 
-  const handleSave = () => {
+  const resetFormForNextEntry = (
+    nextAccountId: string,
+    nextExpenseDate: string,
+    nextTransactionType: TransactionType,
+  ) => {
+    setTransactionType(nextTransactionType);
+    setAmount("");
+    setDescription("");
+    setCategoryId("__none__");
+    setSubcategoryId("__none__");
+    setAccountId(nextAccountId);
+    setAccountDestinationId("");
+    setExpenseDate(nextExpenseDate);
+    setNote("");
+    setInstallmentsInput("");
+    setToAmountInput("");
+    setAffectsBalance(true);
+  };
+
+  const handleSave = (mode: SubmitMode) => {
     const parsedAmount = Number.parseFloat(amount);
     const trimmedDescription = description.trim();
+    const nextExpenseDate = expenseDate || getCurrentLocalDateISO();
+    const nextTransactionType = transactionType;
+    const nextAccountId = selectedAccountId;
 
     if (!selectedAccountId || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       return;
@@ -188,7 +213,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
       amount: parsedAmount,
       description: trimmedDescription,
       account_id: selectedAccountId,
-      expense_date: expenseDate || getCurrentLocalDateISO(),
+      expense_date: nextExpenseDate,
       currency: resolvedCurrency,
       type: transactionType,
       note: note.trim() ? note.trim() : null,
@@ -212,10 +237,18 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
       account_destination_id: null,
     };
 
+    setSubmitMode(mode);
+
     createMutation.mutate(isTransfer ? transferData : defaultData, {
       onSuccess: () => {
         toast.success("Registro creado correctamente");
-        setAffectsBalance(true);
+        if (mode === "continue") {
+          resetFormForNextEntry(nextAccountId, nextExpenseDate, nextTransactionType);
+          setSubmitMode("close");
+          return;
+        }
+
+        setSubmitMode("close");
         onOpenChange(false);
       },
       onError: (error) => {
@@ -224,6 +257,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
             ? error.message
             : "No se pudo crear la transacción";
         toast.error(message);
+        setSubmitMode("close");
       },
     });
   };
@@ -238,13 +272,60 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
     hasInvalidToAmount ||
     hasInvalidInstallments;
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (
+        event.key !== "Enter" ||
+        disableSave ||
+        event.repeat ||
+        event.altKey ||
+        event.metaKey ||
+        event.isComposing
+      ) {
+        return;
+      }
+
+      if (event.target instanceof HTMLElement) {
+        const isSelectInteraction = event.target.closest(
+          '[role="combobox"], [role="listbox"], [role="option"]',
+        );
+        if (isSelectInteraction) {
+          return;
+        }
+      }
+
+      if (event.ctrlKey && !event.shiftKey) {
+        event.preventDefault();
+        handleSave("close");
+        return;
+      }
+
+      if (event.shiftKey && !event.ctrlKey) {
+        event.preventDefault();
+        handleSave("continue");
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [disableSave, handleSave, open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Nuevo registro</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
+        <form
+          className="space-y-4 max-h-[75vh] overflow-y-auto pr-1"
+        >
           <div>
             <label className="text-sm font-medium mb-1 block">Fecha</label>
             <input
@@ -300,7 +381,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
             <label className="text-sm font-medium mb-1 block">
               {isTransfer ? "Cuenta de origen" : "Cuenta"}
             </label>
-            <Select value={selectedAccountId} onValueChange={handleOriginAccountChange}>
+            <Select value={selectedAccountId || undefined} onValueChange={handleOriginAccountChange}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Seleccionar cuenta">
                   {selectedSourceAccount?.name}
@@ -483,13 +564,27 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
             Afecta balance en Registros
           </label>
 
-          <Button className="w-full" onClick={handleSave} disabled={disableSave}>
-            {createMutation.isPending && (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            )}
-            Guardar registro
-          </Button>
-        </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => handleSave("continue")}
+              disabled={disableSave}
+            >
+              {createMutation.isPending && submitMode === "continue" && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Guardar y crear otro
+            </Button>
+            <Button type="button" className="w-full" onClick={() => handleSave("close")} disabled={disableSave}>
+              {createMutation.isPending && submitMode === "close" && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              Guardar registro
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
