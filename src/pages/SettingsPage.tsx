@@ -45,6 +45,9 @@ export default function SettingsPage() {
   const [newCatType, setNewCatType] = useState<"expense" | "income">("expense");
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
 
+  const expenseCategories = categories.filter((cat) => cat.type === "expense");
+  const incomeCategories = categories.filter((cat) => cat.type === "income");
+
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = newCatName.trim();
@@ -82,31 +85,85 @@ export default function SettingsPage() {
         </div>
 
         {categoriesLoading ? (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-24 rounded-full" />
-            ))}
+          <div className="space-y-3 mb-3">
+            <div>
+              <Skeleton className="h-4 w-16 mb-2" />
+              <div className="flex flex-wrap gap-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={`expense-${i}`} className="h-8 w-24 rounded-full" />
+                ))}
+              </div>
+            </div>
+            <div>
+              <Skeleton className="h-4 w-16 mb-2" />
+              <div className="flex flex-wrap gap-2">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <Skeleton key={`income-${i}`} className="h-8 w-24 rounded-full" />
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {categories.map((cat) => (
-              <div
-                key={cat.id}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-border bg-card text-[12.5px] transition-colors hover:border-muted-foreground/40"
-              >
-                <div
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ background: getCategoryColor(cat.name, cat.type) }}
-                />
-                {cat.name}
-                <button
-                  onClick={() => setDeleteTarget(cat)}
-                  className="text-muted-foreground/40 hover:text-destructive text-sm leading-none ml-0.5 transition-colors"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+          <div className="space-y-3 mb-3">
+            <div>
+              <div className="text-[11px] font-mono tracking-wide uppercase text-muted-foreground mb-1.5">
+                Gastos
               </div>
-            ))}
+              <div className="flex flex-wrap gap-2">
+                {expenseCategories.length === 0 ? (
+                  <div className="text-xs text-muted-foreground">Sin categorías de gasto</div>
+                ) : (
+                  expenseCategories.map((cat) => (
+                    <div
+                      key={cat.id}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-border bg-card text-[12.5px] transition-colors hover:border-muted-foreground/40"
+                    >
+                      <div
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ background: getCategoryColor(cat.name, cat.type) }}
+                      />
+                      {cat.name}
+                      <button
+                        onClick={() => setDeleteTarget(cat)}
+                        className="text-muted-foreground/40 hover:text-destructive text-sm leading-none ml-0.5 transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[11px] font-mono tracking-wide uppercase text-muted-foreground mb-1.5">
+                Ingresos
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {incomeCategories.length === 0 ? (
+                  <div className="text-xs text-muted-foreground">Sin categorías de ingreso</div>
+                ) : (
+                  incomeCategories.map((cat) => (
+                    <div
+                      key={cat.id}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-border bg-card text-[12.5px] transition-colors hover:border-muted-foreground/40"
+                    >
+                      <div
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ background: getCategoryColor(cat.name, cat.type) }}
+                      />
+                      {cat.name}
+                      <button
+                        onClick={() => setDeleteTarget(cat)}
+                        className="text-muted-foreground/40 hover:text-destructive text-sm leading-none ml-0.5 transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         )}
 
