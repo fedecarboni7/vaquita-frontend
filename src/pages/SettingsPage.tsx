@@ -181,37 +181,6 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Moneda y región */}
-      <section className="mb-8">
-        <div className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground/60 mb-3 pb-2 border-b border-border">
-          Moneda y región
-        </div>
-        <div className="rounded-lg border border-border bg-card divide-y divide-border">
-          <div className="flex flex-col items-start gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-[13.5px]">Moneda principal</div>
-              <div className="text-xs text-muted-foreground mt-0.5">
-                Para mostrar importes
-              </div>
-            </div>
-            <select className="w-full sm:w-auto px-3 py-1.5 border border-border rounded-lg bg-card text-sm outline-none cursor-pointer">
-              <option>ARS — Peso argentino</option>
-              <option>USD — Dólar</option>
-              <option>EUR — Euro</option>
-            </select>
-          </div>
-          <div className="flex flex-col items-start gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-[13.5px]">Formato de fecha</div>
-            </div>
-            <select className="w-full sm:w-auto px-3 py-1.5 border border-border rounded-lg bg-card text-sm outline-none cursor-pointer">
-              <option>DD/MM/AAAA</option>
-              <option>MM/DD/AAAA</option>
-            </select>
-          </div>
-        </div>
-      </section>
-
       {/* Datos */}
       <section className="mb-8">
         <div className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground/60 mb-3 pb-2 border-b border-border">
