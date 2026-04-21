@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import TransactionsPage from "./pages/TransactionsPage";
 import AccountsPage from "./pages/AccountsPage";
 import SettingsPage from "./pages/SettingsPage";
+import StatsPage from "./pages/StatsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
 
@@ -16,6 +17,7 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<ChatPage />} />
             <Route path="/transactions" element={<TransactionsPage />} />
+            <Route path="/stats" element={<StatsPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>

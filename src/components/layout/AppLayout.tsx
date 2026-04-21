@@ -6,6 +6,7 @@ import { useTheme } from "@/hooks/useTheme";
 
 const mainNav = [
   { to: "/transactions", icon: "≡", label: "Registros" },
+  { to: "/stats", icon: "◍", label: "Estadísticas" },
   { to: "/accounts", icon: "◫", label: "Cuentas" },
   { to: "/", icon: "✦", label: "Agente" },
 ];
@@ -200,7 +201,13 @@ export default function AppLayout() {
               }
             >
               <span className="text-base">{item.icon}</span>
-              <span>{item.label === "Configuración" ? "Config" : item.label}</span>
+              <span>
+                {item.label === "Configuración"
+                  ? "Config"
+                  : item.label === "Estadísticas"
+                    ? "Stats"
+                    : item.label}
+              </span>
             </NavLink>
           ))}
         </div>
