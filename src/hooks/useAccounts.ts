@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../api";
-import type { Account, AccountTypeCode, CurrencyCode } from "../types/transaction";
+import type { Account, AccountSummary, AccountTypeCode, CurrencyCode } from "../types/transaction";
 
 interface AccountCreatePayload {
   name: string;
@@ -31,6 +31,17 @@ export function useAccounts() {
   return useQuery({
     queryKey: ["accounts"],
     queryFn: () => apiFetch<Account[]>("/accounts"),
+  });
+}
+
+export function useAccountSummary(accountId: string | null, from: string, to: string) {
+  return useQuery({
+    queryKey: ["account-summary", accountId, from, to],
+    queryFn: () => {
+      const params = new URLSearchParams({ from, to });
+      return apiFetch<AccountSummary>(`/accounts/${accountId}/summary?${params.toString()}`);
+    },
+    enabled: Boolean(accountId),
   });
 }
 

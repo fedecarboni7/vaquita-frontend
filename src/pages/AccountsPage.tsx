@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { Plus, Trash2, Loader2, Scale } from "lucide-react";
+import { Plus, Trash2, Loader2, Scale, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import AccountDetailDrawer from "@/components/accounts/AccountDetailDrawer";
 import {
   Dialog,
   DialogContent,
@@ -113,6 +114,7 @@ export default function AccountsPage() {
   const [editPaymentDueDate, setEditPaymentDueDate] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Account | null>(null);
   const [adjustTarget, setAdjustTarget] = useState<Account | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [adjustBalance, setAdjustBalance] = useState("");
   const [adjustAffectsBalance, setAdjustAffectsBalance] = useState(false);
 
@@ -312,7 +314,7 @@ export default function AccountsPage() {
               <div
                 key={account.id}
                 className="relative overflow-hidden rounded-lg border border-border bg-card p-5 transition-colors hover:border-muted-foreground/40 cursor-pointer"
-                onClick={() => openEdit(account)}
+                onClick={() => setSelectedAccount(account)}
               >
                 <div
                   className={`absolute top-0 left-0 right-0 h-[3px] ${CARD_ACCENTS[i % CARD_ACCENTS.length]}`}
@@ -359,6 +361,17 @@ export default function AccountsPage() {
                       className="text-muted-foreground"
                       onClick={(event) => {
                         event.stopPropagation();
+                        openEdit(account);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-muted-foreground"
+                      onClick={(event) => {
+                        event.stopPropagation();
                         openAdjust(account);
                       }}
                     >
@@ -382,6 +395,12 @@ export default function AccountsPage() {
           })}
         </div>
       )}
+
+      <AccountDetailDrawer
+        key={selectedAccount?.id ?? "no-account"}
+        account={selectedAccount}
+        onClose={() => setSelectedAccount(null)}
+      />
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>

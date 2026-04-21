@@ -53,6 +53,18 @@ export interface Account {
   created_at: string;
 }
 
+export interface AccountSummary {
+  account_id: string;
+  account_name: string;
+  currency: CurrencyCode;
+  from: string;
+  to: string;
+  total_income: number;
+  total_expenses: number;
+  net_balance: number;
+  transaction_count: number;
+}
+
 export interface Category {
   id: string;
   name: string;
