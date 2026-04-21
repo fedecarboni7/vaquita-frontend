@@ -33,7 +33,7 @@ export default function AppLayout() {
   const displayName = user?.display_name ?? user?.email ?? "";
 
   return (
-    <div className="flex min-h-screen overflow-x-hidden">
+    <div className="flex min-h-screen overflow-x-hidden bg-background">
       {/* Sidebar overlay (mobile) */}
       {sidebarOpen && (
         <div
@@ -180,7 +180,7 @@ export default function AppLayout() {
       </header>
 
       {/* Main content */}
-      <main className="md:ml-[220px] flex-1 px-3 sm:px-4 pt-[60px] pb-[88px] md:px-12 md:py-10 md:max-w-[1100px]">
+      <main className="md:ml-[220px] flex-1 bg-background px-3 sm:px-4 pt-[60px] pb-[88px] md:px-12 md:py-10 md:max-w-[1100px]">
         <Outlet />
       </main>
 
