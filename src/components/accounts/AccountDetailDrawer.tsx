@@ -51,9 +51,14 @@ function MetricCard({
   highlighted?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-3">
+    <div className="min-w-0 rounded-lg border border-border bg-card p-3">
       <div className="text-[11px] font-mono uppercase tracking-wide text-muted-foreground">{title}</div>
-      <div className={cn("mt-2 font-serif text-xl tracking-[-0.3px]", highlighted && "text-destructive")}>
+      <div
+        className={cn(
+          "mt-2 min-w-0 break-words font-serif text-[clamp(1rem,2.2vw,1.25rem)] leading-tight tabular-nums",
+          highlighted && "text-destructive",
+        )}
+      >
         {value}
       </div>
     </div>
