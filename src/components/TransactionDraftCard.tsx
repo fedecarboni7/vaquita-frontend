@@ -31,7 +31,7 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 const READ_ONLY_FIELDS = new Set(["installment_amount"]);
-const CURRENCY_OPTIONS: CurrencyCode[] = ["ARS", "USD", "EUR"];
+const CURRENCY_OPTIONS: CurrencyCode[] = ["ARS", "USD"];
 const TYPE_OPTIONS: Array<{ value: TransactionType; label: string }> = [
   { value: "expense", label: "Gasto" },
   { value: "income", label: "Ingreso" },
@@ -56,7 +56,7 @@ function normalizeCurrency(value: unknown): CurrencyCode {
   }
 
   const normalized = value.toUpperCase();
-  if (normalized === "ARS" || normalized === "USD" || normalized === "EUR") {
+  if (normalized === "ARS" || normalized === "USD") {
     return normalized;
   }
   return "ARS";

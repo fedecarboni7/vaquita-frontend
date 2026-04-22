@@ -10,7 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "../components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -54,7 +54,7 @@ const ACCOUNT_TYPE_OPTIONS: Array<{ value: AccountTypeCode; label: string }> = [
   { value: "digital_wallet", label: "Billetera virtual" },
   { value: "cash", label: "Efectivo" },
 ];
-const CURRENCY_OPTIONS: CurrencyCode[] = ["ARS", "USD", "EUR"];
+const CURRENCY_OPTIONS: CurrencyCode[] = ["ARS", "USD"];
 
 type AccountViewMode = "grid" | "list";
 type AccountSortKey = "name" | "type" | "currency";
@@ -189,7 +189,7 @@ export default function AccountsPage() {
         acc[account.currency] += account.balance;
         return acc;
       },
-      { ARS: 0, USD: 0, EUR: 0 },
+      { ARS: 0, USD: 0 },
     );
   }, [accounts]);
 
@@ -201,7 +201,7 @@ export default function AccountsPage() {
         acc[account.currency] += 1;
         return acc;
       },
-      { ARS: 0, USD: 0, EUR: 0 },
+      { ARS: 0, USD: 0 },
     );
 
     return CURRENCY_OPTIONS.filter((currency) => countsByCurrency[currency] > 0).map((currency) => ({
