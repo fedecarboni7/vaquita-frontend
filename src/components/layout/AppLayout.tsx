@@ -15,6 +15,8 @@ const systemNav = [
   { to: "/settings", icon: "⚙", label: "Configuración" },
 ];
 
+const APP_LOGO_URL = "https://github.com/user-attachments/assets/17dd773f-3aac-4c0d-a86e-23804a4b96da";
+
 function getUserInitials(name: string | null | undefined) {
   if (!name) return "??";
   return name
@@ -53,12 +55,11 @@ export default function AppLayout() {
       >
         {/* Logo */}
         <div className="px-5 pb-7 border-b border-border/50 mb-4">
-          <div className="font-serif text-lg font-medium tracking-tight">
-            gastos.
-          </div>
-          <div className="text-[11px] text-muted-foreground/60 font-mono tracking-wider mt-0.5">
-            personal finance
-          </div>
+          <img
+            src={APP_LOGO_URL}
+            alt="Expenses Tracker logo"
+            className="h-20 w-20 rounded-2xl object-cover"
+          />
         </div>
 
         {/* Nav — Principal */}
@@ -163,7 +164,11 @@ export default function AppLayout() {
 
       {/* Mobile header */}
       <header className="md:hidden fixed top-0 left-0 right-0 h-12 bg-card border-b border-border flex items-center justify-between px-4 z-[200]">
-        <div className="font-serif text-base font-medium">gastos.</div>
+        <img
+          src={APP_LOGO_URL}
+          alt="Expenses Tracker logo"
+          className="h-8 w-8 rounded-lg object-cover"
+        />
         <div className="flex gap-2 items-center">
           <button
             onClick={toggleTheme}
