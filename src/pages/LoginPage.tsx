@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/useAuth";
+import { APP_LOGO_URL } from "@/constants/branding";
 
 export default function LoginPage() {
   const { user, isLoading, login, loginDev, isDevAuthEnabled } = useAuth();
@@ -21,6 +22,11 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-background">
       <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 sm:p-7 text-center shadow-xs space-y-5">
         <div className="space-y-1.5">
+          <img
+            src={APP_LOGO_URL}
+            alt="Expenses Tracker logo"
+            className="mx-auto h-20 w-20 rounded-2xl object-cover"
+          />
           <h1 className="text-2xl font-serif font-medium">Expenses Tracker</h1>
           <p className="text-sm text-muted-foreground">Iniciá sesión con tu cuenta de Google</p>
         </div>
