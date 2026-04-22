@@ -3,6 +3,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/useAuth";
 import { useTheme } from "@/hooks/useTheme";
+import { APP_LOGO_URL } from "@/constants/branding";
 
 const mainNav = [
   { to: "/transactions", icon: "≡", label: "Registros" },
@@ -14,8 +15,6 @@ const mainNav = [
 const systemNav = [
   { to: "/settings", icon: "⚙", label: "Configuración" },
 ];
-
-const APP_LOGO_URL = "https://github.com/user-attachments/assets/17dd773f-3aac-4c0d-a86e-23804a4b96da";
 
 function getUserInitials(name: string | null | undefined) {
   if (!name) return "??";
