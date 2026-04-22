@@ -456,7 +456,6 @@ export default function EditTransactionModal({
               <SelectContent>
                 <SelectItem value="ARS">ARS</SelectItem>
                 <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="EUR">EUR</SelectItem>
               </SelectContent>
             </Select>
           </div>

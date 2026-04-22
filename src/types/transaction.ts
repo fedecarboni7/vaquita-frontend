@@ -1,5 +1,5 @@
 export type TransactionType = "expense" | "income" | "transfer";
-export type CurrencyCode = "ARS" | "USD" | "EUR";
+export type CurrencyCode = "ARS" | "USD";
 export type AccountTypeCode = "savings" | "checking" | "credit_card" | "digital_wallet" | "cash";
 
 export interface Subcategory {

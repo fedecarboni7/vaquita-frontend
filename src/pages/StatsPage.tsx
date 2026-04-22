@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Bar,
@@ -21,6 +21,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useStats } from "@/hooks/useStats";
 import { formatCurrencyAmount } from "@/lib/utils";
 import type { StatsCategoryExpenseItem } from "@/types/stats";
+import type { CurrencyCode } from "@/types/transaction";
+
+const STATS_CURRENCY_PREFERENCE_KEY = "stats_currency_preference";
 
 const CHART_COLORS = [
   "var(--chart-1)",
@@ -77,13 +80,13 @@ function formatCompactNumber(value: number): string {
   }).format(value);
 }
 
-function tooltipCurrencyFormatter(value: ValueType | undefined): string {
+function tooltipCurrencyFormatter(value: ValueType | undefined, currency: CurrencyCode): string {
   const rawValue = Array.isArray(value) ? value[0] : value;
   const amount = Number(rawValue);
   if (!Number.isFinite(amount)) {
     return "-";
   }
-  return formatCurrencyAmount(amount, "ARS");
+  return formatCurrencyAmount(amount, currency);
 }
 
 function getDeltaClasses(metric: "income" | "expenses" | "balance", delta: number): string {
@@ -97,16 +100,18 @@ function MetricCard({
   total,
   delta,
   metric,
+  currency,
 }: {
   label: string;
   total: number;
   delta: number | null;
   metric: "income" | "expenses" | "balance";
+  currency: CurrencyCode;
 }) {
   return (
     <article className="rounded-lg border border-border bg-card p-4">
       <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-2 text-xl font-semibold leading-tight break-words">{formatCurrencyAmount(total, "ARS")}</p>
+      <p className="mt-2 text-xl font-semibold leading-tight break-words">{formatCurrencyAmount(total, currency)}</p>
       {delta !== null && (
         <p className={`mt-1 text-sm font-medium ${getDeltaClasses(metric, delta)}`}>
           {formatPercent(delta)}
@@ -154,6 +159,7 @@ function ChartsSkeleton() {
 function StatsCharts({
   expensesByCategory,
   monthlySeries,
+  currency,
 }: {
   expensesByCategory: StatsCategoryExpenseItem[];
   monthlySeries: Array<{
@@ -162,6 +168,7 @@ function StatsCharts({
     total_expenses: number;
     net_balance: number;
   }>;
+  currency: CurrencyCode;
 }) {
   const lineAndBarData = useMemo(
     () =>
@@ -191,7 +198,7 @@ function StatsCharts({
                   tickFormatter={(value: number) => formatCompactNumber(value)}
                 />
                 <Tooltip
-                  formatter={tooltipCurrencyFormatter}
+                  formatter={(value) => tooltipCurrencyFormatter(value, currency)}
                   contentStyle={{
                     border: "1px solid var(--border)",
                     borderRadius: "8px",
@@ -219,7 +226,7 @@ function StatsCharts({
                 <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Tooltip
-                    formatter={tooltipCurrencyFormatter}
+                    formatter={(value) => tooltipCurrencyFormatter(value, currency)}
                     contentStyle={{
                       border: "1px solid var(--border)",
                       borderRadius: "8px",
@@ -251,7 +258,7 @@ function StatsCharts({
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{item.category_name}</p>
                       <p className="text-muted-foreground">
-                        {formatCurrencyAmount(item.total, "ARS")} ({item.percentage.toLocaleString("es-AR", {
+                        {formatCurrencyAmount(item.total, currency)} ({item.percentage.toLocaleString("es-AR", {
                           minimumFractionDigits: 1,
                           maximumFractionDigits: 1,
                         })}%)
@@ -281,7 +288,7 @@ function StatsCharts({
                 tickFormatter={(value: number) => formatCompactNumber(value)}
               />
               <Tooltip
-                formatter={tooltipCurrencyFormatter}
+                formatter={(value) => tooltipCurrencyFormatter(value, currency)}
                 contentStyle={{
                   border: "1px solid var(--border)",
                   borderRadius: "8px",
@@ -301,10 +308,39 @@ function StatsCharts({
 
 export default function StatsPage() {
   const [month, setMonth] = useState(getCurrentMonth);
-  const { data, isLoading, isError, refetch, isFetching } = useStats(month);
+  const [currency, setCurrency] = useState<CurrencyCode>(() => {
+    if (typeof window === "undefined") {
+      return "ARS";
+    }
+
+    const stored = window.localStorage.getItem(STATS_CURRENCY_PREFERENCE_KEY);
+    return stored === "USD" ? "USD" : "ARS";
+  });
+  useEffect(() => {
+    window.localStorage.setItem(STATS_CURRENCY_PREFERENCE_KEY, currency);
+  }, [currency]);
+
+  const { data, isLoading, isError, refetch, isFetching } = useStats(month, currency);
 
   return (
     <div>
+      <div className="mb-3 flex items-center gap-2">
+        <Button
+          variant={currency === "ARS" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setCurrency("ARS")}
+        >
+          ARS
+        </Button>
+        <Button
+          variant={currency === "USD" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setCurrency("USD")}
+        >
+          USD
+        </Button>
+      </div>
+
       <div className="mb-6 flex items-center justify-between border-b border-border pb-3">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonth((prev) => shiftMonth(prev, -1))}>
@@ -340,18 +376,21 @@ export default function StatsPage() {
               total={data.summary.net_balance}
               delta={data.summary.net_balance_delta_pct}
               metric="balance"
+              currency={currency}
             />
             <MetricCard
               label="Gastos"
               total={data.summary.total_expenses}
               delta={data.summary.expenses_delta_pct}
               metric="expenses"
+              currency={currency}
             />
             <MetricCard
               label="Ingresos"
               total={data.summary.total_income}
               delta={data.summary.income_delta_pct}
               metric="income"
+              currency={currency}
             />
           </div>
 
@@ -359,6 +398,7 @@ export default function StatsPage() {
             <StatsCharts
               expensesByCategory={data.expenses_by_category}
               monthlySeries={data.monthly_series}
+              currency={currency}
             />
           </div>
         </>
