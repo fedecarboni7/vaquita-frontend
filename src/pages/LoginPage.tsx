@@ -1,8 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/useAuth";
-
-const APP_LOGO_URL = "https://github.com/user-attachments/assets/17dd773f-3aac-4c0d-a86e-23804a4b96da";
+import { APP_LOGO_URL } from "@/constants/branding";
 
 export default function LoginPage() {
   const { user, isLoading, login, loginDev, isDevAuthEnabled } = useAuth();
