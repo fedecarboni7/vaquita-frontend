@@ -3,7 +3,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/useAuth";
 import { useTheme } from "@/hooks/useTheme";
-import { APP_LOGO_URL } from "@/constants/branding";
+import { getAppLogoUrl } from "@/constants/branding";
 
 const mainNav = [
   { to: "/transactions", icon: "≡", label: "Registros" },
@@ -31,6 +31,8 @@ export default function AppLayout() {
   const { isDark, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const appLogoUrl = getAppLogoUrl(isDark);
+
   const initials = getUserInitials(user?.display_name);
   const displayName = user?.display_name ?? user?.email ?? "";
 
@@ -55,8 +57,8 @@ export default function AppLayout() {
         {/* Logo */}
         <div className="px-5 pb-7 border-b border-border/50 mb-4">
           <img
-            src={APP_LOGO_URL}
-            alt="Expenses Tracker logo"
+            src={appLogoUrl}
+            alt="Vaquita logo"
             className="h-20 w-20 rounded-2xl object-cover"
           />
         </div>
@@ -164,8 +166,8 @@ export default function AppLayout() {
       {/* Mobile header */}
       <header className="md:hidden fixed top-0 left-0 right-0 h-12 bg-card border-b border-border flex items-center justify-between px-4 z-[200]">
         <img
-          src={APP_LOGO_URL}
-          alt="Expenses Tracker logo"
+          src={appLogoUrl}
+          alt="Vaquita logo"
           className="h-8 w-8 rounded-lg object-cover"
         />
         <div className="flex gap-2 items-center">
