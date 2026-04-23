@@ -1,1 +1,1 @@
-export const APP_LOGO_URL = "https://github.com/user-attachments/assets/17dd773f-3aac-4c0d-a86e-23804a4b96da";
+export const APP_LOGO_URL = "https://drive.google.com/file/d/1Hx6dGdm5vHSpymFeoo7imhMlmPCAAMTo/view?usp=drivesdk";
