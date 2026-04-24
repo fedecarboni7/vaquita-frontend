@@ -30,7 +30,8 @@ export async function apiFetch<T>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: "Unknown error" }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
+    const detail = error.detail || `HTTP ${response.status}`;
+    throw new Error(`HTTP ${response.status}: ${detail}`);
   }
 
   // Si no hay contenido (ej 204 No Content para DELETE), retorna nulo.
