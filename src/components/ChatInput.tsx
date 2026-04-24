@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from "react";
+import { useLayoutEffect, useRef, useState, type KeyboardEvent, type SyntheticEvent } from "react";
 import { Loader2, Mic, Send, Square } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,13 +25,39 @@ export default function ChatInput({ onSend, onStop, isProcessing = false }: Prop
   const [text, setText] = useState("");
   const [isTranscribing, setIsTranscribing] = useState(false);
   const { isRecording, startRecording, stopRecording, elapsedSeconds, canvasRef } = useAudioRecorder();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const autoResizeTextarea = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "0px";
+    const nextHeight = Math.min(textarea.scrollHeight, 176);
+    textarea.style.height = `${nextHeight}px`;
+    textarea.style.overflowY = textarea.scrollHeight > 176 ? "auto" : "hidden";
+  };
+
+  useLayoutEffect(() => {
+    autoResizeTextarea();
+  }, [text]);
+
+  const sendCurrentText = () => {
     const trimmed = text.trim();
     if (!trimmed || isProcessing || isTranscribing) return;
     onSend(trimmed);
     setText("");
+  };
+
+  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    sendCurrentText();
+  };
+
+  const handleTextareaKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendCurrentText();
+    }
   };
 
   const handleMicClick = async () => {
@@ -104,15 +130,19 @@ export default function ChatInput({ onSend, onStop, isProcessing = false }: Prop
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form onSubmit={handleSubmit} className="flex items-center gap-2">
         <div className="relative flex-1">
-          <input
-            type="text"
+          <textarea
+            ref={textareaRef}
+            rows={1}
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleTextareaKeyDown}
             placeholder={isTranscribing ? "Transcribiendo..." : "Ej: Gasté 500 en el super con Mercado Pago..."}
             disabled={isProcessing || isTranscribing}
-            className="flex h-11 w-full rounded-xl border border-border bg-background px-4 pr-36 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60"
+            className={`block w-full min-h-11 rounded-xl border border-border bg-background px-4 py-3 text-sm leading-5 text-foreground outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60 resize-none ${
+              isTranscribing ? "pr-32" : "pr-4"
+            }`}
           />
 
           {isTranscribing && (
