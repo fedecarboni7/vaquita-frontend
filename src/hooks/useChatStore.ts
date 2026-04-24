@@ -15,7 +15,6 @@ interface ChatResponse {
   response_type: string;
   message: string;
   data: Record<string, unknown> | null;
-  transcribed_text?: string | null;
 }
 
 interface ChatRequestMessage {
@@ -28,14 +27,7 @@ interface TextMutationPayload {
   signal: AbortSignal;
 }
 
-interface AudioMutationPayload {
-  audioBlob: Blob;
-  messages: ChatRequestMessage[];
-  signal: AbortSignal;
-}
-
 const CHAT_HISTORY_LIMIT = 5;
-const AUDIO_HISTORY_LIMIT = 4;
 
 function toRequestMessages(messages: ChatMessage[]): ChatRequestMessage[] {
   return messages.map((message) => ({
@@ -87,22 +79,6 @@ export function useChatStore() {
         body: JSON.stringify({ messages: requestMessages }),
         signal,
       }),
-  });
-
-  const audioMutation = useMutation({
-    mutationFn: ({ audioBlob, messages: requestMessages, signal }: AudioMutationPayload) => {
-      const formData = new FormData();
-      formData.append("audio", audioBlob, "voice-message.webm");
-      if (requestMessages.length > 0) {
-        formData.append("messages", JSON.stringify(requestMessages));
-      }
-
-      return apiFetch<ChatResponse>("/chat/audio", {
-        method: "POST",
-        body: formData,
-        signal,
-      });
-    },
   });
 
   const beginProcessing = useCallback(() => {
@@ -176,52 +152,10 @@ export function useChatStore() {
     [beginProcessing, finishProcessing, isProcessing, messages, textMutation],
   );
 
-  const sendAudioMessage = useCallback(
-    async (audioBlob: Blob) => {
-      if (isProcessing || !audioBlob || audioBlob.size === 0) {
-        return;
-      }
-
-      const controller = beginProcessing();
-
-      try {
-        const historyWindow = toRequestMessages(messages.slice(-AUDIO_HISTORY_LIMIT));
-        const response = await audioMutation.mutateAsync({
-          audioBlob,
-          messages: historyWindow,
-          signal: controller.signal,
-        });
-
-        const transcribedText = (response.transcribed_text ?? "").trim();
-        if (transcribedText) {
-          const userMsg: ChatMessage = {
-            id: crypto.randomUUID(),
-            role: "user",
-            content: transcribedText,
-            input_source: "audio",
-          };
-          setMessages((prev) => [...prev, userMsg]);
-        }
-
-        setMessages((prev) => [...prev, buildAssistantMessage(response)]);
-      } catch (error) {
-        if (isAbortError(error)) {
-          return;
-        }
-
-        setMessages((prev) => [...prev, buildErrorMessage()]);
-      } finally {
-        finishProcessing(controller);
-      }
-    },
-    [audioMutation, beginProcessing, finishProcessing, isProcessing, messages],
-  );
-
   return {
     messages,
     isProcessing,
     sendMessage,
-    sendAudioMessage,
     stopProcessing,
     setMessages,
   };
