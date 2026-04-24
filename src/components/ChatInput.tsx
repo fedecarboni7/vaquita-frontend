@@ -1,101 +1,147 @@
-import { useEffect, useRef, useState } from "react";
-import { Mic, Square } from "lucide-react";
+import { useState, type SyntheticEvent } from "react";
+import { Loader2, Mic, Send, Square } from "lucide-react";
+import { toast } from "sonner";
 
+import { apiFetch } from "../api";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
 
 interface Props {
   onSend: (text: string) => void;
-  onSendAudio: (audioBlob: Blob) => Promise<void> | void;
   onStop: () => void;
   isProcessing?: boolean;
 }
 
-export default function ChatInput({ onSend, onSendAudio, onStop, isProcessing = false }: Props) {
-  const [text, setText] = useState("");
-  const [recorderError, setRecorderError] = useState<string | null>(null);
-  const { isRecording, start, stop, audioBlob } = useAudioRecorder();
-  const lastSentBlobRef = useRef<Blob | null>(null);
+interface TranscriptionResponse {
+  transcript: string;
+}
 
-  const handleSubmit = (e: React.SyntheticEvent) => {
+function formatElapsedTime(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+export default function ChatInput({ onSend, onStop, isProcessing = false }: Props) {
+  const [text, setText] = useState("");
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const { isRecording, startRecording, stopRecording, elapsedSeconds, canvasRef } = useAudioRecorder();
+
+  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     const trimmed = text.trim();
-    if (!trimmed || isProcessing) return;
+    if (!trimmed || isProcessing || isTranscribing) return;
     onSend(trimmed);
     setText("");
   };
 
   const handleMicClick = async () => {
-    if (isProcessing) {
+    if (isProcessing || isTranscribing) {
       return;
     }
 
-    setRecorderError(null);
     if (isRecording) {
-      stop();
+      const audioBlob = await stopRecording();
+      if (!audioBlob) {
+        setText("");
+        return;
+      }
+
+      setIsTranscribing(true);
+
+      try {
+        const formData = new FormData();
+        const extension = audioBlob.type.includes("ogg") ? "ogg" : "webm";
+        formData.append("audio", audioBlob, `voice-message.${extension}`);
+
+        const { transcript } = await apiFetch<TranscriptionResponse>("/transcribe", {
+          method: "POST",
+          body: formData,
+        });
+
+        const normalizedTranscript = transcript.trim();
+        if (!normalizedTranscript) {
+          throw new Error("La transcripción llegó vacía");
+        }
+
+        setText((currentText) => {
+          const trimmedCurrentText = currentText.trim();
+          return trimmedCurrentText ? `${trimmedCurrentText} ${normalizedTranscript}` : normalizedTranscript;
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "No se pudo transcribir el audio";
+        toast.error(message);
+        setText("");
+      } finally {
+        setIsTranscribing(false);
+      }
+
       return;
     }
 
     try {
-      await start();
-    } catch {
-      setRecorderError("No se pudo iniciar la grabación");
+      await startRecording();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo iniciar la grabación";
+      toast.error(message);
     }
   };
 
-  useEffect(() => {
-    if (!audioBlob || lastSentBlobRef.current === audioBlob || isProcessing) {
-      return;
-    }
-
-    lastSentBlobRef.current = audioBlob;
-
-    const sendAudio = async () => {
-      try {
-        await onSendAudio(audioBlob);
-      } catch {
-        setRecorderError("No se pudo enviar el audio");
-      }
-    };
-
-    void sendAudio();
-  }, [audioBlob, isProcessing, onSendAudio]);
-
   return (
-    <div className="border-t border-gray-700 p-4">
+    <div className="border-t border-border bg-card/95 px-4 py-4">
       {isRecording && (
-        <p className="mb-2 text-xs font-medium text-red-400">Grabando...</p>
-      )}
-      {recorderError && (
-        <p className="mb-2 text-xs font-medium text-red-400">{recorderError}</p>
+        <div className="mb-3 flex items-center gap-3 rounded-2xl border border-border bg-muted/50 px-3 py-2">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent animate-pulse" />
+            <canvas
+              ref={canvasRef}
+              className="h-11 w-full min-w-0 flex-1 rounded-xl border border-border bg-background/80"
+              aria-hidden="true"
+            />
+          </div>
+          <span className="shrink-0 font-mono text-xs text-muted-foreground">
+            {formatElapsedTime(elapsedSeconds)}
+          </span>
+        </div>
       )}
 
       <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Ej: Gasté 500 en el super con Mercado Pago..."
-          disabled={isProcessing}
-          className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-        />
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={isTranscribing ? "Transcribiendo..." : "Ej: Gasté 500 en el super con Mercado Pago..."}
+            disabled={isProcessing || isTranscribing}
+            className="flex h-11 w-full rounded-xl border border-border bg-background px-4 pr-36 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60"
+          />
+
+          {isTranscribing && (
+            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Loader2 size={14} className="animate-spin" />
+              <span>Transcribiendo...</span>
+            </div>
+          )}
+        </div>
+
         <button
           type="button"
           onClick={handleMicClick}
-          disabled={isProcessing}
+          disabled={isProcessing || isTranscribing}
           aria-label={isRecording ? "Detener grabación" : "Iniciar grabación"}
           className={
             isRecording
-              ? "bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg disabled:opacity-50"
-              : "bg-gray-600 hover:bg-gray-500 text-white px-3 py-2 rounded-lg disabled:opacity-50"
+              ? "inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-[var(--destructive)] text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              : "inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-secondary text-secondary-foreground transition hover:bg-secondary/80 disabled:cursor-not-allowed disabled:opacity-60"
           }
         >
           {isRecording ? <Square size={18} /> : <Mic size={18} />}
         </button>
+
         {isProcessing ? (
           <button
             type="button"
             onClick={onStop}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-border bg-[var(--destructive)] px-4 text-sm font-medium text-background transition hover:opacity-90"
             aria-label="Detener procesamiento"
           >
             <Square size={18} />
@@ -103,10 +149,11 @@ export default function ChatInput({ onSend, onSendAudio, onStop, isProcessing = 
         ) : (
           <button
             type="submit"
-            disabled={!text.trim()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+            disabled={!text.trim() || isTranscribing}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Enviar
+            <Send size={16} />
+            <span>Enviar</span>
           </button>
         )}
       </form>

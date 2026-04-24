@@ -8,7 +8,6 @@ export default function ChatPage() {
     messages,
     isProcessing,
     sendMessage,
-    sendAudioMessage,
     stopProcessing,
   } = useChatStore();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -33,7 +32,6 @@ export default function ChatPage() {
 
       <ChatInput
         onSend={sendMessage}
-        onSendAudio={sendAudioMessage}
         onStop={stopProcessing}
         isProcessing={isProcessing}
       />
