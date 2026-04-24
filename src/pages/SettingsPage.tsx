@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { X, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -17,9 +18,13 @@ import {
   useCreateCategory,
   useDeleteCategory,
 } from "@/hooks/useCategories";
+import { useApiKeyStatus, useDeleteApiKey, useSaveApiKey } from "@/hooks/useApiKeySettings";
 import SubcategoryManager from "@/components/settings/SubcategoryManager";
 import { useTheme } from "@/hooks/useTheme";
 import type { Category } from "@/types/transaction";
+import type { ApiKeyProvider, SessionApiKeyPayload } from "@/types/settings";
+
+const SESSION_API_KEY_STORAGE_KEY = "session_llm_api_key";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Comida: "#c06a2b",
@@ -37,16 +42,50 @@ function getCategoryColor(name: string, type: string): string {
 
 export default function SettingsPage() {
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
+  const { data: apiKeyStatus, isLoading: apiKeyStatusLoading } = useApiKeyStatus();
   const createCategory = useCreateCategory();
   const deleteCategory = useDeleteCategory();
+  const saveApiKey = useSaveApiKey();
+  const removeApiKey = useDeleteApiKey();
   const { isDark, toggleTheme } = useTheme();
 
   const [newCatName, setNewCatName] = useState("");
   const [newCatType, setNewCatType] = useState<"expense" | "income">("expense");
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [provider, setProvider] = useState<ApiKeyProvider>("google");
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [rememberApiKey, setRememberApiKey] = useState(true);
+  const [hasSessionKey, setHasSessionKey] = useState(() => {
+    const rawSessionApiKey = sessionStorage.getItem(SESSION_API_KEY_STORAGE_KEY);
+    if (!rawSessionApiKey) {
+      return false;
+    }
+
+    try {
+      const parsed = JSON.parse(rawSessionApiKey) as SessionApiKeyPayload;
+      return Boolean(parsed.api_key && parsed.provider);
+    } catch {
+      sessionStorage.removeItem(SESSION_API_KEY_STORAGE_KEY);
+      return false;
+    }
+  });
 
   const expenseCategories = categories.filter((cat) => cat.type === "expense");
   const incomeCategories = categories.filter((cat) => cat.type === "income");
+
+  const statusText = useMemo(() => {
+    if (apiKeyStatusLoading) {
+      return "Cargando estado...";
+    }
+    if (apiKeyStatus?.has_key) {
+      const providerLabel = apiKeyStatus.provider === "groq" ? "Groq" : "Google AI Studio";
+      return `API key guardada (${providerLabel}).`;
+    }
+    if (hasSessionKey) {
+      return "API key activa solo para esta sesión.";
+    }
+    return "No hay API key guardada.";
+  }, [apiKeyStatus?.has_key, apiKeyStatus?.provider, apiKeyStatusLoading, hasSessionKey]);
 
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +105,51 @@ export default function SettingsPage() {
     });
   };
 
+  const handleSaveUserApiKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const normalizedApiKey = apiKeyInput.trim();
+    if (!normalizedApiKey) {
+      toast.error("Ingresá una API key válida");
+      return;
+    }
+
+    try {
+      if (rememberApiKey) {
+        sessionStorage.removeItem(SESSION_API_KEY_STORAGE_KEY);
+        setHasSessionKey(false);
+      } else {
+        sessionStorage.setItem(
+          SESSION_API_KEY_STORAGE_KEY,
+          JSON.stringify({ provider, api_key: normalizedApiKey } satisfies SessionApiKeyPayload),
+        );
+        setHasSessionKey(true);
+      }
+
+      await saveApiKey.mutateAsync({
+        provider,
+        api_key: normalizedApiKey,
+        persist: rememberApiKey,
+      });
+      setApiKeyInput("");
+      toast.success(rememberApiKey ? "API key guardada" : "API key guardada solo en esta sesión");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo guardar la API key";
+      toast.error(message);
+    }
+  };
+
+  const handleDeleteUserApiKey = async () => {
+    try {
+      sessionStorage.removeItem(SESSION_API_KEY_STORAGE_KEY);
+      setHasSessionKey(false);
+      await removeApiKey.mutateAsync();
+      toast.success("API key eliminada");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo eliminar la API key";
+      toast.error(message);
+    }
+  };
+
   return (
     <div>
       {/* Header */}
@@ -77,6 +161,90 @@ export default function SettingsPage() {
           Preferencias y datos
         </div>
       </div>
+
+      {/* API Key */}
+      <section className="mb-8">
+        <div className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground/60 mb-3 pb-2 border-b border-border">
+          API Key
+        </div>
+
+        <div className="rounded-lg border border-border bg-card p-4 sm:p-5">
+          <div className="text-xs text-muted-foreground mb-3">{statusText}</div>
+
+          <form onSubmit={handleSaveUserApiKey} className="space-y-3">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="text-xs text-muted-foreground">
+                Proveedor
+                <select
+                  value={provider}
+                  onChange={(e) => setProvider(e.target.value as ApiKeyProvider)}
+                  className="mt-1 w-full px-3 py-2 border border-border rounded-lg bg-card text-sm outline-none cursor-pointer"
+                >
+                  <option value="google">Google AI Studio</option>
+                  <option value="groq">Groq</option>
+                </select>
+              </label>
+
+              <label className="text-xs text-muted-foreground">
+                API key
+                <input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="Pegá tu API key"
+                  className="mt-1 w-full px-3 py-2 border border-border rounded-lg bg-card text-sm outline-none transition-colors focus:border-muted-foreground"
+                />
+              </label>
+            </div>
+
+            <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={rememberApiKey}
+                onChange={(e) => setRememberApiKey(e.target.checked)}
+              />
+              Recordar mi API key
+            </label>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="submit"
+                size="sm"
+                disabled={saveApiKey.isPending || !apiKeyInput.trim()}
+              >
+                {saveApiKey.isPending ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Guardando
+                  </>
+                ) : (
+                  "Guardar"
+                )}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleDeleteUserApiKey}
+                disabled={removeApiKey.isPending}
+              >
+                {removeApiKey.isPending ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Eliminando
+                  </>
+                ) : (
+                  "Eliminar"
+                )}
+              </Button>
+            </div>
+          </form>
+
+          <p className="text-xs text-muted-foreground mt-3">
+            Tu API key se almacena encriptada y se usa exclusivamente para procesar tus mensajes con el agente de IA.
+          </p>
+        </div>
+      </section>
 
       {/* Categorías */}
       <section className="mb-8">

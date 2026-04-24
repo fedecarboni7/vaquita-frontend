@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiFetch } from "../api";
+import type { SessionApiKeyPayload } from "@/types/settings";
 
 export interface ChatMessage {
   id: string;
@@ -22,12 +23,18 @@ interface ChatRequestMessage {
   content: string;
 }
 
-interface TextMutationPayload {
+interface ChatRequestPayload {
   messages: ChatRequestMessage[];
+  session_api_key?: SessionApiKeyPayload;
+}
+
+interface TextMutationPayload {
+  payload: ChatRequestPayload;
   signal: AbortSignal;
 }
 
 const CHAT_HISTORY_LIMIT = 5;
+const SESSION_API_KEY_STORAGE_KEY = "session_llm_api_key";
 
 function toRequestMessages(messages: ChatMessage[]): ChatRequestMessage[] {
   return messages.map((message) => ({
@@ -73,10 +80,10 @@ export function useChatStore() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const textMutation = useMutation({
-    mutationFn: ({ messages: requestMessages, signal }: TextMutationPayload) =>
+    mutationFn: ({ payload, signal }: TextMutationPayload) =>
       apiFetch<ChatResponse>("/chat", {
         method: "POST",
-        body: JSON.stringify({ messages: requestMessages }),
+        body: JSON.stringify(payload),
         signal,
       }),
   });
@@ -129,13 +136,23 @@ export function useChatStore() {
 
       const allMessages = [...messages, userMsg];
       const historyWindow = toRequestMessages(allMessages.slice(-CHAT_HISTORY_LIMIT));
+      const rawSessionApiKey = sessionStorage.getItem(SESSION_API_KEY_STORAGE_KEY);
+      const sessionApiKey = rawSessionApiKey
+        ? (JSON.parse(rawSessionApiKey) as SessionApiKeyPayload)
+        : undefined;
+      const requestPayload: ChatRequestPayload = {
+        messages: historyWindow,
+      };
+      if (sessionApiKey?.api_key && sessionApiKey.provider) {
+        requestPayload.session_api_key = sessionApiKey;
+      }
       const controller = beginProcessing();
 
       setMessages((prev) => [...prev, userMsg]);
 
       try {
         const response = await textMutation.mutateAsync({
-          messages: historyWindow,
+          payload: requestPayload,
           signal: controller.signal,
         });
         setMessages((prev) => [...prev, buildAssistantMessage(response)]);
