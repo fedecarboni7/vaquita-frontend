@@ -74,17 +74,17 @@ function buildRateLimitMessage(content: string): ChatMessage {
   };
 }
 
-function getRateLimitDetail(error: unknown): string | null {
+function getUserFacingHttpDetail(error: unknown): string | null {
   if (!(error instanceof Error)) {
     return null;
   }
 
   const message = error.message.trim();
-  if (!message.startsWith("HTTP 429: ")) {
+  if (!(message.startsWith("HTTP 429: ") || message.startsWith("HTTP 400: "))) {
     return null;
   }
 
-  const detail = message.replace("HTTP 429: ", "").trim();
+  const detail = message.replace(/^HTTP\s\d{3}:\s*/, "").trim();
   return detail || null;
 }
 
@@ -184,9 +184,9 @@ export function useChatStore() {
           return;
         }
 
-        const rateLimitDetail = getRateLimitDetail(error);
-        if (rateLimitDetail) {
-          setMessages((prev) => [...prev, buildRateLimitMessage(rateLimitDetail)]);
+        const userFacingDetail = getUserFacingHttpDetail(error);
+        if (userFacingDetail) {
+          setMessages((prev) => [...prev, buildRateLimitMessage(userFacingDetail)]);
           return;
         }
 
