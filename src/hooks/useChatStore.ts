@@ -65,6 +65,29 @@ function buildErrorMessage(): ChatMessage {
   };
 }
 
+function buildRateLimitMessage(content: string): ChatMessage {
+  return {
+    id: crypto.randomUUID(),
+    role: "assistant",
+    content,
+    response_type: "answer",
+  };
+}
+
+function getRateLimitDetail(error: unknown): string | null {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  const message = error.message.trim();
+  if (!message.startsWith("HTTP 429: ")) {
+    return null;
+  }
+
+  const detail = message.replace("HTTP 429: ", "").trim();
+  return detail || null;
+}
+
 function isAbortError(error: unknown): boolean {
   return (
     typeof error === "object" &&
@@ -158,6 +181,12 @@ export function useChatStore() {
         setMessages((prev) => [...prev, buildAssistantMessage(response)]);
       } catch (error) {
         if (isAbortError(error)) {
+          return;
+        }
+
+        const rateLimitDetail = getRateLimitDetail(error);
+        if (rateLimitDetail) {
+          setMessages((prev) => [...prev, buildRateLimitMessage(rateLimitDetail)]);
           return;
         }
 
