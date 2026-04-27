@@ -8,12 +8,13 @@ import { getAppLogoUrl } from "@/constants/branding";
 const mainNav = [
   { to: "/transactions", icon: "≡", label: "Registros" },
   { to: "/stats", icon: "◍", label: "Estadísticas" },
-  { to: "/accounts", icon: "◫", label: "Cuentas" },
   { to: "/", icon: "✦", label: "Agente" },
+  { to: "/accounts", icon: "◫", label: "Cuentas" },
 ];
 
 const systemNav = [
   { to: "/settings", icon: "⚙", label: "Configuración" },
+  { to: "/privacy", icon: "◈", label: "Privacidad" },
 ];
 
 function getUserInitials(name: string | null | undefined) {
@@ -49,7 +50,7 @@ export default function AppLayout() {
       {/* Sidebar */}
       <nav
         className={cn(
-          "fixed top-12 left-0 bottom-[76px] z-[100] flex w-[220px] flex-col bg-card border-r border-border py-7 transition-transform duration-250 ease-out md:top-0 md:bottom-0",
+          "fixed top-12 left-0 bottom-0 z-[100] flex w-[220px] flex-col bg-card border-r border-border py-7 pb-[calc(76px+env(safe-area-inset-bottom))] transition-transform duration-250 ease-out md:top-0 md:bottom-0 md:pb-7",
           "md:translate-x-0",
           sidebarOpen ? "translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.15)]" : "-translate-x-full md:translate-x-0",
         )}
@@ -165,23 +166,21 @@ export default function AppLayout() {
 
       {/* Mobile header */}
       <header className="md:hidden fixed top-0 left-0 right-0 h-12 bg-card border-b border-border flex items-center justify-between px-4 z-[200]">
-        <img
-          src={appLogoUrl}
-          alt="Vaquita logo"
-          className="h-8 w-8 rounded-lg object-cover"
-        />
-        <div className="flex gap-2 items-center">
+        <button
+          type="button"
+          onClick={() => setSidebarOpen((open) => !open)}
+          aria-label={sidebarOpen ? "Cerrar sidebar" : "Abrir sidebar"}
+          className="cursor-pointer text-foreground text-lg flex items-center bg-transparent border-none"
+        >
+          ☰
+        </button>
+        <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={toggleTheme}
             className="border border-border rounded-md cursor-pointer text-muted-foreground text-sm px-2 py-1"
           >
             {isDark ? "☾" : "☀"}
-          </button>
-          <button
-            onClick={() => setSidebarOpen((o) => !o)}
-            className="cursor-pointer text-foreground text-lg flex items-center bg-transparent border-none"
-          >
-            ☰
           </button>
         </div>
       </header>
@@ -194,7 +193,7 @@ export default function AppLayout() {
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border py-1.5 pb-[calc(0.4rem+env(safe-area-inset-bottom))] z-[200]">
         <div className="flex justify-around">
-          {[...mainNav, ...systemNav].map((item) => (
+          {[...mainNav, systemNav[0]].map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
