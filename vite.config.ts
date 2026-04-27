@@ -12,6 +12,6 @@ export default defineConfig({
     },
   },
   preview: {
-    allowedHosts: ['expenses-tracker-frontend.up.railway.app'],
+    allowedHosts: ['vaquita.up.railway.app'],
   },
 })
