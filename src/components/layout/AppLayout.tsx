@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/useAuth";
 import { useTheme } from "@/hooks/useTheme";
-import { getAppLogoUrl } from "@/constants/branding";
+import { getAppLogoUrl, getAppWordmarkUrl } from "@/constants/branding";
 
 const mainNav = [
   { to: "/transactions", icon: "≡", label: "Registros" },
@@ -31,8 +31,32 @@ export default function AppLayout() {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showLogoWordmark, setShowLogoWordmark] = useState(false);
+  const logoWordmarkTimeoutRef = useRef<number | null>(null);
 
   const appLogoUrl = getAppLogoUrl(isDark);
+  const appWordmarkUrl = getAppWordmarkUrl(isDark);
+
+  useEffect(() => {
+    return () => {
+      if (logoWordmarkTimeoutRef.current !== null) {
+        window.clearTimeout(logoWordmarkTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleLogoClick = () => {
+    setShowLogoWordmark(true);
+
+    if (logoWordmarkTimeoutRef.current !== null) {
+      window.clearTimeout(logoWordmarkTimeoutRef.current);
+    }
+
+    logoWordmarkTimeoutRef.current = window.setTimeout(() => {
+      setShowLogoWordmark(false);
+      logoWordmarkTimeoutRef.current = null;
+    }, 1300);
+  };
 
   const initials = getUserInitials(user?.display_name);
   const displayName = user?.display_name ?? user?.email ?? "";
@@ -57,11 +81,29 @@ export default function AppLayout() {
       >
         {/* Logo */}
         <div className="px-5 pb-7 border-b border-border/50 mb-4">
-          <img
-            src={appLogoUrl}
-            alt="Vaquita logo"
-            className="h-20 w-20 rounded-2xl object-cover"
-          />
+          <button
+            type="button"
+            onClick={handleLogoClick}
+            aria-label="Mostrar logo con nombre"
+            className="relative flex h-20 w-full items-center justify-center rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <img
+              src={appLogoUrl}
+              alt="Vaquita logo"
+              className={cn(
+                "absolute h-20 w-20 rounded-2xl object-cover transition-all duration-500 ease-out",
+                showLogoWordmark ? "scale-90 opacity-0" : "scale-100 opacity-100",
+              )}
+            />
+            <img
+              src={appWordmarkUrl}
+              alt="Vaquita logo con nombre"
+              className={cn(
+                "absolute h-20 w-20 rounded-2xl object-cover transition-all duration-500 ease-out",
+                showLogoWordmark ? "scale-100 translate-y-0 opacity-100" : "scale-90 translate-y-1 opacity-0",
+              )}
+            />
+          </button>
         </div>
 
         {/* Nav — Principal */}
