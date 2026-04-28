@@ -1,21 +1,40 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Key, Shield, type LucideIcon } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { getAppLogoUrl, getAppWordmarkUrl } from "@/constants/branding";
 
+type NavIcon = string | LucideIcon;
+
+interface NavItem {
+  to: string;
+  icon: NavIcon;
+  label: string;
+}
+
+function renderNavIcon(icon: NavIcon): ReactNode {
+  if (typeof icon === "string") {
+    return icon;
+  }
+
+  const Icon = icon;
+  return <Icon className="h-4 w-4" />;
+}
+
 const mainNav = [
   { to: "/transactions", icon: "≡", label: "Registros" },
   { to: "/stats", icon: "◍", label: "Estadísticas" },
   { to: "/", icon: "✦", label: "Agente" },
   { to: "/accounts", icon: "◫", label: "Cuentas" },
-];
+] satisfies NavItem[];
 
 const systemNav = [
   { to: "/settings", icon: "⚙", label: "Configuración" },
-  { to: "/privacy", icon: "◈", label: "Privacidad" },
-];
+  { to: "/privacy", icon: Shield, label: "Privacidad" },
+  { to: "/api-keys-guide", icon: Key, label: "API Keys" },
+] satisfies NavItem[];
 
 function getUserInitials(name: string | null | undefined) {
   if (!name) return "??";
@@ -126,7 +145,7 @@ export default function AppLayout() {
                 )
               }
             >
-              <span className="w-4 text-center text-sm opacity-70">{item.icon}</span>
+              <span className="w-4 text-center text-sm opacity-70">{renderNavIcon(item.icon)}</span>
               {item.label}
             </NavLink>
           ))}
@@ -154,7 +173,7 @@ export default function AppLayout() {
                 )
               }
             >
-              <span className="w-4 text-center text-sm opacity-70">{item.icon}</span>
+              <span className="w-4 text-center text-sm opacity-70">{renderNavIcon(item.icon)}</span>
               {item.label}
             </NavLink>
           ))}
@@ -247,7 +266,7 @@ export default function AppLayout() {
                 )
               }
             >
-              <span className="text-base">{item.icon}</span>
+              <span className="text-base">{renderNavIcon(item.icon)}</span>
               <span>
                 {item.label === "Configuración"
                   ? "Config"
