@@ -5,6 +5,7 @@ import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DeleteAccountSection } from "@/components/settings/DeleteAccountSection";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -416,31 +417,8 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Datos */}
-      <section className="mb-8">
-        <div className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground/60 mb-3 pb-2 border-b border-border">
-          Datos
-        </div>
-        <div className="rounded-lg border border-border bg-card divide-y divide-border">
-          <div className="flex flex-col items-start gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-[13.5px] text-destructive">
-                Eliminar todos los datos
-              </div>
-              <div className="text-xs text-muted-foreground mt-0.5">
-                Esta acción no se puede deshacer
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-destructive border-destructive/20 hover:bg-destructive/10"
-            >
-              Eliminar
-            </Button>
-          </div>
-        </div>
-      </section>
+      {/* Delete Account */}
+      <DeleteAccountSection />
 
       {/* Delete category confirm */}
       <AlertDialog
