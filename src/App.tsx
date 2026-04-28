@@ -5,6 +5,7 @@ import TransactionsPage from "./pages/TransactionsPage";
 import AccountsPage from "./pages/AccountsPage";
 import SettingsPage from "./pages/SettingsPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import ApiKeysGuidePage from "./pages/ApiKeysGuidePage";
 import StatsPage from "./pages/StatsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
@@ -22,6 +23,7 @@ function App() {
             <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/api-keys-guide" element={<ApiKeysGuidePage />} />
           </Route>
         </Route>
       </Routes>

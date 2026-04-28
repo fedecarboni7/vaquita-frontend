@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -167,6 +169,14 @@ export default function SettingsPage() {
         <div className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground/60 mb-3 pb-2 border-b border-border">
           API Key
         </div>
+
+        <Link
+          to="/api-keys-guide"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
+        >
+          ¿Cómo obtengo una key gratis?
+          <ExternalLink className="h-3 w-3" />
+        </Link>
 
         <div className="rounded-lg border border-border bg-card p-4 sm:p-5">
           <div className="text-xs text-muted-foreground mb-3">{statusText}</div>
