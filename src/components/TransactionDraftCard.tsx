@@ -98,6 +98,24 @@ function getCurrentLocalDateISO(): string {
   return localDate.toISOString().split("T")[0];
 }
 
+function formatDisplayDate(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const parts = value.split("-");
+  if (parts.length !== 3) {
+    return value;
+  }
+
+  const [year, month, day] = parts;
+  if (!year || !month || !day) {
+    return value;
+  }
+
+  return `${day}/${month}/${year}`;
+}
+
 export default function TransactionDraftCard({ data }: Props) {
   const queryClient = useQueryClient();
   const { data: accounts = [] } = useAccounts();
@@ -329,8 +347,8 @@ export default function TransactionDraftCard({ data }: Props) {
 
   const renderRow = (label: string, content: ReactNode) => {
     return (
-      <div className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-gray-400">{label}:</span>
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between py-2 border-b border-border/50 last:border-0">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}:</span>
         {content}
       </div>
     );
@@ -344,7 +362,7 @@ export default function TransactionDraftCard({ data }: Props) {
 
   if (status === "saved") {
     return (
-      <div className="border border-green-600 rounded-lg p-3 bg-green-900/30 text-green-300">
+      <div className="border border-border rounded-xl p-4 bg-card text-sm flex items-center gap-2 text-muted-foreground">
         ✓ Transacción guardada
       </div>
     );
@@ -352,14 +370,14 @@ export default function TransactionDraftCard({ data }: Props) {
 
   if (status === "cancelled") {
     return (
-      <div className="border border-red-600 rounded-lg p-3 bg-red-900/30 text-red-300">
+      <div className="border border-border rounded-xl p-4 bg-card text-sm text-muted-foreground">
         ✗ Registro cancelado
       </div>
     );
   }
 
   return (
-    <div className="border border-gray-600 rounded-lg p-3 bg-gray-800 min-w-0">
+    <div className="border border-border rounded-xl p-4 bg-card min-w-0 shadow-sm">
       <div className="space-y-2 mb-3">
         {renderRow(
           FIELD_LABELS.expense_date,
@@ -368,10 +386,12 @@ export default function TransactionDraftCard({ data }: Props) {
               type="date"
               value={String(editData.expense_date ?? "")}
               onChange={(event) => handleFieldChange("expense_date", event.target.value)}
-              className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+              className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
             />
           ) : (
-            <span className="text-white break-words">{String(editData.expense_date ?? "")}</span>
+            <span className="text-sm text-foreground break-words text-right">
+              {formatDisplayDate(editData.expense_date) || "-"}
+            </span>
           ),
         )}
 
@@ -381,7 +401,7 @@ export default function TransactionDraftCard({ data }: Props) {
             <select
               value={selectedType}
               onChange={(event) => handleTypeChange(event.target.value as TransactionType)}
-              className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+              className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
             >
               {TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -390,7 +410,7 @@ export default function TransactionDraftCard({ data }: Props) {
               ))}
             </select>
           ) : (
-            <span className="text-white break-words">{TYPE_LABELS[selectedType]}</span>
+            <span className="text-sm text-foreground break-words text-right">{TYPE_LABELS[selectedType]}</span>
           ),
         )}
 
@@ -402,11 +422,11 @@ export default function TransactionDraftCard({ data }: Props) {
               inputMode="decimal"
               value={formatArAmountInput(normalizeArAmountInput(String(editData.amount ?? "")))}
               onChange={(event) => handleFieldChange("amount", event.target.value)}
-              className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+              className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
               placeholder="0,00"
             />
           ) : (
-            <span className="text-white break-words">
+            <span className="text-sm text-foreground break-words text-right text-base">
               {buildFormattedAmount(editData.amount, selectedCurrency)}
             </span>
           ),
@@ -425,11 +445,11 @@ export default function TransactionDraftCard({ data }: Props) {
                     : formatArAmountInput(normalizeArAmountInput(String(editData.to_amount)))
                 }
                 onChange={(event) => handleFieldChange("to_amount", event.target.value)}
-                className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
                 placeholder="0,00"
               />
             ) : (
-              <span className="text-white break-words">
+              <span className="text-sm text-foreground break-words text-right text-base">
                 {hasToAmount
                   ? buildFormattedAmount(parsedToAmount, selectedDestinationCurrency)
                   : "Misma moneda"}
@@ -440,7 +460,7 @@ export default function TransactionDraftCard({ data }: Props) {
         {isTransfer && hasToAmount && !isEditing &&
           renderRow(
             "Conversión",
-            <span className="text-white break-words">
+            <span className="text-sm text-foreground break-words text-right text-base">
               {buildFormattedAmount(editData.amount, selectedCurrency)}
               <span className="mx-1.5">→</span>
               {buildFormattedAmount(parsedToAmount, selectedDestinationCurrency)}
@@ -453,7 +473,7 @@ export default function TransactionDraftCard({ data }: Props) {
             <select
               value={selectedAccount}
               onChange={(event) => handleFieldChange("account", event.target.value)}
-              className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+              className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
             >
               <option value="">Seleccionar cuenta</option>
               {accountNotFound && <option value={selectedAccount}>{selectedAccount}</option>}
@@ -464,7 +484,7 @@ export default function TransactionDraftCard({ data }: Props) {
               ))}
             </select>
           ) : (
-            <span className="text-white break-words">{selectedAccount || "Sin cuenta"}</span>
+            <span className="text-sm text-foreground break-words text-right text-base">{selectedAccount || "Sin cuenta"}</span>
           ),
         )}
 
@@ -475,7 +495,7 @@ export default function TransactionDraftCard({ data }: Props) {
               <select
                 value={selectedDestinationAccount}
                 onChange={(event) => handleFieldChange("account_destination", event.target.value)}
-                className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="">Seleccionar cuenta destino</option>
                 {destinationNotFound && (
@@ -488,7 +508,7 @@ export default function TransactionDraftCard({ data }: Props) {
                 ))}
               </select>
             ) : (
-              <span className="text-white break-words">
+              <span className="text-sm text-foreground break-words text-right text-base">
                 {selectedDestinationAccount || "Sin cuenta destino"}
               </span>
             ),
@@ -501,10 +521,10 @@ export default function TransactionDraftCard({ data }: Props) {
               type="text"
               value={String(editData.description ?? "")}
               onChange={(event) => handleFieldChange("description", event.target.value)}
-              className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+              className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
             />
           ) : (
-            <span className="text-white break-words">{String(editData.description ?? "")}</span>
+            <span className="text-sm text-foreground break-words text-right text-base">{String(editData.description ?? "")}</span>
           ),
         )}
 
@@ -515,7 +535,7 @@ export default function TransactionDraftCard({ data }: Props) {
               <select
                 value={selectedCategoryName}
                 onChange={(event) => handleCategoryChange(event.target.value)}
-                className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="">Sin categoría</option>
                 {categoriesForType.map((category: Category) => (
@@ -525,7 +545,7 @@ export default function TransactionDraftCard({ data }: Props) {
                 ))}
               </select>
             ) : (
-              <span className="text-white break-words">
+              <span className="text-sm text-foreground break-words text-right text-base">
                 {selectedCategoryName || "Sin categoría"}
               </span>
             ),
@@ -538,7 +558,7 @@ export default function TransactionDraftCard({ data }: Props) {
               <select
                 value={selectedSubcategoryId}
                 onChange={(event) => handleSubcategoryChange(event.target.value)}
-                className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
                 disabled={!selectedCategoryName}
               >
                 <option value="">Sin subcategoría</option>
@@ -549,13 +569,32 @@ export default function TransactionDraftCard({ data }: Props) {
                 ))}
               </select>
             ) : (
-              <span className="text-white break-words">
+              <span className="text-sm text-foreground break-words text-right text-base">
                 {typeof editData.subcategory_name === "string"
                   ? editData.subcategory_name
                   : "Sin subcategoría"}
               </span>
             ),
           )}
+
+        {renderRow(
+          FIELD_LABELS.currency,
+          isEditing ? (
+            <select
+              value={selectedCurrency}
+              onChange={(event) => handleFieldChange("currency", event.target.value)}
+              className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              {CURRENCY_OPTIONS.map((currency) => (
+                <option key={currency} value={currency}>
+                  {currency}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-sm text-foreground break-words text-right text-base">{selectedCurrency}</span>
+          ),
+        )}
 
         {isExpense &&
           renderRow(
@@ -566,10 +605,10 @@ export default function TransactionDraftCard({ data }: Props) {
                 min="1"
                 value={installmentsValue}
                 onChange={(event) => handleFieldChange("installments", event.target.value)}
-                className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
               />
             ) : (
-              <span className="text-white break-words">
+              <span className="text-sm text-foreground break-words text-right text-base">
                 {installmentsValue || "Sin cuotas"}
               </span>
             ),
@@ -578,29 +617,10 @@ export default function TransactionDraftCard({ data }: Props) {
         {isExpense && editData.installment_amount != null &&
           renderRow(
             FIELD_LABELS.installment_amount,
-            <span className="text-white break-words">
+            <span className="text-sm text-foreground break-words text-right text-base">
               {buildFormattedAmount(editData.installment_amount, selectedCurrency)}
             </span>,
           )}
-
-        {renderRow(
-          FIELD_LABELS.currency,
-          isEditing ? (
-            <select
-              value={selectedCurrency}
-              onChange={(event) => handleFieldChange("currency", event.target.value)}
-              className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
-            >
-              {CURRENCY_OPTIONS.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span className="text-white break-words">{selectedCurrency}</span>
-          ),
-        )}
 
         {(isEditing || editData.note != null) &&
           renderRow(
@@ -610,35 +630,35 @@ export default function TransactionDraftCard({ data }: Props) {
                 type="text"
                 value={String(editData.note ?? "")}
                 onChange={(event) => handleFieldChange("note", event.target.value)}
-                className="bg-gray-700 text-white rounded px-2 py-1 w-full sm:w-40 sm:text-right"
+                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
               />
             ) : (
-              <span className="text-white break-words">{String(editData.note ?? "")}</span>
+              <span className="text-sm text-foreground break-words text-right text-base">{String(editData.note ?? "")}</span>
             ),
           )}
       </div>
 
       {status === "error" && (
-        <p className="text-red-400 text-sm mb-2">{errorMessage || "Error al guardar. Intentá de nuevo."}</p>
+        <p className="text-destructive text-xs mb-3">{errorMessage || "Error al guardar. Intentá de nuevo."}</p>
       )}
 
       <div className="flex flex-wrap gap-2">
         <button
           onClick={handleConfirm}
           disabled={!canConfirm}
-          className="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded disabled:opacity-50"
+          className="bg-primary text-primary-foreground text-sm px-4 py-1.5 rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
         >
           {status === "saving" ? "Guardando..." : "Confirmar"}
         </button>
         <button
           onClick={() => setIsEditing(!isEditing)}
-          className="bg-gray-600 hover:bg-gray-500 text-white text-sm px-3 py-1 rounded"
+          className="bg-secondary text-secondary-foreground text-sm px-4 py-1.5 rounded-lg hover:bg-secondary/80 transition-colors font-medium border border-border"
         >
           {isEditing ? "Listo" : "Editar"}
         </button>
         <button
           onClick={() => setStatus("cancelled")}
-          className="bg-red-700 hover:bg-red-600 text-white text-sm px-3 py-1 rounded"
+          className="text-destructive text-sm px-4 py-1.5 rounded-lg hover:bg-destructive/10 transition-colors font-medium border border-destructive/30"
         >
           Cancelar
         </button>

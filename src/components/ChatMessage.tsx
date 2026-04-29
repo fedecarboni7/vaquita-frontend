@@ -13,14 +13,14 @@ export default function ChatMessage({ message }: Props) {
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <div className="bg-blue-600 text-white rounded-lg px-4 py-2 max-w-[92%] sm:max-w-[80%] break-words whitespace-pre-wrap">
+        <div className="bg-primary/10 text-foreground border border-primary/20 rounded-2xl rounded-br-sm px-4 py-2 max-w-[92%] sm:max-w-[80%] break-words whitespace-pre-wrap">
           {isAudioTranscription && (
-            <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-blue-500/70 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-blue-50">
+            <div className="mb-1.5 inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-primary">
               <Mic size={12} />
               <span>Transcripción de audio</span>
             </div>
           )}
-          <p className={isAudioTranscription ? "italic text-blue-50" : undefined}>
+          <p className={isAudioTranscription ? "italic text-foreground" : undefined}>
             {message.content}
           </p>
         </div>
@@ -31,11 +31,12 @@ export default function ChatMessage({ message }: Props) {
   // Assistant messages
   if (message.response_type === "draft" && message.data) {
     return (
-      <div className="flex justify-start">
+      <div className="flex gap-2 items-end">
+        <div className="shrink-0 w-6 h-6 mb-0.5">
+          <img src="/vaquita-logo-light.png" alt="" className="w-6 h-6 rounded-full border border-border object-contain opacity-80 dark:hidden" />
+          <img src="/vaquita-logo-dark.png" alt="" className="w-6 h-6 rounded-full border border-border object-contain opacity-80 hidden dark:block" />
+        </div>
         <div className="max-w-[95%] sm:max-w-[85%] min-w-0">
-          <div className="bg-gray-700 text-white rounded-lg px-4 py-2 mb-2 break-words whitespace-pre-wrap">
-            {message.content}
-          </div>
           <TransactionDraftCard data={message.data} />
         </div>
       </div>
@@ -43,8 +44,12 @@ export default function ChatMessage({ message }: Props) {
   }
 
   return (
-    <div className="flex justify-start">
-      <div className="bg-gray-700 text-white rounded-lg px-4 py-2 max-w-[92%] sm:max-w-[80%] break-words whitespace-pre-wrap">
+    <div className="flex gap-2 items-end">
+      <div className="shrink-0 w-6 h-6 mb-0.5">
+        <img src="/vaquita-logo-light.png" alt="" className="w-6 h-6 rounded-full border border-border object-contain opacity-80 dark:hidden" />
+        <img src="/vaquita-logo-dark.png" alt="" className="w-6 h-6 rounded-full border border-border object-contain opacity-80 hidden dark:block" />
+      </div>
+      <div className="bg-muted text-foreground border border-border rounded-2xl rounded-bl-sm px-4 py-2 max-w-[92%] sm:max-w-[80%] break-words whitespace-pre-wrap">
         {message.content}
       </div>
     </div>

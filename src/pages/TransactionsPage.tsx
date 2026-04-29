@@ -196,7 +196,7 @@ export default function TransactionsPage() {
       : [{ currency: "ARS" as Transaction["currency"], total: 0 }];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-background">
       {/* Filters */}
       <FilterBar
         types={typeFilters}

@@ -98,7 +98,7 @@ export default function ApiKeysGuidePage() {
           <span className="text-sm">API Keys</span>
         </div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Obtenés tu API key gratis
+          Obtené tu API key gratis
         </h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
           Para usar el agente de IA sin límites, necesitás cargar tu propia API key. Es gratis,

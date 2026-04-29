@@ -19,7 +19,13 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-full">
       <header className="p-4 border-b border-border shrink-0">
-        <h1 className="text-lg font-semibold">Chat</h1>
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7">
+            <img src="/vaquita-logo-light.png" alt="Vaquita" className="w-7 h-7 rounded-full border border-border object-contain dark:hidden" />
+            <img src="/vaquita-logo-dark.png" alt="Vaquita" className="w-7 h-7 rounded-full border border-border object-contain hidden dark:block" />
+          </div>
+          <h1 className="text-base font-semibold">Vaquita</h1>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto p-4">

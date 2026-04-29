@@ -19,10 +19,21 @@ export default function SubcategoryManager({ categories, loadingCategories }: Pr
   const createSubcategory = useCreateSubcategory();
   const deleteSubcategory = useDeleteSubcategory();
 
-  const sortedCategories = useMemo(
-    () => [...categories].sort((a, b) => a.name.localeCompare(b.name, "es")),
-    [categories],
-  );
+  const sortedCategories = useMemo(() => {
+    const typeOrder: Record<Category["type"], number> = {
+      expense: 0,
+      income: 1,
+      transfer: 2,
+    };
+
+    return [...categories].sort((a, b) => {
+      const typeDelta = typeOrder[a.type] - typeOrder[b.type];
+      if (typeDelta !== 0) {
+        return typeDelta;
+      }
+      return a.name.localeCompare(b.name, "es");
+    });
+  }, [categories]);
 
   const effectiveCategoryId = useMemo(() => {
     if (selectedCategoryId && sortedCategories.some((category) => category.id === selectedCategoryId)) {

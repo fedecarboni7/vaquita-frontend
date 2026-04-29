@@ -96,7 +96,7 @@ export default function SettingsPage() {
     if (!trimmed) return;
     createCategory.mutate(
       { name: trimmed, type: newCatType },
-      { onSuccess: () => { setNewCatName(""); setNewCatType("expense"); } }
+      { onSuccess: () => { setNewCatName(""); } }
     );
   };
 
