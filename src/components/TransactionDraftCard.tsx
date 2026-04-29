@@ -347,8 +347,8 @@ export default function TransactionDraftCard({ data }: Props) {
 
   const renderRow = (label: string, content: ReactNode) => {
     return (
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between py-2 border-b border-border/50 last:border-0">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}:</span>
+      <div className="flex flex-row items-center justify-between gap-2 py-2 border-b border-border/50 last:border-0">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide shrink-0">{label}:</span>
         {content}
       </div>
     );
@@ -389,7 +389,7 @@ export default function TransactionDraftCard({ data }: Props) {
               className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
             />
           ) : (
-            <span className="text-sm text-foreground break-words text-right">
+            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
               {formatDisplayDate(editData.expense_date) || "-"}
             </span>
           ),
@@ -410,7 +410,7 @@ export default function TransactionDraftCard({ data }: Props) {
               ))}
             </select>
           ) : (
-            <span className="text-sm text-foreground break-words text-right">{TYPE_LABELS[selectedType]}</span>
+            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">{TYPE_LABELS[selectedType]}</span>
           ),
         )}
 
@@ -426,7 +426,7 @@ export default function TransactionDraftCard({ data }: Props) {
               placeholder="0,00"
             />
           ) : (
-            <span className="text-sm text-foreground break-words text-right text-base">
+            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
               {buildFormattedAmount(editData.amount, selectedCurrency)}
             </span>
           ),
@@ -449,7 +449,7 @@ export default function TransactionDraftCard({ data }: Props) {
                 placeholder="0,00"
               />
             ) : (
-              <span className="text-sm text-foreground break-words text-right text-base">
+              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
                 {hasToAmount
                   ? buildFormattedAmount(parsedToAmount, selectedDestinationCurrency)
                   : "Misma moneda"}
@@ -460,7 +460,7 @@ export default function TransactionDraftCard({ data }: Props) {
         {isTransfer && hasToAmount && !isEditing &&
           renderRow(
             "Conversión",
-            <span className="text-sm text-foreground break-words text-right text-base">
+            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
               {buildFormattedAmount(editData.amount, selectedCurrency)}
               <span className="mx-1.5">→</span>
               {buildFormattedAmount(parsedToAmount, selectedDestinationCurrency)}
@@ -484,7 +484,7 @@ export default function TransactionDraftCard({ data }: Props) {
               ))}
             </select>
           ) : (
-            <span className="text-sm text-foreground break-words text-right text-base">{selectedAccount || "Sin cuenta"}</span>
+            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">{selectedAccount || "Sin cuenta"}</span>
           ),
         )}
 
@@ -508,7 +508,7 @@ export default function TransactionDraftCard({ data }: Props) {
                 ))}
               </select>
             ) : (
-              <span className="text-sm text-foreground break-words text-right text-base">
+              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
                 {selectedDestinationAccount || "Sin cuenta destino"}
               </span>
             ),
@@ -524,7 +524,7 @@ export default function TransactionDraftCard({ data }: Props) {
               className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
             />
           ) : (
-            <span className="text-sm text-foreground break-words text-right text-base">{String(editData.description ?? "")}</span>
+            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">{String(editData.description ?? "")}</span>
           ),
         )}
 
@@ -545,7 +545,7 @@ export default function TransactionDraftCard({ data }: Props) {
                 ))}
               </select>
             ) : (
-              <span className="text-sm text-foreground break-words text-right text-base">
+              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
                 {selectedCategoryName || "Sin categoría"}
               </span>
             ),
@@ -569,7 +569,7 @@ export default function TransactionDraftCard({ data }: Props) {
                 ))}
               </select>
             ) : (
-              <span className="text-sm text-foreground break-words text-right text-base">
+              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
                 {typeof editData.subcategory_name === "string"
                   ? editData.subcategory_name
                   : "Sin subcategoría"}
@@ -592,7 +592,7 @@ export default function TransactionDraftCard({ data }: Props) {
               ))}
             </select>
           ) : (
-            <span className="text-sm text-foreground break-words text-right text-base">{selectedCurrency}</span>
+            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">{selectedCurrency}</span>
           ),
         )}
 
@@ -608,7 +608,7 @@ export default function TransactionDraftCard({ data }: Props) {
                 className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
               />
             ) : (
-              <span className="text-sm text-foreground break-words text-right text-base">
+              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
                 {installmentsValue || "Sin cuotas"}
               </span>
             ),
@@ -617,7 +617,7 @@ export default function TransactionDraftCard({ data }: Props) {
         {isExpense && editData.installment_amount != null &&
           renderRow(
             FIELD_LABELS.installment_amount,
-            <span className="text-sm text-foreground break-words text-right text-base">
+            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
               {buildFormattedAmount(editData.installment_amount, selectedCurrency)}
             </span>,
           )}
@@ -633,7 +633,7 @@ export default function TransactionDraftCard({ data }: Props) {
                 className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
               />
             ) : (
-              <span className="text-sm text-foreground break-words text-right text-base">{String(editData.note ?? "")}</span>
+              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">{String(editData.note ?? "")}</span>
             ),
           )}
       </div>
@@ -642,7 +642,7 @@ export default function TransactionDraftCard({ data }: Props) {
         <p className="text-destructive text-xs mb-3">{errorMessage || "Error al guardar. Intentá de nuevo."}</p>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-nowrap gap-2">
         <button
           onClick={handleConfirm}
           disabled={!canConfirm}

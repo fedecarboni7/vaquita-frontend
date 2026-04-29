@@ -253,13 +253,7 @@ export default function AppLayout() {
         >
           ☰
         </button>
-        <div className="flex items-center gap-2">
-          <img
-            src={appLogoUrl}
-            alt="Vaquita"
-            className="h-5 w-5 object-contain"
-          />
-        </div>
+        <span className="text-sm font-semibold tracking-wide" style={{ fontFamily: "'Quicksand', sans-serif" }}>vaquita</span>
       </header>
 
       {/* Main content */}
