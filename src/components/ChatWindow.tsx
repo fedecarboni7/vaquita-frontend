@@ -24,11 +24,7 @@ export default function ChatWindow({ messages, isProcessing = false }: Props) {
         />
       ))}
       {isProcessing && (
-        <div className="flex gap-2 items-end">
-          <div className="shrink-0 w-6 h-6 mb-0.5">
-            <img src="/vaquita-logo-light.png" alt="" className="w-6 h-6 rounded-full border border-border object-contain opacity-80 dark:hidden" />
-            <img src="/vaquita-logo-dark.png" alt="" className="w-6 h-6 rounded-full border border-border object-contain opacity-80 hidden dark:block" />
-          </div>
+        <div className="flex items-end">
           <div className="bg-muted border border-border rounded-2xl rounded-bl-sm px-4 py-3 max-w-[92%] sm:max-w-[80%]">
             <span className="sr-only">El asistente está escribiendo</span>
             <div className="flex items-center gap-1" aria-hidden="true">

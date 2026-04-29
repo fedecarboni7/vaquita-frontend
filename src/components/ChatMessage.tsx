@@ -31,11 +31,7 @@ export default function ChatMessage({ message }: Props) {
   // Assistant messages
   if (message.response_type === "draft" && message.data) {
     return (
-      <div className="flex gap-2 items-end">
-        <div className="shrink-0 w-6 h-6 mb-0.5">
-          <img src="/vaquita-logo-light.png" alt="" className="w-6 h-6 rounded-full border border-border object-contain opacity-80 dark:hidden" />
-          <img src="/vaquita-logo-dark.png" alt="" className="w-6 h-6 rounded-full border border-border object-contain opacity-80 hidden dark:block" />
-        </div>
+      <div className="flex items-end">
         <div className="max-w-[95%] sm:max-w-[85%] min-w-0">
           <TransactionDraftCard data={message.data} />
         </div>
@@ -44,11 +40,7 @@ export default function ChatMessage({ message }: Props) {
   }
 
   return (
-    <div className="flex gap-2 items-end">
-      <div className="shrink-0 w-6 h-6 mb-0.5">
-        <img src="/vaquita-logo-light.png" alt="" className="w-6 h-6 rounded-full border border-border object-contain opacity-80 dark:hidden" />
-        <img src="/vaquita-logo-dark.png" alt="" className="w-6 h-6 rounded-full border border-border object-contain opacity-80 hidden dark:block" />
-      </div>
+    <div className="flex items-end">
       <div className="bg-muted text-foreground border border-border rounded-2xl rounded-bl-sm px-4 py-2 max-w-[92%] sm:max-w-[80%] break-words whitespace-pre-wrap">
         {message.content}
       </div>

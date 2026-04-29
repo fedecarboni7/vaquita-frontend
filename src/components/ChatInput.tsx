@@ -170,7 +170,7 @@ export default function ChatInput({ onSend, onStop, isProcessing = false }: Prop
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleTextareaKeyDown}
-            placeholder={isTranscribing ? "Transcribiendo..." : "Ej: Gasté 500 en el super con Mercado Pago..."}
+            placeholder={isTranscribing ? "Transcribiendo..." : "Ej: Gasté 500 en el super con..."}
             disabled={isProcessing || isTranscribing}
             className={`block w-full min-h-11 rounded-xl border border-border bg-background px-4 py-3 text-sm leading-5 text-foreground outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60 resize-none ${
               isTranscribing ? "pr-32" : "pr-4"
