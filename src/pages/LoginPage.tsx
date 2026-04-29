@@ -30,7 +30,7 @@ export default function LoginPage() {
             alt="Vaquita logo"
             className="mx-auto h-20 w-20 rounded-2xl object-cover"
           />
-          <h1 className="text-2xl font-serif font-medium">Vaquita</h1>
+          <h1 className="text-2xl font-serif font-medium" style={{ fontFamily: "'Quicksand', sans-serif" }}>vaquita</h1>
           <p className="text-sm text-muted-foreground">Iniciá sesión con tu cuenta de Google</p>
         </div>
 
