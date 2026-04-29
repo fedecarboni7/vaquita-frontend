@@ -490,7 +490,9 @@ export default function AccountsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full bg-background">
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-2 py-2 sm:px-4 space-y-6">
       <div className="flex items-center justify-between mb-2">
         <div>
           <div className="font-serif text-2xl font-medium tracking-[-0.4px]">
@@ -651,6 +653,9 @@ export default function AccountsPage() {
           </div>
         )
       )}
+
+        </div>
+      </div>
 
       <AccountDetailDrawer
         key={selectedAccount?.id ?? "no-account"}

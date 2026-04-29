@@ -187,7 +187,7 @@ export default function AppLayout() {
             className="flex items-center justify-between cursor-pointer py-1"
           >
             <span className="text-xs text-muted-foreground">
-              {isDark ? "Modo claro" : "Modo oscuro"}
+              {isDark ? "Modo oscuro" : "Modo claro"}
             </span>
             <div
               className={cn(
@@ -197,10 +197,28 @@ export default function AppLayout() {
             >
               <div
                 className={cn(
-                  "absolute w-3.5 h-3.5 rounded-full bg-white top-[3px] left-[3px] transition-transform duration-200 shadow-sm",
-                  isDark && "translate-x-4",
+                  "absolute top-[3px] left-[3px] w-3.5 h-3.5 rounded-full transition-transform duration-200 shadow-sm flex items-center justify-center",
+                  isDark ? "translate-x-4 bg-slate-800" : "bg-amber-100",
                 )}
-              />
+              >
+                {isDark ? (
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" className="text-blue-200">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                ) : (
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" className="text-amber-500">
+                    <circle cx="12" cy="12" r="5" />
+                    <line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                )}
+              </div>
             </div>
           </button>
 
@@ -236,13 +254,11 @@ export default function AppLayout() {
           ☰
         </button>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="border border-border rounded-md cursor-pointer text-muted-foreground text-sm px-2 py-1"
-          >
-            {isDark ? "☾" : "☀"}
-          </button>
+          <img
+            src={appLogoUrl}
+            alt="Vaquita"
+            className="h-5 w-5 object-contain"
+          />
         </div>
       </header>
 
