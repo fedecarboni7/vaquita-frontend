@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStats } from "@/hooks/useStats";
 import { formatCurrencyAmount } from "@/lib/utils";
+import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import type { StatsCategoryExpenseItem } from "@/types/stats";
 import type { CurrencyCode } from "@/types/transaction";
 
@@ -108,10 +109,11 @@ function MetricCard({
   metric: "income" | "expenses" | "balance";
   currency: CurrencyCode;
 }) {
+  const { balancesVisible } = useBalanceVisibility();
   return (
     <article className="rounded-lg border border-border bg-card p-4">
       <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-2 text-xl font-semibold leading-tight break-words">{formatCurrencyAmount(total, currency)}</p>
+      <p className="mt-2 text-xl font-semibold leading-tight break-words">{balancesVisible ? formatCurrencyAmount(total, currency) : "••••••"}</p>
       {delta !== null && (
         <p className={`mt-1 text-sm font-medium ${getDeltaClasses(metric, delta)}`}>
           {formatPercent(delta)}
