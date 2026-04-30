@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAccountSummary } from "@/hooks/useAccounts";
 import { cn, formatCurrencyAmount } from "@/lib/utils";
+import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import type { Account } from "@/types/transaction";
 
 type DatePreset = "this-month" | "custom";
@@ -76,6 +77,8 @@ export default function AccountDetailDrawer({ account, onClose }: AccountDetailD
     return getPresetRange();
   }, [customRange, preset]);
   const summaryQuery = useAccountSummary(account?.id ?? null, range.from, range.to);
+
+  const { balancesVisible } = useBalanceVisibility();
 
   const currency = summaryQuery.data?.currency ?? account?.currency ?? "ARS";
   const isDateRangeOrderError =
@@ -171,15 +174,15 @@ export default function AccountDetailDrawer({ account, onClose }: AccountDetailD
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <MetricCard
                   title="Ingresos"
-                  value={formatCurrencyAmount(summaryQuery.data?.total_income ?? 0, currency)}
+                  value={balancesVisible ? formatCurrencyAmount(summaryQuery.data?.total_income ?? 0, currency) : "••••••"}
                 />
                 <MetricCard
                   title="Gastos"
-                  value={formatCurrencyAmount(summaryQuery.data?.total_expenses ?? 0, currency)}
+                  value={balancesVisible ? formatCurrencyAmount(summaryQuery.data?.total_expenses ?? 0, currency) : "••••••"}
                 />
                 <MetricCard
                   title="Balance neto"
-                  value={formatCurrencyAmount(summaryQuery.data?.net_balance ?? 0, currency)}
+                  value={balancesVisible ? formatCurrencyAmount(summaryQuery.data?.net_balance ?? 0, currency) : "••••••"}
                   highlighted={(summaryQuery.data?.net_balance ?? 0) < 0}
                 />
               </div>

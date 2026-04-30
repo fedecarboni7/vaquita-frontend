@@ -10,6 +10,7 @@ import type { Transaction } from "@/types/transaction";
 
 interface Props {
   transaction: Transaction;
+  balancesVisible: boolean;
   onSelect: (t: Transaction) => void;
   onEdit: (t: Transaction) => void;
   onDelete: (t: Transaction) => void;
@@ -29,6 +30,7 @@ function getCategoryTagClass(category: string | null): string {
 
 export default function TransactionRow({
   transaction,
+  balancesVisible,
   onSelect,
   onEdit,
   onDelete,
@@ -75,19 +77,22 @@ export default function TransactionRow({
       )}>
         {transaction.type === "transfer" && transaction.to_amount != null ? (
           <div className="flex flex-col items-end gap-0.5">
-            <span>{formatCurrencyAmount(transaction.amount, transaction.currency)}</span>
+            <span>{balancesVisible ? formatCurrencyAmount(transaction.amount, transaction.currency) : "••••••"}</span>
             <span className="text-[11px] text-muted-foreground">
-              → {formatCurrencyAmount(
-                transaction.to_amount,
-                transaction.account_destination_currency ?? transaction.currency,
-              )}
-              {exchangeRate && ` · TC ${formatCurrencyAmount(exchangeRate.amount, exchangeRate.currency)}`}
+              → {balancesVisible
+                ? formatCurrencyAmount(
+                  transaction.to_amount,
+                  transaction.account_destination_currency ?? transaction.currency,
+                )
+                : "••••••"}
+              {exchangeRate && ` · TC ${balancesVisible ? formatCurrencyAmount(exchangeRate.amount, exchangeRate.currency) : "••••••"}`}
             </span>
           </div>
         ) : (
           <>
-            {transaction.type === "expense" ? "-" : ""}
-            {formatCurrencyAmount(transaction.amount, transaction.currency)}
+            {balancesVisible
+              ? `${transaction.type === "expense" ? "-" : ""}${formatCurrencyAmount(transaction.amount, transaction.currency)}`
+              : "••••••"}
           </>
         )}
       </td>

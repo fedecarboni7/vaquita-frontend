@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Grid2x2, List, Plus, Trash2, Loader2, Scale, Pencil } from "lucide-react";
+import { ChevronDown, ChevronUp, Grid2x2, List, Plus, Trash2, Loader2, Scale, Pencil, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import AccountDetailDrawer from "@/components/accounts/AccountDetailDrawer";
@@ -36,6 +36,7 @@ import {
   useUpdateAccount,
 } from "@/hooks/useAccounts";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import type { Account, AccountTypeCode, CurrencyCode } from "@/types/transaction";
 
 const CARD_ACCENTS = ["bg-emerald-500", "bg-sky-500", "bg-amber-500", "bg-rose-500", "bg-teal-500"];
@@ -135,6 +136,7 @@ function parseBalanceInput(value: string): number | null {
 
 export default function AccountsPage() {
   const { data: accounts = [], isLoading, isError, refetch } = useAccounts();
+  const { balancesVisible, toggleBalancesVisible } = useBalanceVisibility();
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const createMutation = useCreateAccount();
   const updateMutation = useUpdateAccount();
@@ -418,15 +420,15 @@ export default function AccountsPage() {
                   Resumen actual
                 </div>
                 <div className="font-serif text-[29px] tracking-[-0.6px] leading-none mb-2">
-                  {summaryAmount != null ? formatMoney(summaryAmount, account.currency) : "-"}
+                  {summaryAmount != null ? (balancesVisible ? formatMoney(summaryAmount, account.currency) : "••••••") : "-"}
                 </div>
                 <div className="text-[11.5px] text-muted-foreground/80 mb-1">
-                  Saldo histórico: {formatMoney(account.balance, account.currency)}
+                  Saldo histórico: {balancesVisible ? formatMoney(account.balance, account.currency) : "••••••"}
                 </div>
               </>
             ) : (
               <div className="font-serif text-[29px] tracking-[-0.6px] leading-none mb-2">
-                {formatMoney(account.balance, account.currency)}
+                {balancesVisible ? formatMoney(account.balance, account.currency) : "••••••"}
               </div>
             )}
             <div className="text-[12px] text-muted-foreground mb-1">
@@ -474,7 +476,7 @@ export default function AccountsPage() {
         <TableCell className="font-medium">{account.name}</TableCell>
         <TableCell>{ACCOUNT_TYPE_LABELS[account.account_type]}</TableCell>
         <TableCell>{account.currency}</TableCell>
-        <TableCell>{summaryAmount != null ? formatMoney(summaryAmount, account.currency) : "-"}</TableCell>
+        <TableCell>{summaryAmount != null ? (balancesVisible ? formatMoney(summaryAmount, account.currency) : "••••••") : "-"}</TableCell>
         <TableCell className="hidden md:table-cell">
           {account.account_type === "credit_card" ? formatBillingPeriod(account.billing_period_start, account.billing_period_end) : "—"}
         </TableCell>
@@ -525,6 +527,17 @@ export default function AccountsPage() {
               <List className="h-3.5 w-3.5" />
             </Button>
           </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground"
+            onClick={() => toggleBalancesVisible()}
+            aria-label={balancesVisible ? "Ocultar saldos" : "Mostrar saldos"}
+          >
+            {balancesVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          </Button>
+
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4 mr-1.5" />
             Nueva cuenta
@@ -540,7 +553,7 @@ export default function AccountsPage() {
               Total {currency}
             </div>
             <div className="font-serif text-[28px] tracking-[-0.5px] leading-none">
-              {formatMoney(total, currency)}
+              {balancesVisible ? formatMoney(total, currency) : "••••••"}
             </div>
             <div className="text-[11.5px] mt-2 text-muted-foreground">
               {count} cuenta(s)
@@ -946,7 +959,7 @@ export default function AccountsPage() {
               Cuenta: <span className="text-foreground">{adjustTarget?.name}</span>
             </div>
             <div className="text-sm text-muted-foreground mb-4">
-              Saldo calculado: {adjustTarget ? formatMoney(adjustTarget.balance, adjustTarget.currency) : "-"}
+              Saldo calculado: {adjustTarget ? (balancesVisible ? formatMoney(adjustTarget.balance, adjustTarget.currency) : "••••••") : "-"}
             </div>
             <div className="mb-4">
               <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">

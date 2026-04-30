@@ -31,6 +31,7 @@ function getCategoryTagClass(category: string | null): string {
 
 interface Props {
   transactions: Transaction[];
+  balancesVisible: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
   onSelect: (t: Transaction) => void;
@@ -40,6 +41,7 @@ interface Props {
 
 export default function MonthSection({
   transactions,
+  balancesVisible,
   hasMore,
   onLoadMore,
   onSelect,
@@ -68,6 +70,7 @@ export default function MonthSection({
                 <TransactionRow
                   key={t.id}
                   transaction={t}
+                  balancesVisible={balancesVisible}
                   onSelect={onSelect}
                   onEdit={onEdit}
                   onDelete={onDelete}
@@ -103,8 +106,9 @@ export default function MonthSection({
                         t.type === "income" && "text-green-500",
                       )}
                     >
-                      {t.type === "expense" ? "-" : ""}
-                      {formatCurrencyAmount(t.amount, t.currency)}
+                      {balancesVisible
+                        ? `${t.type === "expense" ? "-" : ""}${formatCurrencyAmount(t.amount, t.currency)}`
+                        : "••••••"}
                     </span>
 
                     <DropdownMenu>
@@ -143,12 +147,14 @@ export default function MonthSection({
                     {t.to_amount != null && (
                       <>
                         <span className="mx-1.5">·</span>
-                        {formatCurrencyAmount(t.amount, t.currency)}
+                        {balancesVisible ? formatCurrencyAmount(t.amount, t.currency) : "••••••"}
                         <span className="mx-1.5">→</span>
-                        {formatCurrencyAmount(
-                          t.to_amount,
-                          t.account_destination_currency ?? t.currency,
-                        )}
+                        {balancesVisible
+                          ? formatCurrencyAmount(
+                            t.to_amount,
+                            t.account_destination_currency ?? t.currency,
+                          )
+                          : "••••••"}
                         {(() => {
                           const exchangeRate = getWeakCurrencyExchangeRateFromAmounts(
                             t.amount,
@@ -162,7 +168,7 @@ export default function MonthSection({
                           return (
                             <>
                               <span className="mx-1.5">·</span>
-                              TC {formatCurrencyAmount(exchangeRate.amount, exchangeRate.currency)}
+                              TC {balancesVisible ? formatCurrencyAmount(exchangeRate.amount, exchangeRate.currency) : "••••••"}
                             </>
                           )
                         })()}

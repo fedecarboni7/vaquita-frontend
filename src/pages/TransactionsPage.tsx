@@ -1,10 +1,11 @@
 import { useState, useCallback, useMemo } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
+import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import FilterBar from "@/components/transactions/FilterBar";
 import MonthSection from "@/components/transactions/MonthSection";
 import TransactionDetailDrawer from "@/components/transactions/TransactionDetailDrawer";
@@ -52,6 +53,7 @@ function calculateNetTotalsByCurrency(
 }
 
 export default function TransactionsPage() {
+  const { balancesVisible, toggleBalancesVisible } = useBalanceVisibility();
   const [month, setMonth] = useState(getCurrentMonth);
   const [search, setSearch] = useState("");
   const [typeFilters, setTypeFilters] = useState<TransactionType[]>([]);
@@ -245,23 +247,36 @@ export default function TransactionsPage() {
               </Button>
             </div>
             
-            <div className="flex flex-col items-end gap-0.5 self-end sm:self-auto">
-              {balancesByCurrency.map(({ currency, total }) => (
-                <span
-                  key={currency}
-                  className={`text-xs sm:text-sm font-medium tabular-nums ${
-                    total >= 0 ? "text-green-500" : "text-red-500"
-                  }`}
-                >
-                  {total >= 0 ? "+" : ""}
-                  {new Intl.NumberFormat("es-AR", {
-                    style: "currency",
-                    currency,
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 2,
-                  }).format(total)}
-                </span>
-              ))}
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <div className="flex flex-col items-end gap-0.5">
+                {balancesByCurrency.map(({ currency, total }) => (
+                  <span
+                    key={currency}
+                    className={`text-xs sm:text-sm font-medium tabular-nums ${
+                      total >= 0 ? "text-green-500" : "text-red-500"
+                    }`}
+                  >
+                    {balancesVisible
+                      ? `${total >= 0 ? "+" : ""}${new Intl.NumberFormat("es-AR", {
+                        style: "currency",
+                        currency,
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2,
+                      }).format(total)}`
+                      : "••••••"}
+                  </span>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="text-muted-foreground"
+                onClick={toggleBalancesVisible}
+                aria-label={balancesVisible ? "Ocultar saldos" : "Mostrar saldos"}
+              >
+                {balancesVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </Button>
             </div>
           </div>
 
@@ -296,6 +311,7 @@ export default function TransactionsPage() {
           ) : (
             <MonthSection
               transactions={filteredTransactions}
+              balancesVisible={balancesVisible}
               hasMore={hasMore && search === ""}
               onLoadMore={handleLoadMore}
               onSelect={handleSelect}
