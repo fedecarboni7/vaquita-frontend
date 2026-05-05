@@ -125,3 +125,26 @@ export function useUpdateTransaction() {
     },
   });
 }
+
+export async function uploadReceipt(
+  transactionId: string,
+  file: File,
+): Promise<{ receipt_url: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiFetch<{ receipt_url: string }>(`/expenses/${transactionId}/receipt`, {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export async function getReceiptUrl(transactionId: string): Promise<{ receipt_url: string }> {
+  return apiFetch<{ receipt_url: string }>(`/expenses/${transactionId}/receipt`);
+}
+
+export async function deleteReceipt(transactionId: string): Promise<void> {
+  return apiFetch<void>(`/expenses/${transactionId}/receipt`, {
+    method: "DELETE",
+  });
+}

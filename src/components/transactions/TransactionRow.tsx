@@ -1,4 +1,4 @@
-import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, MoreHorizontal, Paperclip, Pencil, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,12 +49,16 @@ export default function TransactionRow({
   const dateStr = d.toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
 
   const label = transaction.description || categoryLabel || "Sin descripción";
+  const hasReceipt = Boolean(transaction.receipt_url);
 
   return (
     <tr onClick={() => onSelect(transaction)} className="cursor-pointer">
       <td className="date">{dateStr}</td>
       <td>
-        <div className="font-medium">{label}</div>
+        <div className="flex items-center gap-2 font-medium">
+          <span className="truncate">{label}</span>
+          {hasReceipt && <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />}
+        </div>
         {transaction.note && <div className="note">{transaction.note}</div>}
         {transaction.affects_balance === false && (
           <div className="text-[11px] text-muted-foreground">No afecta balance</div>
