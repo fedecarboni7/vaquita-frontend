@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Grid2x2, List, Plus, Trash2, Loader2, Scale, Pencil, Eye, EyeOff } from "lucide-react";
+import { ChevronDown, ChevronUp, Grid2x2, List, Plus, Trash2, Loader2, Scale, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import AccountDetailDrawer from "@/components/accounts/AccountDetailDrawer";
@@ -136,7 +136,7 @@ function parseBalanceInput(value: string): number | null {
 
 export default function AccountsPage() {
   const { data: accounts = [], isLoading, isError, refetch } = useAccounts();
-  const { balancesVisible, toggleBalancesVisible } = useBalanceVisibility();
+  const { balancesVisible } = useBalanceVisibility();
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const createMutation = useCreateAccount();
   const updateMutation = useUpdateAccount();
@@ -527,17 +527,6 @@ export default function AccountsPage() {
               <List className="h-3.5 w-3.5" />
             </Button>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="text-muted-foreground"
-            onClick={() => toggleBalancesVisible()}
-            aria-label={balancesVisible ? "Ocultar saldos" : "Mostrar saldos"}
-          >
-            {balancesVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          </Button>
-
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4 mr-1.5" />
             Nueva cuenta
