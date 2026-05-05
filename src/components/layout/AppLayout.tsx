@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Key, Shield, type LucideIcon } from "lucide-react";
+import { Eye, EyeOff, Key, Shield, type LucideIcon } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/useAuth";
 import { useTheme } from "@/hooks/useTheme";
+import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import { getAppLogoUrl, getAppWordmarkUrl } from "@/constants/branding";
 
 type NavIcon = string | LucideIcon;
@@ -49,6 +50,7 @@ function getUserInitials(name: string | null | undefined) {
 export default function AppLayout() {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const { balancesVisible, toggleBalancesVisible } = useBalanceVisibility();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoWordmark, setShowLogoWordmark] = useState(false);
   const logoWordmarkTimeoutRef = useRef<number | null>(null);
@@ -181,6 +183,17 @@ export default function AppLayout() {
 
         {/* Footer */}
         <div className="mt-auto pt-4 px-5 border-t border-border/50 flex flex-col gap-3">
+          {/* Balance visibility toggle */}
+          <button
+            type="button"
+            onClick={toggleBalancesVisible}
+            aria-label={balancesVisible ? "Ocultar saldos" : "Mostrar saldos"}
+            className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {balancesVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            <span className="text-xs">{balancesVisible ? "Ocultar saldos" : "Mostrar saldos"}</span>
+          </button>
+
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
@@ -254,6 +267,14 @@ export default function AppLayout() {
           ☰
         </button>
         <span className="text-sm font-semibold tracking-wide" style={{ fontFamily: "'Quicksand', sans-serif" }}>vaquita</span>
+        <button
+          type="button"
+          onClick={toggleBalancesVisible}
+          aria-label={balancesVisible ? "Ocultar saldos" : "Mostrar saldos"}
+          className="cursor-pointer text-muted-foreground flex items-center bg-transparent border-none"
+        >
+          {balancesVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
       </header>
 
       {/* Main content */}

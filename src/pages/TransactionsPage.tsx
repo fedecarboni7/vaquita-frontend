@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTransactions } from "@/hooks/useTransactions";
@@ -53,7 +53,7 @@ function calculateNetTotalsByCurrency(
 }
 
 export default function TransactionsPage() {
-  const { balancesVisible, toggleBalancesVisible } = useBalanceVisibility();
+  const { balancesVisible } = useBalanceVisibility();
   const [month, setMonth] = useState(getCurrentMonth);
   const [search, setSearch] = useState("");
   const [typeFilters, setTypeFilters] = useState<TransactionType[]>([]);
@@ -267,16 +267,6 @@ export default function TransactionsPage() {
                   </span>
                 ))}
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="text-muted-foreground"
-                onClick={toggleBalancesVisible}
-                aria-label={balancesVisible ? "Ocultar saldos" : "Mostrar saldos"}
-              >
-                {balancesVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              </Button>
             </div>
           </div>
 
