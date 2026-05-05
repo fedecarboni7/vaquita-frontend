@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { Image as ImageIcon, Loader2, Paperclip } from "lucide-react";
+import { toast } from "sonner";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -14,6 +17,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { formatCurrencyAmount, getWeakCurrencyExchangeRateFromAmounts } from "@/lib/utils";
+import { getReceiptUrl } from "@/hooks/useTransactions";
 import type { Transaction } from "@/types/transaction";
 
 interface Props {
@@ -49,6 +53,7 @@ function DetailContent({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const [isViewingReceipt, setIsViewingReceipt] = useState(false);
   const exchangeRate = getWeakCurrencyExchangeRateFromAmounts(
     transaction.amount,
     transaction.to_amount,
@@ -95,6 +100,20 @@ function DetailContent({
     },
   ];
 
+  const handleViewReceipt = async () => {
+    setIsViewingReceipt(true);
+
+    try {
+      const response = await getReceiptUrl(transaction.id);
+      window.open(response.receipt_url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo abrir el comprobante";
+      toast.error(message);
+    } finally {
+      setIsViewingReceipt(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="space-y-3">
@@ -107,6 +126,22 @@ function DetailContent({
             </div>
           ))}
       </div>
+      {transaction.receipt_url && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
+          <div className="flex items-center gap-2 text-sm">
+            <Paperclip className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">Comprobante adjunto</span>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={handleViewReceipt} disabled={isViewingReceipt}>
+            {isViewingReceipt ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <ImageIcon className="mr-2 h-4 w-4" />
+            )}
+            Ver comprobante
+          </Button>
+        </div>
+      )}
       <Separator />
       <div className="flex gap-2">
         <Button variant="outline" className="flex-1" onClick={onEdit}>
@@ -136,7 +171,12 @@ export default function TransactionDetailDrawer({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Detalle de transacción</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              Detalle de transacción
+              {transaction.receipt_url && (
+                <Paperclip className="h-4 w-4 text-muted-foreground" />
+              )}
+            </DialogTitle>
           </DialogHeader>
           <DetailContent
             transaction={transaction}
@@ -152,7 +192,12 @@ export default function TransactionDetailDrawer({
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[85vh]">
         <DrawerHeader>
-          <DrawerTitle>Detalle de transacción</DrawerTitle>
+          <DrawerTitle className="flex items-center gap-2">
+            Detalle de transacción
+            {transaction.receipt_url && (
+              <Paperclip className="h-4 w-4 text-muted-foreground" />
+            )}
+          </DrawerTitle>
         </DrawerHeader>
         <div className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] overflow-y-auto">
           <DetailContent

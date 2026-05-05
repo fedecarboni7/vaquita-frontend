@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import {
   parseNormalizedAmount,
 } from "@/lib/amountInput";
 import type { CurrencyCode, Transaction, TransactionType } from "@/types/transaction";
+import ReceiptUploader from "./ReceiptUploader";
 
 interface Props {
   transaction: Transaction;
@@ -77,6 +78,7 @@ export default function EditTransactionModal({
   const [installmentsInput, setInstallmentsInput] = useState(
     transaction.installments != null ? String(transaction.installments) : "",
   );
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(transaction.receipt_url ?? null);
 
   const updateMutation = useUpdateTransaction();
   const { data: accounts = [] } = useAccounts();
@@ -126,6 +128,16 @@ export default function EditTransactionModal({
   const selectedTypeLabel =
     TYPE_OPTIONS.find((option) => option.value === transactionType)?.label || "Gasto";
 
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        setReceiptUrl(transaction.receipt_url ?? null);
+      }
+      onOpenChange(nextOpen);
+    },
+    [onOpenChange, transaction.receipt_url],
+  );
+
   const handleTypeChange = (value: TransactionType) => {
     setTransactionType(value);
     setCategoryId("__none__");
@@ -141,7 +153,7 @@ export default function EditTransactionModal({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     const selectedSourceAccount = accounts.find((item) => item.name === account);
     const selectedDestinationAccount = accounts.find((item) => item.name === accountDestination);
     const resolvedAccountId = selectedSourceAccount?.id ?? transaction.account_id;
@@ -195,7 +207,7 @@ export default function EditTransactionModal({
       {
         onSuccess: () => {
           toast.success("Registro actualizado correctamente");
-          onOpenChange(false);
+          handleOpenChange(false);
         },
         onError: (error) => {
           const message =
@@ -206,7 +218,29 @@ export default function EditTransactionModal({
         },
       },
     );
-  };
+  }, [
+    account,
+    accountDestination,
+    accounts,
+    affectsBalance,
+    currency,
+    description,
+    expenseDate,
+    handleOpenChange,
+    hasInvalidToAmount,
+    installments,
+    isExpense,
+    isTransfer,
+    note,
+    parsedAmount,
+    parsedToAmount,
+    safeCategoryValue,
+    safeSubcategoryValue,
+    toAmountInput,
+    transaction,
+    transactionType,
+    updateMutation,
+  ]);
 
   const disableSave =
     updateMutation.isPending ||
@@ -214,6 +248,7 @@ export default function EditTransactionModal({
     (isTransfer && !accountDestination) ||
     hasInvalidToAmount ||
     hasInvalidInstallments;
+
 
   useEffect(() => {
     if (!open) {
@@ -255,7 +290,7 @@ export default function EditTransactionModal({
   }, [disableSave, handleSave, open]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Editar transacción</DialogTitle>
@@ -479,6 +514,16 @@ export default function EditTransactionModal({
             />
             Afecta balance en Registros
           </label>
+
+          <div className="space-y-2 border-t border-border pt-3">
+            <p className="text-sm font-medium">Comprobante</p>
+            <ReceiptUploader
+              transactionId={transaction.id}
+              currentReceiptUrl={receiptUrl}
+              onUploadSuccess={(newUrl) => setReceiptUrl(newUrl)}
+              onDeleteSuccess={() => setReceiptUrl(null)}
+            />
+          </div>
 
           <Button
             className="w-full"

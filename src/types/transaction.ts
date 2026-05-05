@@ -23,6 +23,7 @@ export interface Transaction {
   subcategory_id: string | null;
   subcategory_name: string | null;
   note?: string | null;
+  receipt_url?: string | null;
   installments?: number | null;
   account_destination_id?: string | null;
   account_destination?: string | null;

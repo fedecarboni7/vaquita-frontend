@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { Image as ImageIcon, Loader2, Paperclip, X } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  uploadReceipt,
   useCreateTransaction,
   type CreateTransactionPayload,
 } from "@/hooks/useTransactions";
@@ -42,6 +44,8 @@ const TYPE_OPTIONS: Array<{ value: TransactionType; label: string }> = [
 ];
 
 const NO_DESTINATION_VALUE = "__none__";
+const MAX_RECEIPT_SIZE = 10 * 1024 * 1024;
+const ALLOWED_RECEIPT_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 function getCurrentLocalDateISO(): string {
   const now = new Date();
@@ -62,9 +66,11 @@ function parseInstallments(value: string): number | null {
 }
 
 export default function CreateTransactionModal({ open, onOpenChange }: Props) {
+  const queryClient = useQueryClient();
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
   const createMutation = useCreateTransaction();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [transactionType, setTransactionType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");
@@ -79,6 +85,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
   const [toAmountInput, setToAmountInput] = useState("");
   const [affectsBalance, setAffectsBalance] = useState(true);
   const [submitMode, setSubmitMode] = useState<SubmitMode>("close");
+  const [selectedReceiptFile, setSelectedReceiptFile] = useState<File | null>(null);
 
   const isTransfer = transactionType === "transfer";
   const isExpense = transactionType === "expense";
@@ -166,7 +173,52 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
     }
   };
 
-  const resetFormForNextEntry = (
+  const clearSelectedReceipt = useCallback(() => {
+    setSelectedReceiptFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const openReceiptPicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleReceiptFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!ALLOWED_RECEIPT_TYPES.includes(file.type)) {
+      toast.error("Solo se aceptan JPG, PNG o WEBP");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_RECEIPT_SIZE) {
+      toast.error("El comprobante debe pesar hasta 10MB");
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedReceiptFile(file);
+  };
+
+  const uploadReceiptInBackground = useCallback(
+    async (transactionId: string, file: File) => {
+      try {
+        await uploadReceipt(transactionId, file);
+        toast.success("Comprobante guardado");
+      } catch {
+        toast.error("No se pudo guardar el comprobante");
+      } finally {
+        await queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      }
+    },
+    [queryClient],
+  );
+  const resetFormForNextEntry = useCallback((
     nextAccountId: string,
     nextExpenseDate: string,
     nextTransactionType: TransactionType,
@@ -183,13 +235,25 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
     setInstallmentsInput("");
     setToAmountInput("");
     setAffectsBalance(true);
-  };
+    clearSelectedReceipt();
+  }, [clearSelectedReceipt]);
 
-  const handleSave = (mode: SubmitMode) => {
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        clearSelectedReceipt();
+      }
+      onOpenChange(nextOpen);
+    },
+    [clearSelectedReceipt, onOpenChange],
+  );
+
+  const handleSave = useCallback((mode: SubmitMode) => {
     const trimmedDescription = description.trim();
     const nextExpenseDate = expenseDate || getCurrentLocalDateISO();
     const nextTransactionType = transactionType;
     const nextAccountId = selectedAccountId;
+    const receiptFileToUpload = selectedReceiptFile;
 
     if (!selectedAccountId || parsedAmount == null || parsedAmount <= 0) {
       return;
@@ -234,16 +298,19 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
     setSubmitMode(mode);
 
     createMutation.mutate(isTransfer ? transferData : defaultData, {
-      onSuccess: () => {
+      onSuccess: (created) => {
         toast.success("Registro creado correctamente");
+
+        if (receiptFileToUpload) {
+          void uploadReceiptInBackground(created.id, receiptFileToUpload);
+        }
         if (mode === "continue") {
           resetFormForNextEntry(nextAccountId, nextExpenseDate, nextTransactionType);
-          setSubmitMode("close");
-          return;
+        } else {
+          handleOpenChange(false);
         }
 
         setSubmitMode("close");
-        onOpenChange(false);
       },
       onError: (error) => {
         const message =
@@ -254,7 +321,30 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
         setSubmitMode("close");
       },
     });
-  };
+  }, [
+    accountDestinationId,
+    affectsBalance,
+    createMutation,
+    description,
+    expenseDate,
+    hasInvalidToAmount,
+    installments,
+    isExpense,
+    isTransfer,
+    note,
+    parsedAmount,
+    parsedToAmount,
+    resolvedCurrency,
+    resetFormForNextEntry,
+    selectedReceiptFile,
+    safeCategoryValue,
+    safeSubcategoryValue,
+    selectedAccountId,
+    handleOpenChange,
+    toAmountInput,
+    transactionType,
+    uploadReceiptInBackground,
+  ]);
 
   const disableSave =
     createMutation.isPending ||
@@ -264,6 +354,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
     (isTransfer && selectedAccountId === accountDestinationId) ||
     hasInvalidToAmount ||
     hasInvalidInstallments;
+
 
   useEffect(() => {
     if (!open) {
@@ -311,7 +402,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
   }, [disableSave, handleSave, open]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Nuevo registro</DialogTitle>
@@ -545,6 +636,43 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
             />
             Afecta balance en Registros
           </label>
+          <div className="space-y-2 border-t border-border pt-3">
+            <p className="text-sm font-medium">Comprobante (opcional)</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleReceiptFileChange}
+            />
+            {selectedReceiptFile ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2">
+                <div className="min-w-0 flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <p className="text-sm font-medium truncate">{selectedReceiptFile.name}</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={clearSelectedReceipt}
+                  aria-label="Quitar comprobante seleccionado"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start"
+                onClick={openReceiptPicker}
+              >
+                <Paperclip className="mr-2 h-4 w-4" />
+                Adjuntar comprobante (opcional)
+              </Button>
+            )}
+          </div>
 
           <div className="grid gap-2 sm:grid-cols-2">
             <Button
