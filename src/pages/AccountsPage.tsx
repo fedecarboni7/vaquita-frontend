@@ -59,8 +59,14 @@ const ACCOUNT_TYPE_OPTIONS: Array<{ value: AccountTypeCode; label: string }> = [
 const CURRENCY_OPTIONS: CurrencyCode[] = ["ARS", "USD"];
 
 type AccountViewMode = "grid" | "list";
-type AccountSortKey = "name" | "type" | "currency";
+type AccountSortKey = "name" | "type" | "currency" | "balance" | "due_date";
 type SortDirection = "asc" | "desc";
+type MobileSortOption = {
+  value: string;
+  label: string;
+  sortKey: AccountSortKey;
+  sortDirection: SortDirection;
+};
 
 function formatMoney(amount: number, currency: CurrencyCode): string {
   return new Intl.NumberFormat("es-AR", {
@@ -184,6 +190,23 @@ export default function AccountsPage() {
 
   const [sortKey, setSortKey] = useState<AccountSortKey>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const mobileSortOptions: MobileSortOption[] = [
+    { value: "name:asc", label: "Nombre (A a Z)", sortKey: "name", sortDirection: "asc" },
+    { value: "name:desc", label: "Nombre (Z a A)", sortKey: "name", sortDirection: "desc" },
+    { value: "balance:desc", label: "Saldo (mayor a menor)", sortKey: "balance", sortDirection: "desc" },
+    { value: "balance:asc", label: "Saldo (menor a mayor)", sortKey: "balance", sortDirection: "asc" },
+    { value: "due_date:asc", label: "Vencimiento (mas cercano)", sortKey: "due_date", sortDirection: "asc" },
+    { value: "due_date:desc", label: "Vencimiento (mas lejano)", sortKey: "due_date", sortDirection: "desc" },
+    { value: "currency:asc", label: "Moneda (A a Z)", sortKey: "currency", sortDirection: "asc" },
+    { value: "currency:desc", label: "Moneda (Z a A)", sortKey: "currency", sortDirection: "desc" },
+  ];
+  const mobileSortValue = `${sortKey}:${sortDirection}`;
+  const handleMobileSortChange = (value: string) => {
+    const selected = mobileSortOptions.find((option) => option.value === value);
+    if (!selected) return;
+    setSortKey(selected.sortKey);
+    setSortDirection(selected.sortDirection);
+  };
 
   const totalsByCurrency = useMemo(() => {
     return accounts
@@ -219,7 +242,50 @@ export default function AccountsPage() {
     const items = [...accounts];
     const multiplier = sortDirection === "asc" ? 1 : -1;
 
+    const compareStrings = (left: string, right: string) =>
+      left.localeCompare(right, "es-AR", { sensitivity: "base" });
+
+    const compareWithNameTiebreaker = (result: number, leftName: string, rightName: string) => {
+      if (result !== 0) return result;
+      return compareStrings(leftName, rightName);
+    };
+
+    const compareNumbersNullable = (left: number | null, right: number | null) => {
+      if (left == null && right == null) return { result: 0, applyDirection: false };
+      if (left == null) return { result: 1, applyDirection: false };
+      if (right == null) return { result: -1, applyDirection: false };
+      return { result: left === right ? 0 : left > right ? 1 : -1, applyDirection: true };
+    };
+
+    const getSortBalance = (account: Account) => getVisibleAccountAmount(account);
+    const getSortDueDate = (account: Account) =>
+      account.account_type === "credit_card" && account.payment_due_date
+        ? account.payment_due_date
+        : null;
+
     items.sort((left, right) => {
+      if (sortKey === "balance") {
+        const comparison = compareNumbersNullable(getSortBalance(left), getSortBalance(right));
+        const result = comparison.applyDirection ? comparison.result * multiplier : comparison.result;
+        return compareWithNameTiebreaker(result, left.name, right.name);
+      }
+
+      if (sortKey === "due_date") {
+        const leftDate = getSortDueDate(left);
+        const rightDate = getSortDueDate(right);
+        if (leftDate == null && rightDate == null) {
+          return compareWithNameTiebreaker(0, left.name, right.name);
+        }
+        if (leftDate == null) {
+          return compareWithNameTiebreaker(1, left.name, right.name);
+        }
+        if (rightDate == null) {
+          return compareWithNameTiebreaker(-1, left.name, right.name);
+        }
+        const result = compareStrings(leftDate, rightDate) * multiplier;
+        return compareWithNameTiebreaker(result, left.name, right.name);
+      }
+
       const leftValue =
         sortKey === "name"
           ? left.name
@@ -233,7 +299,8 @@ export default function AccountsPage() {
             ? ACCOUNT_TYPE_LABELS[right.account_type]
             : right.currency;
 
-      return leftValue.localeCompare(rightValue, "es-AR", { sensitivity: "base" }) * multiplier;
+      const result = compareStrings(leftValue, rightValue) * multiplier;
+      return compareWithNameTiebreaker(result, left.name, right.name);
     });
 
     return items;
@@ -618,8 +685,26 @@ export default function AccountsPage() {
         </div>
       ) : (
         effectiveViewMode === "grid" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {accounts.map((account, index) => renderGridAccountCard(account, index))}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[12px] text-muted-foreground font-mono tracking-wide uppercase">
+                Ordenar por
+              </div>
+              <select
+                value={mobileSortValue}
+                onChange={(event) => handleMobileSortChange(event.target.value)}
+                className="h-9 w-full max-w-[220px] rounded-lg border border-border bg-background px-2.5 text-sm outline-none transition-colors focus:border-muted-foreground"
+              >
+                {mobileSortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sortedAccounts.map((account, index) => renderGridAccountCard(account, index))}
+            </div>
           </div>
         ) : (
           <div className="rounded-lg border border-border bg-card overflow-hidden">
