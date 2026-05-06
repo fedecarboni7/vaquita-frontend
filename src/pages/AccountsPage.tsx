@@ -193,6 +193,8 @@ export default function AccountsPage() {
   const mobileSortOptions: MobileSortOption[] = [
     { value: "name:asc", label: "Nombre (A a Z)", sortKey: "name", sortDirection: "asc" },
     { value: "name:desc", label: "Nombre (Z a A)", sortKey: "name", sortDirection: "desc" },
+    { value: "type:asc", label: "Tipo (A a Z)", sortKey: "type", sortDirection: "asc" },
+    { value: "type:desc", label: "Tipo (Z a A)", sortKey: "type", sortDirection: "desc" },
     { value: "balance:desc", label: "Saldo (mayor a menor)", sortKey: "balance", sortDirection: "desc" },
     { value: "balance:asc", label: "Saldo (menor a mayor)", sortKey: "balance", sortDirection: "asc" },
     { value: "due_date:asc", label: "Vencimiento (mas cercano)", sortKey: "due_date", sortDirection: "asc" },
@@ -649,9 +651,9 @@ export default function AccountsPage() {
                   <TableHead>Nombre</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Moneda</TableHead>
-                  <TableHead>Resumen actual</TableHead>
+                  <TableHead>Saldo</TableHead>
                   <TableHead className="hidden md:table-cell">Período</TableHead>
-                  <TableHead>Vence</TableHead>
+                  <TableHead>Fecha de vencimiento</TableHead>
                   <TableHead>En total</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -741,9 +743,27 @@ export default function AccountsPage() {
                       {renderSortIndicator("currency")}
                     </button>
                   </TableHead>
-                  <TableHead>Resumen actual</TableHead>
+                  <TableHead>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1"
+                      onClick={() => toggleSort("balance")}
+                    >
+                      Saldo
+                      {renderSortIndicator("balance")}
+                    </button>
+                  </TableHead>
                   <TableHead className="hidden md:table-cell">Período</TableHead>
-                  <TableHead>Vence</TableHead>
+                  <TableHead>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1"
+                      onClick={() => toggleSort("due_date")}
+                    >
+                      Fecha de vencimiento
+                      {renderSortIndicator("due_date")}
+                    </button>
+                  </TableHead>
                   <TableHead>En total</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
