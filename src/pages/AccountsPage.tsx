@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Grid2x2, List, Plus, Trash2, Loader2, Scale, Pencil } from "lucide-react";
+import { ChevronDown, ChevronUp, Grid2x2, List, Plus, Trash2, Loader2, Scale, Pencil, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import AccountDetailDrawer from "@/components/accounts/AccountDetailDrawer";
+import CreditCardPaymentModal from "@/components/accounts/CreditCardPaymentModal";
 import {
   Table,
   TableBody,
@@ -164,6 +165,7 @@ export default function AccountsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Account | null>(null);
   const [adjustTarget, setAdjustTarget] = useState<Account | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [paymentCard, setPaymentCard] = useState<Account | null>(null);
   const [adjustBalance, setAdjustBalance] = useState("");
   const [adjustAffectsBalance, setAdjustAffectsBalance] = useState(false);
   const [viewMode, setViewMode] = useState<AccountViewMode>(() => {
@@ -362,6 +364,19 @@ export default function AccountsPage() {
 
   const renderAccountActions = (account: Account) => (
     <div className="flex items-center gap-1">
+      {account.account_type === "credit_card" && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="text-muted-foreground"
+          onClick={(event) => {
+            event.stopPropagation();
+            setPaymentCard(account);
+          }}
+        >
+          <CreditCard className="h-3.5 w-3.5" />
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="icon-sm"
@@ -1027,6 +1042,15 @@ export default function AccountsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <CreditCardPaymentModal
+        open={!!paymentCard}
+        onOpenChange={(open) => {
+          if (!open) setPaymentCard(null);
+        }}
+        creditCard={paymentCard}
+        accounts={accounts}
+      />
     </div>
   );
 }
