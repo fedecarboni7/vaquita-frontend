@@ -24,9 +24,9 @@ import {
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import {
-  formatArAmountInput,
-  normalizeArAmountInput,
-  parseNormalizedAmount,
+  formatAmountForDisplay,
+  parseAmountForSubmission,
+  sanitizeAmountInput,
 } from "@/lib/amountInput";
 import type { CurrencyCode, TransactionType } from "@/types/transaction";
 
@@ -74,6 +74,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
 
   const [transactionType, setTransactionType] = useState<TransactionType>("expense");
   const [amount, setAmount] = useState("");
+  const [displayAmount, setDisplayAmount] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("__none__");
   const [subcategoryId, setSubcategoryId] = useState("__none__");
@@ -83,6 +84,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
   const [note, setNote] = useState("");
   const [installmentsInput, setInstallmentsInput] = useState("");
   const [toAmountInput, setToAmountInput] = useState("");
+  const [displayToAmount, setDisplayToAmount] = useState("");
   const [affectsBalance, setAffectsBalance] = useState(true);
   const [submitMode, setSubmitMode] = useState<SubmitMode>("close");
   const [selectedReceiptFile, setSelectedReceiptFile] = useState<File | null>(null);
@@ -142,9 +144,9 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
 
   const installments = parseInstallments(installmentsInput);
   const hasInvalidInstallments = isExpense && installmentsInput !== "" && installments === null;
-  const parsedAmount = parseNormalizedAmount(amount);
+  const parsedAmount = parseAmountForSubmission(amount);
   const hasInvalidAmount = parsedAmount == null || parsedAmount <= 0;
-  const parsedToAmount = parseNormalizedAmount(toAmountInput);
+  const parsedToAmount = parseAmountForSubmission(toAmountInput);
   const hasInvalidToAmount =
     isTransfer && toAmountInput !== "" && (parsedToAmount == null || parsedToAmount <= 0);
 
@@ -225,6 +227,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
   ) => {
     setTransactionType(nextTransactionType);
     setAmount("");
+    setDisplayAmount("");
     setDescription("");
     setCategoryId("__none__");
     setSubcategoryId("__none__");
@@ -234,6 +237,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
     setNote("");
     setInstallmentsInput("");
     setToAmountInput("");
+    setDisplayToAmount("");
     setAffectsBalance(true);
     clearSelectedReceipt();
   }, [clearSelectedReceipt]);
@@ -445,8 +449,14 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
               <input
                 type="text"
                 inputMode="decimal"
-                value={formatArAmountInput(amount)}
-                onChange={(e) => setAmount(normalizeArAmountInput(e.target.value))}
+                value={displayAmount}
+                onChange={(e) => {
+                  const sanitized = sanitizeAmountInput(e.target.value);
+                  setAmount(sanitized);
+                  setDisplayAmount(sanitized);
+                }}
+                onBlur={() => setDisplayAmount(formatAmountForDisplay(amount))}
+                onFocus={() => setDisplayAmount(amount)}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pr-14 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 placeholder="0,00"
               />
@@ -517,8 +527,14 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
                 <input
                   type="text"
                   inputMode="decimal"
-                  value={formatArAmountInput(toAmountInput)}
-                  onChange={(e) => setToAmountInput(normalizeArAmountInput(e.target.value))}
+                  value={displayToAmount}
+                  onChange={(e) => {
+                    const sanitized = sanitizeAmountInput(e.target.value);
+                    setToAmountInput(sanitized);
+                    setDisplayToAmount(sanitized);
+                  }}
+                  onBlur={() => setDisplayToAmount(formatAmountForDisplay(toAmountInput))}
+                  onFocus={() => setDisplayToAmount(toAmountInput)}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pr-14 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   placeholder="0,00"
                 />

@@ -4,8 +4,8 @@ import { apiFetch } from "../api";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import {
-  formatArAmountInput,
-  normalizeArAmountInput,
+  formatAmountForDisplay,
+  sanitizeAmountInput,
 } from "@/lib/amountInput";
 import { formatCurrencyAmount } from "@/lib/utils";
 import type { Category, CurrencyCode, TransactionType } from "@/types/transaction";
@@ -143,6 +143,14 @@ export default function TransactionDraftCard({ data }: Props) {
   });
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error" | "cancelled">("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [displayAmount, setDisplayAmount] = useState(() =>
+    formatAmountForDisplay(sanitizeAmountInput(String(data.amount ?? ""))),
+  );
+  const [displayToAmount, setDisplayToAmount] = useState(() =>
+    data.to_amount != null
+      ? formatAmountForDisplay(sanitizeAmountInput(String(data.to_amount)))
+      : "",
+  );
 
   const selectedType = normalizeTransactionType(editData.type);
   const selectedCurrency = normalizeCurrency(editData.currency);
@@ -272,21 +280,21 @@ export default function TransactionDraftCard({ data }: Props) {
     }
   };
 
-  const handleFieldChange = (field: string, value: string) => {
-    const normalizedAmountValue = normalizeArAmountInput(value);
+const handleFieldChange = (field: string, value: string) => {
+    const sanitizedValue = sanitizeAmountInput(value);
 
     setEditData((prev) => ({
       ...prev,
       [field]:
         field === "amount"
-          ? normalizedAmountValue
+          ? sanitizedValue
           : field === "to_amount"
-            ? (value.trim() === "" ? null : normalizedAmountValue)
-          : field === "installments"
-            ? parsePositiveInteger(value)
-            : field === "currency"
-              ? value.toUpperCase()
-              : value,
+            ? (value.trim() === "" ? null : sanitizedValue)
+            : field === "installments"
+              ? parsePositiveInteger(value)
+              : field === "currency"
+                ? value.toUpperCase()
+                : value,
     }));
   };
 
@@ -420,8 +428,17 @@ export default function TransactionDraftCard({ data }: Props) {
             <input
               type="text"
               inputMode="decimal"
-              value={formatArAmountInput(normalizeArAmountInput(String(editData.amount ?? "")))}
-              onChange={(event) => handleFieldChange("amount", event.target.value)}
+              value={displayAmount}
+              onChange={(event) => {
+                const sanitized = sanitizeAmountInput(event.target.value);
+                handleFieldChange("amount", sanitized);
+                setDisplayAmount(sanitized);
+              }}
+              onBlur={() => {
+                const rawValue = String(editData.amount ?? "");
+                setDisplayAmount(formatAmountForDisplay(rawValue));
+              }}
+              onFocus={() => setDisplayAmount(String(editData.amount ?? ""))}
               className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
               placeholder="0,00"
             />
@@ -439,12 +456,17 @@ export default function TransactionDraftCard({ data }: Props) {
               <input
                 type="text"
                 inputMode="decimal"
-                value={
-                  editData.to_amount == null
-                    ? ""
-                    : formatArAmountInput(normalizeArAmountInput(String(editData.to_amount)))
-                }
-                onChange={(event) => handleFieldChange("to_amount", event.target.value)}
+                value={displayToAmount}
+                onChange={(event) => {
+                  const sanitized = sanitizeAmountInput(event.target.value);
+                  handleFieldChange("to_amount", sanitized);
+                  setDisplayToAmount(sanitized);
+                }}
+                onBlur={() => {
+                  const rawValue = editData.to_amount == null ? "" : String(editData.to_amount);
+                  setDisplayToAmount(formatAmountForDisplay(rawValue));
+                }}
+                onFocus={() => setDisplayToAmount(editData.to_amount == null ? "" : String(editData.to_amount))}
                 className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
                 placeholder="0,00"
               />

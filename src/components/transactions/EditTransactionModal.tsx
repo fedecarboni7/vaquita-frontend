@@ -19,9 +19,9 @@ import { useUpdateTransaction } from "@/hooks/useTransactions";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import {
-  formatArAmountInput,
-  normalizeArAmountInput,
-  parseNormalizedAmount,
+  formatAmountForDisplay,
+  parseAmountForSubmission,
+  sanitizeAmountInput,
 } from "@/lib/amountInput";
 import type { CurrencyCode, Transaction, TransactionType } from "@/types/transaction";
 import ReceiptUploader from "./ReceiptUploader";
@@ -62,7 +62,10 @@ export default function EditTransactionModal({
   onOpenChange,
 }: Props) {
   const [transactionType, setTransactionType] = useState<TransactionType>(transaction.type);
-  const [amount, setAmount] = useState(String(transaction.amount));
+  const [amount, setAmount] = useState(() => sanitizeAmountInput(String(transaction.amount)));
+  const [displayAmount, setDisplayAmount] = useState(() =>
+    formatAmountForDisplay(sanitizeAmountInput(String(transaction.amount))),
+  );
   const [description, setDescription] = useState(transaction.description || "");
   const [categoryId, setCategoryId] = useState(transaction.category_id || "__none__");
   const [subcategoryId, setSubcategoryId] = useState(transaction.subcategory_id || "__none__");
@@ -73,7 +76,12 @@ export default function EditTransactionModal({
   const [note, setNote] = useState(transaction.note || "");
   const [affectsBalance, setAffectsBalance] = useState(transaction.affects_balance !== false);
   const [toAmountInput, setToAmountInput] = useState(
-    transaction.to_amount != null ? String(transaction.to_amount) : "",
+    () => transaction.to_amount != null ? sanitizeAmountInput(String(transaction.to_amount)) : "",
+  );
+  const [displayToAmount, setDisplayToAmount] = useState(() =>
+    transaction.to_amount != null
+      ? formatAmountForDisplay(sanitizeAmountInput(String(transaction.to_amount)))
+      : "",
   );
   const [installmentsInput, setInstallmentsInput] = useState(
     transaction.installments != null ? String(transaction.installments) : "",
@@ -118,11 +126,11 @@ export default function EditTransactionModal({
     const subcategoryExists = availableSubcategories.some((item) => item.id === subcategoryId);
     return subcategoryExists ? subcategoryId : "__none__";
   }, [availableSubcategories, subcategoryId]);
-  const parsedAmount = parseNormalizedAmount(amount);
+  const parsedAmount = parseAmountForSubmission(amount);
   const hasInvalidAmount = parsedAmount == null || parsedAmount <= 0;
   const installments = parseInstallments(installmentsInput);
   const hasInvalidInstallments = isExpense && installmentsInput !== "" && installments === null;
-  const parsedToAmount = parseNormalizedAmount(toAmountInput);
+  const parsedToAmount = parseAmountForSubmission(toAmountInput);
   const hasInvalidToAmount =
     isTransfer && toAmountInput !== "" && (parsedToAmount == null || parsedToAmount <= 0);
   const selectedTypeLabel =
@@ -330,8 +338,14 @@ export default function EditTransactionModal({
             <input
               type="text"
               inputMode="decimal"
-              value={formatArAmountInput(amount)}
-              onChange={(e) => setAmount(normalizeArAmountInput(e.target.value))}
+              value={displayAmount}
+              onChange={(e) => {
+                const sanitized = sanitizeAmountInput(e.target.value);
+                setAmount(sanitized);
+                setDisplayAmount(sanitized);
+              }}
+              onBlur={() => setDisplayAmount(formatAmountForDisplay(amount))}
+              onFocus={() => setDisplayAmount(amount)}
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               placeholder="0,00"
             />
@@ -386,8 +400,14 @@ export default function EditTransactionModal({
               <input
                 type="text"
                 inputMode="decimal"
-                value={formatArAmountInput(toAmountInput)}
-                onChange={(e) => setToAmountInput(normalizeArAmountInput(e.target.value))}
+                value={displayToAmount}
+                onChange={(e) => {
+                  const sanitized = sanitizeAmountInput(e.target.value);
+                  setToAmountInput(sanitized);
+                  setDisplayToAmount(sanitized);
+                }}
+                onBlur={() => setDisplayToAmount(formatAmountForDisplay(toAmountInput))}
+                onFocus={() => setDisplayToAmount(toAmountInput)}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 placeholder="0,00"
               />
