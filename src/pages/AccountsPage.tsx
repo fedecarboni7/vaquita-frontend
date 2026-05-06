@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Grid2x2, List, Plus, Trash2, Loader2, Scale, Pencil, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import AccountDetailDrawer from "@/components/accounts/AccountDetailDrawer";
 import CreditCardPaymentModal from "@/components/accounts/CreditCardPaymentModal";
 import {
@@ -190,6 +191,7 @@ export default function AccountsPage() {
 
   const [sortKey, setSortKey] = useState<AccountSortKey>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [mobileView, setMobileView] = useState<AccountViewMode>("grid");
   const mobileSortOptions: MobileSortOption[] = [
     { value: "name:asc", label: "Nombre (A a Z)", sortKey: "name", sortDirection: "asc" },
     { value: "name:desc", label: "Nombre (Z a A)", sortKey: "name", sortDirection: "desc" },
@@ -688,14 +690,14 @@ export default function AccountsPage() {
       ) : (
         effectiveViewMode === "grid" ? (
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
               <div className="text-[12px] text-muted-foreground font-mono tracking-wide uppercase">
                 Ordenar por
               </div>
               <select
                 value={mobileSortValue}
                 onChange={(event) => handleMobileSortChange(event.target.value)}
-                className="h-9 w-full max-w-[220px] rounded-lg border border-border bg-background px-2.5 text-sm outline-none transition-colors focus:border-muted-foreground"
+                className="h-9 w-full rounded-lg border border-border bg-background px-2.5 text-sm outline-none transition-colors focus:border-muted-foreground"
               >
                 {mobileSortOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -703,10 +705,61 @@ export default function AccountsPage() {
                   </option>
                 ))}
               </select>
+              <div className="flex rounded-lg border border-border bg-background p-1 md:hidden">
+                <Button
+                  type="button"
+                  variant={mobileView === "grid" ? "default" : "ghost"}
+                  size="icon-sm"
+                  aria-label="Ver cuentas como tarjetas"
+                  aria-pressed={mobileView === "grid"}
+                  onClick={() => setMobileView("grid")}
+                >
+                  <Grid2x2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant={mobileView === "list" ? "default" : "ghost"}
+                  size="icon-sm"
+                  aria-label="Ver cuentas como lista compacta"
+                  aria-pressed={mobileView === "list"}
+                  onClick={() => setMobileView("list")}
+                >
+                  <List className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sortedAccounts.map((account, index) => renderGridAccountCard(account, index))}
-            </div>
+            {mobileView === "grid" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {sortedAccounts.map((account, index) => renderGridAccountCard(account, index))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
+                {sortedAccounts.map((account, index) => (
+                  <div key={account.id}>
+                    <div
+                      className="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer hover:bg-muted/50"
+                      onClick={() => setSelectedAccount(account)}
+                    >
+                      <div className="text-sm text-foreground truncate">
+                        {account.name}
+                      </div>
+                      <div className="text-sm font-medium">
+                        {(() => {
+                          const summaryAmount = getVisibleAccountAmount(account);
+                          if (!balancesVisible) return "••••••";
+                          return summaryAmount != null
+                            ? formatMoney(summaryAmount, account.currency)
+                            : "-";
+                        })()}
+                      </div>
+                    </div>
+                    {index < sortedAccounts.length - 1 && (
+                      <Separator className="bg-border" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="rounded-lg border border-border bg-card overflow-hidden">
