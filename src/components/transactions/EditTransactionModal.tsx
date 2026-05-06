@@ -23,7 +23,7 @@ import {
   parseAmountForSubmission,
   sanitizeAmountInput,
 } from "@/lib/amountInput";
-import type { CurrencyCode, Transaction, TransactionType } from "@/types/transaction";
+import type { Transaction, TransactionType } from "@/types/transaction";
 import ReceiptUploader from "./ReceiptUploader";
 
 interface Props {
@@ -72,7 +72,6 @@ export default function EditTransactionModal({
   const [account, setAccount] = useState(transaction.account || "");
   const [accountDestination, setAccountDestination] = useState(transaction.account_destination || "");
   const [expenseDate, setExpenseDate] = useState(transaction.expense_date || getCurrentLocalDateISO());
-  const [currency, setCurrency] = useState<CurrencyCode>(transaction.currency);
   const [note, setNote] = useState(transaction.note || "");
   const [affectsBalance, setAffectsBalance] = useState(transaction.affects_balance !== false);
   const [toAmountInput, setToAmountInput] = useState(
@@ -161,6 +160,12 @@ export default function EditTransactionModal({
     }
   };
 
+  const selectedAccount = useMemo(
+    () => accounts.find((a) => a.name === account),
+    [accounts, account],
+  );
+  const accountCurrency = selectedAccount?.currency ?? transaction.currency;
+
   const handleSave = useCallback(() => {
     const selectedSourceAccount = accounts.find((item) => item.name === account);
     const selectedDestinationAccount = accounts.find((item) => item.name === accountDestination);
@@ -183,7 +188,7 @@ export default function EditTransactionModal({
       description,
       account_id: resolvedAccountId,
       expense_date: expenseDate || getCurrentLocalDateISO(),
-      currency,
+      currency: accountCurrency,
       type: transactionType,
       note: note.trim() ? note.trim() : null,
       affects_balance: affectsBalance,
@@ -231,7 +236,7 @@ export default function EditTransactionModal({
     accountDestination,
     accounts,
     affectsBalance,
-    currency,
+    accountCurrency,
     description,
     expenseDate,
     handleOpenChange,
@@ -335,20 +340,25 @@ export default function EditTransactionModal({
 
           <div>
             <label className="text-sm font-medium mb-1 block">Monto</label>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={displayAmount}
-              onChange={(e) => {
-                const sanitized = sanitizeAmountInput(e.target.value);
-                setAmount(sanitized);
-                setDisplayAmount(sanitized);
-              }}
-              onBlur={() => setDisplayAmount(formatAmountForDisplay(amount))}
-              onFocus={() => setDisplayAmount(amount)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              placeholder="0,00"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={displayAmount}
+                onChange={(e) => {
+                  const sanitized = sanitizeAmountInput(e.target.value);
+                  setAmount(sanitized);
+                  setDisplayAmount(sanitized);
+                }}
+                onBlur={() => setDisplayAmount(formatAmountForDisplay(amount))}
+                onFocus={() => setDisplayAmount(amount)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pr-12 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="0,00"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                {accountCurrency}
+              </span>
+            </div>
             {hasInvalidAmount && (
               <p className="mt-1 text-xs text-destructive">
                 Ingresá un monto numérico mayor a 0.
@@ -501,19 +511,6 @@ export default function EditTransactionModal({
               )}
             </>
           )}
-
-          <div>
-            <label className="text-sm font-medium mb-1 block">Moneda</label>
-            <Select value={currency} onValueChange={(value) => setCurrency((value as CurrencyCode) ?? "ARS")}> 
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleccionar moneda" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ARS">ARS</SelectItem>
-                <SelectItem value="USD">USD</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           <div>
             <label className="text-sm font-medium mb-1 block">Nota</label>

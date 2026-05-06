@@ -8,7 +8,7 @@ import {
   sanitizeAmountInput,
 } from "@/lib/amountInput";
 import { formatCurrencyAmount } from "@/lib/utils";
-import type { Category, CurrencyCode, TransactionType } from "@/types/transaction";
+import type { Category, TransactionType } from "@/types/transaction";
 
 interface Props {
   data: Record<string, unknown>;
@@ -25,13 +25,11 @@ const FIELD_LABELS: Record<string, string> = {
   category: "Categoría",
   subcategory_name: "Subcategoría",
   expense_date: "Fecha",
-  currency: "Moneda",
   installments: "Cuotas",
   note: "Nota",
 };
 
 const READ_ONLY_FIELDS = new Set(["installment_amount"]);
-const CURRENCY_OPTIONS: CurrencyCode[] = ["ARS", "USD"];
 const TYPE_OPTIONS: Array<{ value: TransactionType; label: string }> = [
   { value: "expense", label: "Gasto" },
   { value: "income", label: "Ingreso" },
@@ -48,18 +46,6 @@ function normalizeTransactionType(value: unknown): TransactionType {
     return value;
   }
   return "expense";
-}
-
-function normalizeCurrency(value: unknown): CurrencyCode {
-  if (typeof value !== "string") {
-    return "ARS";
-  }
-
-  const normalized = value.toUpperCase();
-  if (normalized === "ARS" || normalized === "USD") {
-    return normalized;
-  }
-  return "ARS";
 }
 
 function parsePositiveInteger(value: string): number | null {
@@ -86,7 +72,7 @@ function normalizePositiveAmount(value: unknown): number | null {
   return parsed;
 }
 
-function buildFormattedAmount(value: unknown, currency: CurrencyCode): string {
+function buildFormattedAmount(value: unknown, currency: string): string {
   const amount = typeof value === "number" ? value : Number(value);
   const normalizedAmount = Number.isFinite(amount) ? amount : 0;
   return formatCurrencyAmount(normalizedAmount, currency);
@@ -137,7 +123,6 @@ export default function TransactionDraftCard({ data }: Props) {
     }
 
     normalized.type = normalizeTransactionType(normalized.type);
-    normalized.currency = normalizeCurrency(normalized.currency);
 
     return normalized;
   });
@@ -153,7 +138,6 @@ export default function TransactionDraftCard({ data }: Props) {
   );
 
   const selectedType = normalizeTransactionType(editData.type);
-  const selectedCurrency = normalizeCurrency(editData.currency);
   const isTransfer = selectedType === "transfer";
   const isExpense = selectedType === "expense";
 
@@ -172,7 +156,8 @@ export default function TransactionDraftCard({ data }: Props) {
   const selectedDestinationAccountRecord = accounts.find(
     (account) => account.name === selectedDestinationAccount,
   );
-  const selectedDestinationCurrency = selectedDestinationAccountRecord?.currency ?? selectedCurrency;
+  const selectedAccountCurrency = selectedAccountRecord?.currency ?? "ARS";
+  const selectedDestinationCurrency = selectedDestinationAccountRecord?.currency ?? selectedAccountCurrency;
   const destinationAccountOptions = accounts.filter((account) => account.name !== selectedAccount);
 
   const installmentsValue = editData.installments == null ? "" : String(editData.installments);
@@ -258,7 +243,7 @@ export default function TransactionDraftCard({ data }: Props) {
         account_destination_id: isTransfer ? selectedDestinationAccountRecord?.id || null : null,
         category_id: isTransfer ? null : selectedCategoryId,
         subcategory_id: isTransfer ? null : selectedSubcategory,
-        currency: selectedCurrency,
+        currency: selectedAccountCurrency,
         installments: isExpense ? parsedInstallments : null,
         to_amount: isTransfer && hasToAmount ? parsedToAmount : null,
         note:
@@ -292,9 +277,7 @@ const handleFieldChange = (field: string, value: string) => {
             ? (value.trim() === "" ? null : sanitizedValue)
             : field === "installments"
               ? parsePositiveInteger(value)
-              : field === "currency"
-                ? value.toUpperCase()
-                : value,
+              : value,
     }));
   };
 
@@ -444,7 +427,7 @@ const handleFieldChange = (field: string, value: string) => {
             />
           ) : (
             <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
-              {buildFormattedAmount(editData.amount, selectedCurrency)}
+              {buildFormattedAmount(editData.amount, selectedAccountCurrency)}
             </span>
           ),
         )}
@@ -483,7 +466,7 @@ const handleFieldChange = (field: string, value: string) => {
           renderRow(
             "Conversión",
             <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
-              {buildFormattedAmount(editData.amount, selectedCurrency)}
+              {buildFormattedAmount(editData.amount, selectedAccountCurrency)}
               <span className="mx-1.5">→</span>
               {buildFormattedAmount(parsedToAmount, selectedDestinationCurrency)}
             </span>,
@@ -599,25 +582,6 @@ const handleFieldChange = (field: string, value: string) => {
             ),
           )}
 
-        {renderRow(
-          FIELD_LABELS.currency,
-          isEditing ? (
-            <select
-              value={selectedCurrency}
-              onChange={(event) => handleFieldChange("currency", event.target.value)}
-              className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              {CURRENCY_OPTIONS.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">{selectedCurrency}</span>
-          ),
-        )}
-
         {isExpense &&
           renderRow(
             FIELD_LABELS.installments,
@@ -640,7 +604,7 @@ const handleFieldChange = (field: string, value: string) => {
           renderRow(
             FIELD_LABELS.installment_amount,
             <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
-              {buildFormattedAmount(editData.installment_amount, selectedCurrency)}
+              {buildFormattedAmount(editData.installment_amount, selectedAccountCurrency)}
             </span>,
           )}
 
