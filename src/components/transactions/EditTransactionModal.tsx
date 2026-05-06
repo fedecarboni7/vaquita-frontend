@@ -24,6 +24,7 @@ import {
   sanitizeAmountInput,
 } from "@/lib/amountInput";
 import type { Transaction, TransactionType } from "@/types/transaction";
+import AmountInput from "@/components/ui/AmountInput";
 import ReceiptUploader from "./ReceiptUploader";
 
 interface Props {
@@ -341,21 +342,22 @@ export default function EditTransactionModal({
           <div>
             <label className="text-sm font-medium mb-1 block">Monto</label>
             <div className="relative">
-              <input
-                type="text"
-                inputMode="decimal"
+              <AmountInput
                 value={displayAmount}
                 onChange={(e) => {
                   const sanitized = sanitizeAmountInput(e.target.value);
                   setAmount(sanitized);
                   setDisplayAmount(sanitized);
                 }}
-                onBlur={() => setDisplayAmount(formatAmountForDisplay(amount))}
-                onFocus={() => setDisplayAmount(amount)}
+                onValueChange={(rawValue) => {
+                  const sanitized = sanitizeAmountInput(rawValue.replace(/\./g, ","));
+                  setAmount(sanitized);
+                  setDisplayAmount(sanitized);
+                }}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pr-12 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 placeholder="0,00"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+              <span className="absolute right-12 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                 {accountCurrency}
               </span>
             </div>
@@ -407,17 +409,18 @@ export default function EditTransactionModal({
           {isTransfer && (
             <div>
               <label className="text-sm font-medium mb-1 block">Monto destino (opcional)</label>
-              <input
-                type="text"
-                inputMode="decimal"
+              <AmountInput
                 value={displayToAmount}
                 onChange={(e) => {
                   const sanitized = sanitizeAmountInput(e.target.value);
                   setToAmountInput(sanitized);
                   setDisplayToAmount(sanitized);
                 }}
-                onBlur={() => setDisplayToAmount(formatAmountForDisplay(toAmountInput))}
-                onFocus={() => setDisplayToAmount(toAmountInput)}
+                onValueChange={(rawValue) => {
+                  const sanitized = sanitizeAmountInput(rawValue.replace(/\./g, ","));
+                  setToAmountInput(sanitized);
+                  setDisplayToAmount(sanitized);
+                }}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 placeholder="0,00"
               />
