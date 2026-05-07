@@ -67,10 +67,7 @@ function getCreditCardAlertMessage(alert: CreditCardAlert) {
   if (alert.daysUntilDue > 1) {
     return `La tarjeta ${alert.accountName} vence en ${alert.daysUntilDue} días.`;
   }
-  if (alert.daysUntilDue === -1) {
-    return `La tarjeta ${alert.accountName} venció ayer.`;
-  }
-  return `La tarjeta ${alert.accountName} venció hace ${Math.abs(alert.daysUntilDue)} días.`;
+  return "";
 }
 
 export default function AppLayout() {
