@@ -37,8 +37,6 @@ function startOfDay(date: Date): Date {
 export function useCreditCardAlerts(accounts: Account[]) {
   return useMemo(() => {
     const today = startOfDay(new Date());
-    const todayMonth = today.getMonth();
-    const todayYear = today.getFullYear();
     const alerts: CreditCardAlert[] = [];
 
     for (const account of accounts) {
@@ -53,13 +51,7 @@ export function useCreditCardAlerts(accounts: Account[]) {
 
       const dueDay = startOfDay(dueDate);
       const daysUntilDue = Math.round((dueDay.getTime() - today.getTime()) / DAY_MS);
-      const isUpcoming = daysUntilDue >= 0 && daysUntilDue <= 5;
-      const isPastDueThisMonth =
-        daysUntilDue < 0 &&
-        dueDay.getFullYear() === todayYear &&
-        dueDay.getMonth() === todayMonth;
-
-      if (!isUpcoming && !isPastDueThisMonth) {
+      if (daysUntilDue < 0 || daysUntilDue > 5) {
         continue;
       }
 
