@@ -33,7 +33,6 @@ interface TextMutationPayload {
   signal: AbortSignal;
 }
 
-const CHAT_HISTORY_LIMIT = 5;
 const SESSION_API_KEY_STORAGE_KEY = "session_llm_api_key";
 
 function toRequestMessages(messages: ChatMessage[]): ChatRequestMessage[] {
@@ -158,7 +157,7 @@ export function useChatStore() {
       };
 
       const allMessages = [...messages, userMsg];
-      const historyWindow = toRequestMessages(allMessages.slice(-CHAT_HISTORY_LIMIT));
+      const historyWindow = toRequestMessages(allMessages);
       const rawSessionApiKey = sessionStorage.getItem(SESSION_API_KEY_STORAGE_KEY);
       const sessionApiKey = rawSessionApiKey
         ? (JSON.parse(rawSessionApiKey) as SessionApiKeyPayload)
