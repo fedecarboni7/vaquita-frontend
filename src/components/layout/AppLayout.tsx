@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Eye, EyeOff, Key, Shield, type LucideIcon } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/useAuth";
+import { useAccounts } from "@/hooks/useAccounts";
+import { useCreditCardAlerts, type CreditCardAlert } from "@/hooks/useCreditCardAlerts";
 import { useTheme } from "@/hooks/useTheme";
 import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import { getAppLogoUrl, getAppWordmarkUrl } from "@/constants/branding";
@@ -47,6 +50,29 @@ function getUserInitials(name: string | null | undefined) {
     .slice(0, 2);
 }
 
+function formatLocalDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getCreditCardAlertMessage(alert: CreditCardAlert) {
+  if (alert.daysUntilDue === 0) {
+    return `La tarjeta ${alert.accountName} vence hoy.`;
+  }
+  if (alert.daysUntilDue === 1) {
+    return `La tarjeta ${alert.accountName} vence mañana.`;
+  }
+  if (alert.daysUntilDue > 1) {
+    return `La tarjeta ${alert.accountName} vence en ${alert.daysUntilDue} días.`;
+  }
+  if (alert.daysUntilDue === -1) {
+    return `La tarjeta ${alert.accountName} venció ayer.`;
+  }
+  return `La tarjeta ${alert.accountName} venció hace ${Math.abs(alert.daysUntilDue)} días.`;
+}
+
 export default function AppLayout() {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
@@ -54,6 +80,8 @@ export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoWordmark, setShowLogoWordmark] = useState(false);
   const logoWordmarkTimeoutRef = useRef<number | null>(null);
+  const accountsQuery = useAccounts();
+  const creditCardAlerts = useCreditCardAlerts(accountsQuery.data ?? []);
 
   const appLogoUrl = getAppLogoUrl(isDark);
   const appWordmarkUrl = getAppWordmarkUrl(isDark);
@@ -65,6 +93,40 @@ export default function AppLayout() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!accountsQuery.isSuccess || creditCardAlerts.length === 0) {
+      return;
+    }
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const todayKey = formatLocalDateKey(new Date());
+
+    for (const alert of creditCardAlerts) {
+      const storageKey = `alert_shown_${alert.accountId}`;
+      let lastShown: string | null = null;
+
+      try {
+        lastShown = window.localStorage.getItem(storageKey);
+      } catch {
+        lastShown = null;
+      }
+
+      if (lastShown === todayKey) {
+        continue;
+      }
+
+      toast.warning(getCreditCardAlertMessage(alert), { duration: 8000 });
+
+      try {
+        window.localStorage.setItem(storageKey, todayKey);
+      } catch {
+        // noop
+      }
+    }
+  }, [accountsQuery.isSuccess, creditCardAlerts]);
 
   const handleLogoClick = () => {
     setShowLogoWordmark(true);
