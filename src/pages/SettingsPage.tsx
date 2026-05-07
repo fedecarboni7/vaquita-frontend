@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { X, Loader2 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -20,6 +20,7 @@ import {
   useCategories,
   useCreateCategory,
   useDeleteCategory,
+  useUpdateCategory,
 } from "@/hooks/useCategories";
 import { useApiKeyStatus, useDeleteApiKey, useSaveApiKey } from "@/hooks/useApiKeySettings";
 import SubcategoryManager from "@/components/settings/SubcategoryManager";
@@ -48,6 +49,7 @@ export default function SettingsPage() {
   const { data: apiKeyStatus, isLoading: apiKeyStatusLoading } = useApiKeyStatus();
   const createCategory = useCreateCategory();
   const deleteCategory = useDeleteCategory();
+  const updateCategory = useUpdateCategory();
   const saveApiKey = useSaveApiKey();
   const removeApiKey = useDeleteApiKey();
   const { isDark, toggleTheme } = useTheme();
@@ -55,6 +57,10 @@ export default function SettingsPage() {
   const [newCatName, setNewCatName] = useState("");
   const [newCatType, setNewCatType] = useState<"expense" | "income">("expense");
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryValue, setEditingCategoryValue] = useState("");
+  const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null);
+  const ignoreCategoryBlurRef = useRef(false);
   const [provider, setProvider] = useState<ApiKeyProvider>("google");
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [rememberApiKey, setRememberApiKey] = useState(true);
@@ -75,6 +81,111 @@ export default function SettingsPage() {
 
   const expenseCategories = categories.filter((cat) => cat.type === "expense");
   const incomeCategories = categories.filter((cat) => cat.type === "income");
+
+  const normalizeCategoryName = (value: string) => value.trim();
+
+  const startCategoryEdit = (category: Category) => {
+    setEditingCategoryId(category.id);
+    setEditingCategoryValue(category.name);
+  };
+
+  const cancelCategoryEdit = () => {
+    setEditingCategoryId(null);
+    setEditingCategoryValue("");
+  };
+
+  const commitCategoryEdit = async (category: Category) => {
+    if (savingCategoryId === category.id) return;
+
+    const trimmed = editingCategoryValue.trim();
+    if (!trimmed) {
+      cancelCategoryEdit();
+      return;
+    }
+
+    const normalized = normalizeCategoryName(trimmed);
+    const currentNormalized = normalizeCategoryName(category.name);
+    if (normalized === currentNormalized) {
+      cancelCategoryEdit();
+      return;
+    }
+
+    setSavingCategoryId(category.id);
+    try {
+      await updateCategory.mutateAsync({ id: category.id, name: trimmed });
+      cancelCategoryEdit();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo actualizar la categoria";
+      toast.error(message);
+    } finally {
+      setSavingCategoryId(null);
+    }
+  };
+
+  const renderCategoryChip = (category: Category) => {
+    const isEditing = editingCategoryId === category.id;
+    const isSaving = savingCategoryId === category.id;
+
+    return (
+      <div
+        key={category.id}
+        className="group flex items-center gap-1.5 px-3 py-1 rounded-full border border-border bg-card text-[12.5px] transition-colors hover:border-muted-foreground/40"
+      >
+        <div
+          className="w-2 h-2 rounded-full flex-shrink-0"
+          style={{ background: getCategoryColor(category.name, category.type) }}
+        />
+        {isEditing ? (
+          <input
+            type="text"
+            value={editingCategoryValue}
+            onChange={(event) => setEditingCategoryValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                ignoreCategoryBlurRef.current = true;
+                void commitCategoryEdit(category);
+              }
+
+              if (event.key === "Escape") {
+                event.preventDefault();
+                ignoreCategoryBlurRef.current = true;
+                cancelCategoryEdit();
+              }
+            }}
+            onBlur={() => {
+              if (ignoreCategoryBlurRef.current) {
+                ignoreCategoryBlurRef.current = false;
+                return;
+              }
+              void commitCategoryEdit(category);
+            }}
+            disabled={isSaving}
+            autoFocus
+            className="bg-transparent text-[12.5px] outline-none min-w-[120px]"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => startCategoryEdit(category)}
+            className="text-left transition-colors hover:text-foreground"
+          >
+            {category.name}
+          </button>
+        )}
+        {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+        <button
+          type="button"
+          onClick={() => setDeleteTarget(category)}
+          disabled={isEditing || isSaving}
+          className="text-muted-foreground/40 hover:text-destructive text-sm leading-none ml-0.5 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 disabled:opacity-30"
+          aria-label={`Eliminar categoria ${category.name}`}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  };
 
   const statusText = useMemo(() => {
     if (apiKeyStatusLoading) {
@@ -292,24 +403,7 @@ export default function SettingsPage() {
                 {expenseCategories.length === 0 ? (
                   <div className="text-xs text-muted-foreground">Sin categorías de gasto</div>
                 ) : (
-                  expenseCategories.map((cat) => (
-                    <div
-                      key={cat.id}
-                      className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-border bg-card text-[12.5px] transition-colors hover:border-muted-foreground/40"
-                    >
-                      <div
-                        className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{ background: getCategoryColor(cat.name, cat.type) }}
-                      />
-                      {cat.name}
-                      <button
-                        onClick={() => setDeleteTarget(cat)}
-                        className="text-muted-foreground/40 hover:text-destructive text-sm leading-none ml-0.5 transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))
+                  expenseCategories.map((cat) => renderCategoryChip(cat))
                 )}
               </div>
             </div>
@@ -322,24 +416,7 @@ export default function SettingsPage() {
                 {incomeCategories.length === 0 ? (
                   <div className="text-xs text-muted-foreground">Sin categorías de ingreso</div>
                 ) : (
-                  incomeCategories.map((cat) => (
-                    <div
-                      key={cat.id}
-                      className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-border bg-card text-[12.5px] transition-colors hover:border-muted-foreground/40"
-                    >
-                      <div
-                        className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{ background: getCategoryColor(cat.name, cat.type) }}
-                      />
-                      {cat.name}
-                      <button
-                        onClick={() => setDeleteTarget(cat)}
-                        className="text-muted-foreground/40 hover:text-destructive text-sm leading-none ml-0.5 transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))
+                  incomeCategories.map((cat) => renderCategoryChip(cat))
                 )}
               </div>
             </div>
