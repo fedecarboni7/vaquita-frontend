@@ -10,9 +10,24 @@ export interface CreditCardAlert {
   daysUntilDue: number;
 }
 
-function parseLocalDate(iso: string): Date {
+function parseLocalDate(iso: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    return null;
+  }
+
   const [year, month, day] = iso.split("-").map(Number);
-  return new Date(year, month - 1, day);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
 }
 
 function startOfDay(date: Date): Date {
@@ -32,7 +47,7 @@ export function useCreditCardAlerts(accounts: Account[]) {
       }
 
       const dueDate = parseLocalDate(account.payment_due_date);
-      if (Number.isNaN(dueDate.getTime())) {
+      if (!dueDate) {
         continue;
       }
 
