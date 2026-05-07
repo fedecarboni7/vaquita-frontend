@@ -29,7 +29,6 @@ pnpm lint                  # lint
 Propose the user to run after every task that touches frontend files:
 
 ```bash
-pnpm install --frozen-lockfile
 pnpm lint
 pnpm build
 ```
