@@ -5,6 +5,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import {
   formatAmountForDisplay,
+  parseAmountForSubmission,
   sanitizeAmountInput,
 } from "@/lib/amountInput";
 import { formatCurrencyAmount } from "@/lib/utils";
@@ -60,20 +61,17 @@ function parsePositiveInteger(value: string): number | null {
   return parsed;
 }
 
-function normalizePositiveAmount(value: unknown): number | null {
-  if (value == null || value === "") {
-    return null;
-  }
 
-  const parsed = typeof value === "number" ? value : Number.parseFloat(String(value));
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return Number.NaN;
-  }
-  return parsed;
-}
 
 function buildFormattedAmount(value: unknown, currency: string): string {
-  const amount = typeof value === "number" ? value : Number(value);
+  let amount: number;
+  if (typeof value === "number") {
+    amount = value;
+  } else if (typeof value === "string" && value.trim() !== "") {
+    amount = parseAmountForSubmission(value) ?? 0;
+  } else {
+    amount = 0;
+  }
   const normalizedAmount = Number.isFinite(amount) ? amount : 0;
   return formatCurrencyAmount(normalizedAmount, currency);
 }
@@ -162,9 +160,9 @@ export default function TransactionDraftCard({ data }: Props) {
 
   const installmentsValue = editData.installments == null ? "" : String(editData.installments);
   const parsedInstallments = parsePositiveInteger(installmentsValue);
-  const parsedAmount = normalizePositiveAmount(editData.amount);
+  const parsedAmount = parseAmountForSubmission(String(editData.amount ?? ""));
   const hasInvalidAmount = parsedAmount == null || !Number.isFinite(parsedAmount) || parsedAmount <= 0;
-  const parsedToAmount = normalizePositiveAmount(editData.to_amount);
+  const parsedToAmount = parseAmountForSubmission(String(editData.to_amount ?? ""));
   const hasToAmount = editData.to_amount != null && String(editData.to_amount).trim() !== "";
   const hasInvalidToAmount =
     hasToAmount && (parsedToAmount == null || !Number.isFinite(parsedToAmount) || parsedToAmount <= 0);
@@ -637,7 +635,24 @@ const handleFieldChange = (field: string, value: string) => {
           {status === "saving" ? "Guardando..." : "Confirmar"}
         </button>
         <button
-          onClick={() => setIsEditing(!isEditing)}
+          onClick={() => {
+            if (isEditing) {
+              const parsedAmount = parseAmountForSubmission(String(editData.amount ?? ""));
+              const formattedAmount = parsedAmount != null && Number.isFinite(parsedAmount)
+                ? formatAmountForDisplay(String(editData.amount ?? ""))
+                : formatAmountForDisplay(sanitizeAmountInput(String(data.amount ?? "")));
+              setDisplayAmount(formattedAmount);
+
+              if (isTransfer) {
+                const parsedToAmount = parseAmountForSubmission(String(editData.to_amount ?? ""));
+                const formattedToAmount = parsedToAmount != null && Number.isFinite(parsedToAmount)
+                  ? formatAmountForDisplay(String(editData.to_amount ?? ""))
+                  : formatAmountForDisplay(sanitizeAmountInput(String(data.to_amount ?? "")));
+                setDisplayToAmount(formattedToAmount);
+              }
+            }
+            setIsEditing(!isEditing);
+          }}
           className="bg-secondary text-secondary-foreground text-sm px-4 py-1.5 rounded-lg hover:bg-secondary/80 transition-colors font-medium border border-border"
         >
           {isEditing ? "Listo" : "Editar"}
