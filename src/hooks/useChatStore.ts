@@ -5,7 +5,7 @@ import type { SessionApiKeyPayload } from "@/types/settings";
 
 export interface ChatMessage {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
   input_source?: "text" | "audio";
   response_type?: string;
@@ -16,6 +16,7 @@ interface ChatResponse {
   response_type: string;
   message: string;
   data: Record<string, unknown> | null;
+  fallback_model_used?: boolean;
 }
 
 interface ChatRequestMessage {
@@ -36,10 +37,12 @@ interface TextMutationPayload {
 const SESSION_API_KEY_STORAGE_KEY = "session_llm_api_key";
 
 function toRequestMessages(messages: ChatMessage[]): ChatRequestMessage[] {
-  return messages.map((message) => ({
-    role: message.role,
-    content: message.content,
-  }));
+  return messages
+    .filter((message) => message.role === "user" || message.role === "assistant")
+    .map((message) => ({
+      role: message.role,
+      content: message.content,
+    }));
 }
 
 function buildAssistantMessage(
@@ -70,6 +73,15 @@ function buildRateLimitMessage(content: string): ChatMessage {
     role: "assistant",
     content,
     response_type: "answer",
+  };
+}
+
+function buildFallbackNoticeMessage(): ChatMessage {
+  return {
+    id: crypto.randomUUID(),
+    role: "system",
+    content:
+      "Se agotó el límite de tu modelo principal. Este mensaje fue procesado con un modelo más básico.",
   };
 }
 
@@ -177,7 +189,13 @@ export function useChatStore() {
           payload: requestPayload,
           signal: controller.signal,
         });
-        setMessages((prev) => [...prev, buildAssistantMessage(response)]);
+        setMessages((prev) => {
+          const nextMessages = [...prev, buildAssistantMessage(response)];
+          if (response.fallback_model_used) {
+            nextMessages.push(buildFallbackNoticeMessage());
+          }
+          return nextMessages;
+        });
       } catch (error) {
         if (isAbortError(error)) {
           return;

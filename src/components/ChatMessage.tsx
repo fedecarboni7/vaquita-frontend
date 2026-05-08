@@ -9,6 +9,7 @@ interface Props {
 export default function ChatMessage({ message }: Props) {
   const isUser = message.role === "user";
   const isAudioTranscription = isUser && message.input_source === "audio";
+  const isSystemNotice = message.role === "system";
 
   if (isUser) {
     return (
@@ -23,6 +24,17 @@ export default function ChatMessage({ message }: Props) {
           <p className={isAudioTranscription ? "italic text-foreground" : undefined}>
             {message.content}
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // System notice messages
+  if (isSystemNotice) {
+    return (
+      <div className="flex items-end">
+        <div className="text-muted-foreground text-xs italic px-2 py-1 max-w-[92%] sm:max-w-[80%] break-words">
+          {message.content}
         </div>
       </div>
     );
