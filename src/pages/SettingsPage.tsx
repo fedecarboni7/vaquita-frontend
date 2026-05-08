@@ -234,7 +234,7 @@ export default function SettingsPage() {
       } else {
         sessionStorage.setItem(
           SESSION_API_KEY_STORAGE_KEY,
-          JSON.stringify({ provider, api_key: normalizedApiKey } satisfies SessionApiKeyPayload),
+          JSON.stringify({ provider }),
         );
         setHasSessionKey(true);
       }
