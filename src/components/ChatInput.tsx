@@ -4,7 +4,6 @@ import { toast } from "sonner";
 
 import { apiFetch } from "../api";
 import { useAudioRecorder } from "../hooks/useAudioRecorder";
-import type { SessionApiKeyPayload } from "../types/settings";
 
 interface Props {
   onSend: (text: string) => void;
@@ -14,33 +13,6 @@ interface Props {
 
 interface TranscriptionResponse {
   transcript: string;
-}
-
-const SESSION_API_KEY_STORAGE_KEY = "session_llm_api_key";
-
-function parseSessionApiKey(): SessionApiKeyPayload | null {
-  const rawSessionApiKey = sessionStorage.getItem(SESSION_API_KEY_STORAGE_KEY);
-  if (!rawSessionApiKey) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(rawSessionApiKey) as Partial<SessionApiKeyPayload>;
-    if (
-      (parsed.provider === "google" || parsed.provider === "groq") &&
-      typeof parsed.api_key === "string" &&
-      parsed.api_key.trim()
-    ) {
-      return {
-        provider: parsed.provider,
-        api_key: parsed.api_key,
-      };
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
 }
 
 function formatElapsedTime(totalSeconds: number) {
@@ -106,10 +78,6 @@ export default function ChatInput({ onSend, onStop, isProcessing = false }: Prop
         const formData = new FormData();
         const extension = audioBlob.type.includes("ogg") ? "ogg" : "webm";
         formData.append("audio", audioBlob, `voice-message.${extension}`);
-        const sessionApiKey = parseSessionApiKey();
-        if (sessionApiKey) {
-          formData.append("session_api_key", JSON.stringify(sessionApiKey));
-        }
 
         const { transcript } = await apiFetch<TranscriptionResponse>("/transcribe", {
           method: "POST",

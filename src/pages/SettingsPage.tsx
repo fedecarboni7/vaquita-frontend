@@ -26,9 +26,7 @@ import { useApiKeyStatus, useDeleteApiKey, useSaveApiKey } from "@/hooks/useApiK
 import SubcategoryManager from "@/components/settings/SubcategoryManager";
 import { useTheme } from "@/hooks/useTheme";
 import type { Category } from "@/types/transaction";
-import type { ApiKeyProvider, SessionApiKeyPayload } from "@/types/settings";
-
-const SESSION_API_KEY_STORAGE_KEY = "session_llm_api_key";
+import type { ApiKeyProvider } from "@/types/settings";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Comida: "#c06a2b",
@@ -63,21 +61,6 @@ export default function SettingsPage() {
   const ignoreCategoryBlurRef = useRef(false);
   const [provider, setProvider] = useState<ApiKeyProvider>("google");
   const [apiKeyInput, setApiKeyInput] = useState("");
-  const [rememberApiKey, setRememberApiKey] = useState(true);
-  const [hasSessionKey, setHasSessionKey] = useState(() => {
-    const rawSessionApiKey = sessionStorage.getItem(SESSION_API_KEY_STORAGE_KEY);
-    if (!rawSessionApiKey) {
-      return false;
-    }
-
-    try {
-      const parsed = JSON.parse(rawSessionApiKey) as SessionApiKeyPayload;
-      return Boolean(parsed.api_key && parsed.provider);
-    } catch {
-      sessionStorage.removeItem(SESSION_API_KEY_STORAGE_KEY);
-      return false;
-    }
-  });
 
   const expenseCategories = categories.filter((cat) => cat.type === "expense");
   const incomeCategories = categories.filter((cat) => cat.type === "income");
@@ -195,11 +178,8 @@ export default function SettingsPage() {
       const providerLabel = apiKeyStatus.provider === "groq" ? "Groq" : "Google AI Studio";
       return `API key guardada (${providerLabel}).`;
     }
-    if (hasSessionKey) {
-      return "API key activa solo para esta sesión.";
-    }
     return "No hay API key guardada.";
-  }, [apiKeyStatus?.has_key, apiKeyStatus?.provider, apiKeyStatusLoading, hasSessionKey]);
+  }, [apiKeyStatus?.has_key, apiKeyStatus?.provider, apiKeyStatusLoading]);
 
   const handleAddCategory = (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,24 +208,12 @@ export default function SettingsPage() {
     }
 
     try {
-      if (rememberApiKey) {
-        sessionStorage.removeItem(SESSION_API_KEY_STORAGE_KEY);
-        setHasSessionKey(false);
-      } else {
-        sessionStorage.setItem(
-          SESSION_API_KEY_STORAGE_KEY,
-          JSON.stringify({ provider, api_key: normalizedApiKey } satisfies SessionApiKeyPayload),
-        );
-        setHasSessionKey(true);
-      }
-
       await saveApiKey.mutateAsync({
         provider,
         api_key: normalizedApiKey,
-        persist: rememberApiKey,
       });
       setApiKeyInput("");
-      toast.success(rememberApiKey ? "API key guardada" : "API key guardada solo en esta sesión");
+      toast.success("API key guardada");
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo guardar la API key";
       toast.error(message);
@@ -254,8 +222,6 @@ export default function SettingsPage() {
 
   const handleDeleteUserApiKey = async () => {
     try {
-      sessionStorage.removeItem(SESSION_API_KEY_STORAGE_KEY);
-      setHasSessionKey(false);
       await removeApiKey.mutateAsync();
       toast.success("API key eliminada");
     } catch (error) {
@@ -318,15 +284,6 @@ export default function SettingsPage() {
                 />
               </label>
             </div>
-
-            <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={rememberApiKey}
-                onChange={(e) => setRememberApiKey(e.target.checked)}
-              />
-              Recordar mi API key
-            </label>
 
             <div className="flex flex-wrap gap-2">
               <Button
