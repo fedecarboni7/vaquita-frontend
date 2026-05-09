@@ -33,13 +33,6 @@ export default function ReceiptUploader({
   const [isViewing, setIsViewing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const getSafePreviewUrl = (url: string | null) => {
-    if (!url) return null;
-    return url.startsWith("blob:") ? url : null;
-  };
-
-  const safePreviewUrl = getSafePreviewUrl(previewUrl);
-
   useEffect(() => {
     setHasReceipt(Boolean(currentReceiptUrl));
   }, [currentReceiptUrl]);
@@ -156,9 +149,9 @@ export default function ReceiptUploader({
       {selectedFile ? (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            {safePreviewUrl ? (
+            {previewUrl ? (
               <img
-                src={safePreviewUrl}
+                src={previewUrl}
                 alt="Vista previa del comprobante"
                 className="h-16 w-16 rounded-md object-cover border border-border"
               />
