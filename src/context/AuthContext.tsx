@@ -6,8 +6,6 @@ import {
 import { apiFetch } from "../api";
 import { AuthContext, type User } from "./authTypes";
 
-const SESSION_API_KEY_STORAGE_KEY = "session_llm_api_key";
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,7 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem("access_token");
-    sessionStorage.removeItem(SESSION_API_KEY_STORAGE_KEY);
     setUser(null);
   };
 

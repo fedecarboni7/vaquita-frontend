@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiFetch } from "../api";
-import type { SessionApiKeyPayload } from "@/types/settings";
 
 export interface ChatMessage {
   id: string;
@@ -26,15 +25,12 @@ interface ChatRequestMessage {
 
 interface ChatRequestPayload {
   messages: ChatRequestMessage[];
-  session_api_key?: SessionApiKeyPayload;
 }
 
 interface TextMutationPayload {
   payload: ChatRequestPayload;
   signal: AbortSignal;
 }
-
-const SESSION_API_KEY_STORAGE_KEY = "session_llm_api_key";
 
 function toRequestMessages(messages: ChatMessage[]): ChatRequestMessage[] {
   return messages
@@ -170,16 +166,9 @@ export function useChatStore() {
 
       const allMessages = [...messages, userMsg];
       const historyWindow = toRequestMessages(allMessages);
-      const rawSessionApiKey = sessionStorage.getItem(SESSION_API_KEY_STORAGE_KEY);
-      const sessionApiKey = rawSessionApiKey
-        ? (JSON.parse(rawSessionApiKey) as SessionApiKeyPayload)
-        : undefined;
       const requestPayload: ChatRequestPayload = {
         messages: historyWindow,
       };
-      if (sessionApiKey?.api_key && sessionApiKey.provider) {
-        requestPayload.session_api_key = sessionApiKey;
-      }
       const controller = beginProcessing();
 
       setMessages((prev) => [...prev, userMsg]);
