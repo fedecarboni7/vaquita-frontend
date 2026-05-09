@@ -57,6 +57,7 @@ export default function CreditCardPaymentModal({
           account_id: sourceAccountId,
           account_destination_id: creditCard.id,
           amount: parsedAmount,
+          currency: creditCard.currency,
           expense_date: new Date().toISOString().split("T")[0],
           description: `Pago tarjeta ${creditCard.name}`,
           affects_balance: true,
