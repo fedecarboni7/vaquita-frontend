@@ -21,7 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useStats } from "@/hooks/useStats";
 import { formatCurrencyAmount } from "@/lib/utils";
 import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
-import type { StatsCategoryExpenseItem } from "@/types/stats";
+import type { StatsCategoryExpenseItem, StatsSubcategoryExpenseItem } from "@/types/stats";
 import type { CurrencyCode } from "@/types/transaction";
 
 const STATS_CURRENCY_PREFERENCE_KEY = "stats_currency_preference";
@@ -160,18 +160,39 @@ function ChartsSkeleton() {
 
 function StatsCharts({
   expensesByCategory,
+  expensesBySubcategory,
   monthlySeries,
+  selectedCategory,
+  onSelectCategory,
+  onClearCategory,
   currency,
 }: {
   expensesByCategory: StatsCategoryExpenseItem[];
+  expensesBySubcategory: Record<string, StatsSubcategoryExpenseItem[]>;
   monthlySeries: Array<{
     month: string;
     total_income: number;
     total_expenses: number;
     net_balance: number;
   }>;
+  selectedCategory: string | null;
+  onSelectCategory: (category: string) => void;
+  onClearCategory: () => void;
   currency: CurrencyCode;
 }) {
+  const isSubcategoryView = selectedCategory !== null;
+  const subcategoryData = selectedCategory
+    ? expensesBySubcategory[selectedCategory] ?? []
+    : [];
+  const chartData = isSubcategoryView ? subcategoryData : expensesByCategory;
+  const donutTitle = isSubcategoryView
+    ? `Gastos por subcategoría de ${selectedCategory}`
+    : "Gastos por categoría";
+  const donutEmptyState = isSubcategoryView
+    ? "No hay gastos por subcategoría para esta categoría."
+    : "No hay gastos por categoría este mes.";
+  const donutNameKey = isSubcategoryView ? "subcategory_name" : "category_name";
+
   const lineAndBarData = useMemo(
     () =>
       monthlySeries.map((item) => ({
@@ -217,10 +238,22 @@ function StatsCharts({
         </section>
 
         <section className="rounded-lg border border-border bg-card p-4">
-          <h2 className="text-sm font-semibold">Gastos por categoría</h2>
-          {expensesByCategory.length === 0 ? (
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">{donutTitle}</h2>
+            {isSubcategoryView && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={onClearCategory}
+              >
+                ← Volver
+              </Button>
+            )}
+          </div>
+          {chartData.length === 0 ? (
             <div className="mt-4 flex h-[250px] items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground md:h-[280px]">
-              No hay gastos por categoría este mes.
+              {donutEmptyState}
             </div>
           ) : (
             <div className="mt-4 grid grid-cols-1 gap-3">
@@ -236,38 +269,70 @@ function StatsCharts({
                     }}
                   />
                   <Pie
-                    data={expensesByCategory}
+                    data={chartData}
                     dataKey="total"
-                    nameKey="category_name"
+                    nameKey={donutNameKey}
                     innerRadius="50%"
                     outerRadius="78%"
                     paddingAngle={2}
                   >
-                    {expensesByCategory.map((_, index) => (
-                      <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    {chartData.map((item, index) => (
+                      <Cell
+                        key={index}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                        onClick={
+                          isSubcategoryView
+                            ? undefined
+                            : () => onSelectCategory((item as StatsCategoryExpenseItem).category_name)
+                        }
+                        className={isSubcategoryView ? undefined : "cursor-pointer"}
+                      />
                     ))}
                   </Pie>
                 </PieChart>
                 </ResponsiveContainer>
               </div>
               <div className="space-y-2 overflow-y-auto pr-1 md:max-h-[160px]">
-                {expensesByCategory.map((item, index) => (
-                  <div key={item.category_name} className="flex items-start gap-2 text-xs">
-                    <span
-                      className="mt-1 inline-block h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{item.category_name}</p>
-                      <p className="text-muted-foreground">
-                        {formatCurrencyAmount(item.total, currency)} ({item.percentage.toLocaleString("es-AR", {
-                          minimumFractionDigits: 1,
-                          maximumFractionDigits: 1,
-                        })}%)
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                {isSubcategoryView
+                  ? subcategoryData.map((item, index) => (
+                      <div key={item.subcategory_name} className="flex items-start gap-2 text-xs">
+                        <span
+                          className="mt-1 inline-block h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{item.subcategory_name}</p>
+                          <p className="text-muted-foreground">
+                            {formatCurrencyAmount(item.total, currency)} ({item.percentage.toLocaleString("es-AR", {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                            })}%)
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  : expensesByCategory.map((item, index) => (
+                      <button
+                        key={item.category_name}
+                        type="button"
+                        onClick={() => onSelectCategory(item.category_name)}
+                        className="flex w-full items-start gap-2 text-left text-xs"
+                      >
+                        <span
+                          className="mt-1 inline-block h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{item.category_name}</p>
+                          <p className="text-muted-foreground">
+                            {formatCurrencyAmount(item.total, currency)} ({item.percentage.toLocaleString("es-AR", {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                            })}%)
+                          </p>
+                        </div>
+                      </button>
+                    ))}
               </div>
             </div>
           )}
@@ -318,6 +383,8 @@ export default function StatsPage() {
     const stored = window.localStorage.getItem(STATS_CURRENCY_PREFERENCE_KEY);
     return stored === "USD" ? "USD" : "ARS";
   });
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
   useEffect(() => {
     window.localStorage.setItem(STATS_CURRENCY_PREFERENCE_KEY, currency);
   }, [currency]);
@@ -330,14 +397,20 @@ export default function StatsPage() {
         <Button
           variant={currency === "ARS" ? "default" : "outline"}
           size="sm"
-          onClick={() => setCurrency("ARS")}
+          onClick={() => {
+            setSelectedCategory(null);
+            setCurrency("ARS");
+          }}
         >
           ARS
         </Button>
         <Button
           variant={currency === "USD" ? "default" : "outline"}
           size="sm"
-          onClick={() => setCurrency("USD")}
+          onClick={() => {
+            setSelectedCategory(null);
+            setCurrency("USD");
+          }}
         >
           USD
         </Button>
@@ -345,11 +418,27 @@ export default function StatsPage() {
 
       <div className="mb-6 flex items-center justify-between border-b border-border pb-3">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonth((prev) => shiftMonth(prev, -1))}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => {
+              setSelectedCategory(null);
+              setMonth((prev) => shiftMonth(prev, -1));
+            }}
+          >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-base font-semibold capitalize">{formatMonthLabel(month)}</h1>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonth((prev) => shiftMonth(prev, 1))}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => {
+              setSelectedCategory(null);
+              setMonth((prev) => shiftMonth(prev, 1));
+            }}
+          >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -399,7 +488,11 @@ export default function StatsPage() {
           <div className="mt-4">
             <StatsCharts
               expensesByCategory={data.expenses_by_category}
+              expensesBySubcategory={data.expenses_by_subcategory}
               monthlySeries={data.monthly_series}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              onClearCategory={() => setSelectedCategory(null)}
               currency={currency}
             />
           </div>
