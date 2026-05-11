@@ -161,14 +161,21 @@ function ChartsSkeleton() {
 function StatsCharts({
   expensesByCategory,
   expensesBySubcategory,
+  incomeByCategory,
+  incomeBySubcategory,
   monthlySeries,
   selectedCategory,
   onSelectCategory,
   onClearCategory,
+  selectedIncomeCategory,
+  onSelectIncomeCategory,
+  onClearIncomeCategory,
   currency,
 }: {
   expensesByCategory: StatsCategoryExpenseItem[];
   expensesBySubcategory: Record<string, StatsSubcategoryExpenseItem[]>;
+  incomeByCategory: StatsCategoryExpenseItem[];
+  incomeBySubcategory: Record<string, StatsSubcategoryExpenseItem[]>;
   monthlySeries: Array<{
     month: string;
     total_income: number;
@@ -178,6 +185,9 @@ function StatsCharts({
   selectedCategory: string | null;
   onSelectCategory: (category: string) => void;
   onClearCategory: () => void;
+  selectedIncomeCategory: string | null;
+  onSelectIncomeCategory: (category: string) => void;
+  onClearIncomeCategory: () => void;
   currency: CurrencyCode;
 }) {
   const isSubcategoryView = selectedCategory !== null;
@@ -193,6 +203,19 @@ function StatsCharts({
     : "No hay gastos por categoría este mes.";
   const donutNameKey = isSubcategoryView ? "subcategory_name" : "category_name";
 
+  const isIncomeSubcategoryView = selectedIncomeCategory !== null;
+  const incomeSubcategoryData = selectedIncomeCategory
+    ? incomeBySubcategory[selectedIncomeCategory] ?? []
+    : [];
+  const incomeChartData = isIncomeSubcategoryView ? incomeSubcategoryData : incomeByCategory;
+  const incomeDonutTitle = isIncomeSubcategoryView
+    ? `Ingresos por subcategoría de ${selectedIncomeCategory}`
+    : "Ingresos por categoría";
+  const incomeDonutEmptyState = isIncomeSubcategoryView
+    ? "No hay ingresos por subcategoría para esta categoría."
+    : "No hay ingresos por categoría este mes.";
+  const incomeDonutNameKey = isIncomeSubcategoryView ? "subcategory_name" : "category_name";
+
   const lineAndBarData = useMemo(
     () =>
       monthlySeries.map((item) => ({
@@ -205,38 +228,6 @@ function StatsCharts({
   return (
     <>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="rounded-lg border border-border bg-card p-4">
-          <h2 className="text-sm font-semibold">Evolución de 6 meses</h2>
-          <div className="mt-4 h-[250px] w-full md:h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={lineAndBarData}
-                margin={{ top: 8, right: 12, left: 18, bottom: 8 }}
-              >
-                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-                <XAxis dataKey="label" stroke="var(--muted-foreground)" />
-                <YAxis
-                  stroke="var(--muted-foreground)"
-                  width={52}
-                  tickFormatter={(value: number) => formatCompactNumber(value)}
-                />
-                <Tooltip
-                  formatter={(value) => tooltipCurrencyFormatter(value, currency)}
-                  contentStyle={{
-                    border: "1px solid var(--border)",
-                    borderRadius: "8px",
-                    background: "var(--card)",
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line name="Ingresos" type="monotone" dataKey="total_income" stroke="var(--chart-1)" strokeWidth={2} />
-                <Line name="Gastos" type="monotone" dataKey="total_expenses" stroke="var(--chart-5)" strokeWidth={2} />
-                <Line name="Balance neto" type="monotone" dataKey="net_balance" stroke="var(--chart-2)" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
-
         <section className="rounded-lg border border-border bg-card p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">{donutTitle}</h2>
@@ -337,7 +328,140 @@ function StatsCharts({
             </div>
           )}
         </section>
+
+        <section className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">{incomeDonutTitle}</h2>
+            {isIncomeSubcategoryView && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={onClearIncomeCategory}
+              >
+                ← Volver
+              </Button>
+            )}
+          </div>
+          {incomeChartData.length === 0 ? (
+            <div className="mt-4 flex h-[250px] items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground md:h-[280px]">
+              {incomeDonutEmptyState}
+            </div>
+          ) : (
+            <div className="mt-4 grid grid-cols-1 gap-3">
+              <div className="h-[220px] w-full md:h-[240px]">
+                <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Tooltip
+                    formatter={(value) => tooltipCurrencyFormatter(value, currency)}
+                    contentStyle={{
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      background: "var(--card)",
+                    }}
+                  />
+                  <Pie
+                    data={incomeChartData}
+                    dataKey="total"
+                    nameKey={incomeDonutNameKey}
+                    innerRadius="50%"
+                    outerRadius="78%"
+                    paddingAngle={2}
+                  >
+                    {incomeChartData.map((item, index) => (
+                      <Cell
+                        key={index}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                        onClick={
+                          isIncomeSubcategoryView
+                            ? undefined
+                            : () => onSelectIncomeCategory((item as StatsCategoryExpenseItem).category_name)
+                        }
+                        className={isIncomeSubcategoryView ? undefined : "cursor-pointer"}
+                      />
+                    ))}
+                  </Pie>
+                </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-2 overflow-y-auto pr-1 md:max-h-[160px]">
+                {isIncomeSubcategoryView
+                  ? incomeSubcategoryData.map((item, index) => (
+                      <div key={item.subcategory_name} className="flex items-start gap-2 text-xs">
+                        <span
+                          className="mt-1 inline-block h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{item.subcategory_name}</p>
+                          <p className="text-muted-foreground">
+                            {formatCurrencyAmount(item.total, currency)} ({item.percentage.toLocaleString("es-AR", {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                            })}%)
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  : incomeByCategory.map((item, index) => (
+                      <button
+                        key={item.category_name}
+                        type="button"
+                        onClick={() => onSelectIncomeCategory(item.category_name)}
+                        className="flex w-full items-start gap-2 text-left text-xs"
+                      >
+                        <span
+                          className="mt-1 inline-block h-2.5 w-2.5 rounded-full"
+                          style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{item.category_name}</p>
+                          <p className="text-muted-foreground">
+                            {formatCurrencyAmount(item.total, currency)} ({item.percentage.toLocaleString("es-AR", {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                            })}%)
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+              </div>
+            </div>
+          )}
+        </section>
       </div>
+
+      <section className="mt-4 rounded-lg border border-border bg-card p-4">
+        <h2 className="text-sm font-semibold">Evolución de 6 meses</h2>
+        <div className="mt-4 h-[250px] w-full md:h-[280px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={lineAndBarData}
+              margin={{ top: 8, right: 12, left: 18, bottom: 8 }}
+            >
+              <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+              <XAxis dataKey="label" stroke="var(--muted-foreground)" />
+              <YAxis
+                stroke="var(--muted-foreground)"
+                width={52}
+                tickFormatter={(value: number) => formatCompactNumber(value)}
+              />
+              <Tooltip
+                formatter={(value) => tooltipCurrencyFormatter(value, currency)}
+                contentStyle={{
+                  border: "1px solid var(--border)",
+                  borderRadius: "8px",
+                  background: "var(--card)",
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Line name="Ingresos" type="monotone" dataKey="total_income" stroke="var(--chart-1)" strokeWidth={2} />
+              <Line name="Gastos" type="monotone" dataKey="total_expenses" stroke="var(--chart-5)" strokeWidth={2} />
+              <Line name="Balance neto" type="monotone" dataKey="net_balance" stroke="var(--chart-2)" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
 
       <section className="mt-4 rounded-lg border border-border bg-card p-4">
         <h2 className="text-sm font-semibold">Ingresos vs gastos por mes</h2>
@@ -384,6 +508,7 @@ export default function StatsPage() {
     return stored === "USD" ? "USD" : "ARS";
   });
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedIncomeCategory, setSelectedIncomeCategory] = useState<string | null>(null);
 
   useEffect(() => {
     window.localStorage.setItem(STATS_CURRENCY_PREFERENCE_KEY, currency);
@@ -399,6 +524,7 @@ export default function StatsPage() {
           size="sm"
           onClick={() => {
             setSelectedCategory(null);
+            setSelectedIncomeCategory(null);
             setCurrency("ARS");
           }}
         >
@@ -409,6 +535,7 @@ export default function StatsPage() {
           size="sm"
           onClick={() => {
             setSelectedCategory(null);
+            setSelectedIncomeCategory(null);
             setCurrency("USD");
           }}
         >
@@ -424,6 +551,7 @@ export default function StatsPage() {
             className="h-8 w-8"
             onClick={() => {
               setSelectedCategory(null);
+              setSelectedIncomeCategory(null);
               setMonth((prev) => shiftMonth(prev, -1));
             }}
           >
@@ -436,6 +564,7 @@ export default function StatsPage() {
             className="h-8 w-8"
             onClick={() => {
               setSelectedCategory(null);
+              setSelectedIncomeCategory(null);
               setMonth((prev) => shiftMonth(prev, 1));
             }}
           >
@@ -489,10 +618,15 @@ export default function StatsPage() {
             <StatsCharts
               expensesByCategory={data.expenses_by_category}
               expensesBySubcategory={data.expenses_by_subcategory}
+              incomeByCategory={data.income_by_category}
+              incomeBySubcategory={data.income_by_subcategory}
               monthlySeries={data.monthly_series}
               selectedCategory={selectedCategory}
               onSelectCategory={setSelectedCategory}
               onClearCategory={() => setSelectedCategory(null)}
+              selectedIncomeCategory={selectedIncomeCategory}
+              onSelectIncomeCategory={setSelectedIncomeCategory}
+              onClearIncomeCategory={() => setSelectedIncomeCategory(null)}
               currency={currency}
             />
           </div>
