@@ -32,4 +32,6 @@ export interface StatsResponse {
   monthly_series: StatsMonthlySeriesItem[];
   expenses_by_category: StatsCategoryExpenseItem[];
   expenses_by_subcategory: Record<string, StatsSubcategoryExpenseItem[]>;
+  income_by_category: StatsCategoryExpenseItem[];
+  income_by_subcategory: Record<string, StatsSubcategoryExpenseItem[]>;
 }
