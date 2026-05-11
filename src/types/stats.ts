@@ -20,9 +20,16 @@ export interface StatsCategoryExpenseItem {
   percentage: number;
 }
 
+export interface StatsSubcategoryExpenseItem {
+  subcategory_name: string;
+  total: number;
+  percentage: number;
+}
+
 export interface StatsResponse {
   month: string;
   summary: StatsSummary;
   monthly_series: StatsMonthlySeriesItem[];
   expenses_by_category: StatsCategoryExpenseItem[];
+  expenses_by_subcategory: Record<string, StatsSubcategoryExpenseItem[]>;
 }
