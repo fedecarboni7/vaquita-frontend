@@ -13,6 +13,7 @@ import type { Category, TransactionType } from "@/types/transaction";
 
 interface Props {
   data: Record<string, unknown>;
+  threadId?: string | null;
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -100,7 +101,7 @@ function formatDisplayDate(value: unknown): string {
   return `${day}/${month}/${year}`;
 }
 
-export default function TransactionDraftCard({ data }: Props) {
+export default function TransactionDraftCard({ data, threadId }: Props) {
   const queryClient = useQueryClient();
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
@@ -248,6 +249,7 @@ export default function TransactionDraftCard({ data }: Props) {
           typeof editData.note === "string" && editData.note.trim()
             ? editData.note.trim()
             : null,
+        chat_thread_id: threadId ?? null,
       };
 
       await apiFetch("/expenses", {

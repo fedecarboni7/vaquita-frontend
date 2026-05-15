@@ -31,6 +31,7 @@ export interface CreateTransactionPayload {
   account_destination_id?: string | null;
   to_amount?: number | null;
   affects_balance?: boolean;
+  chat_thread_id?: string | null;
 }
 
 function buildSearchParams(params: UseTransactionsParams): string {

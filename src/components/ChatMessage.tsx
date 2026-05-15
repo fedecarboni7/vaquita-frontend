@@ -45,7 +45,7 @@ export default function ChatMessage({ message }: Props) {
     return (
       <div className="flex items-end">
         <div className="max-w-[95%] sm:max-w-[85%] min-w-0">
-          <TransactionDraftCard data={message.data} />
+          <TransactionDraftCard data={message.data} threadId={message.thread_id ?? null} />
         </div>
       </div>
     );

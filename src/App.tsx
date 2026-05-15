@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ChatPage from "./pages/ChatPage";
+import ChatThreadPage from "./pages/ChatThreadPage";
 import LoginPage from "./pages/LoginPage";
 import TransactionsPage from "./pages/TransactionsPage";
 import AccountsPage from "./pages/AccountsPage";
@@ -18,6 +19,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<ChatPage />} />
+            <Route path="/chat/threads/:threadId" element={<ChatThreadPage />} />
             <Route path="/transactions" element={<TransactionsPage />} />
             <Route path="/stats" element={<StatsPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
