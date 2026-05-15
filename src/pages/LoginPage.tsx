@@ -27,7 +27,7 @@ export default function LoginPage() {
         <div className="space-y-1.5">
           <img
             src={appLogoUrl}
-            alt="Vaquita logo"
+            alt="vaquita logo"
             className="mx-auto h-20 w-20 rounded-2xl object-cover"
           />
           <h1 className="text-2xl font-serif font-medium" style={{ fontFamily: "'Quicksand', sans-serif" }}>vaquita</h1>

@@ -1,6 +1,6 @@
-# Vaquita — Frontend
+# vaquita — Frontend
 
-Frontend de [Vaquita](https://vaquita.up.railway.app), una app de finanzas personales con IA integrada. El flujo principal es una interfaz de chat donde el usuario describe sus transacciones en lenguaje natural y el agente se encarga del resto.
+Frontend de [vaquita](https://vaquita.up.railway.app), una app de finanzas personales con IA integrada. El flujo principal es una interfaz de chat donde el usuario describe sus transacciones en lenguaje natural y el agente se encarga del resto.
 
 ---
 

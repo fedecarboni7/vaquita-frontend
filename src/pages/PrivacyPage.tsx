@@ -17,7 +17,7 @@ const sections = [
     icon: Lock,
     title: "Cómo viaja tu API key",
     content:
-      "Cuando usás el chat, tu API key viaja desde el navegador al backend de Vaquita en el cuerpo del request HTTPS, cifrado en tránsito. El backend la descifra, hace la llamada al proveedor de IA que tengas configurado, y descarta el valor de memoria. La key nunca llega al modelo ni aparece en el contexto de la conversación.",
+      "Cuando usás el chat, tu API key viaja desde el navegador al backend de vaquita en el cuerpo del request HTTPS, cifrado en tránsito. El backend la descifra, hace la llamada al proveedor de IA que tengas configurado, y descarta el valor de memoria. La key nunca llega al modelo ni aparece en el contexto de la conversación.",
   },
   {
     icon: Mic,
@@ -35,7 +35,7 @@ const sections = [
     icon: Shield,
     title: "Sin tracking ni analytics",
     content:
-      "Vaquita no tiene Google Analytics, Mixpanel ni ninguna herramienta de seguimiento de comportamiento. No registramos eventos de navegación, clics ni patrones de uso. La app es para vos, no para nosotros.",
+      "vaquita no tiene Google Analytics, Mixpanel ni ninguna herramienta de seguimiento de comportamiento. No registramos eventos de navegación, clics ni patrones de uso. La app es para vos, no para nosotros.",
   },
 ];
 
@@ -58,7 +58,7 @@ export default function PrivacyPage() {
               Cómo protegemos tus datos
             </h1>
             <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
-              Vaquita es una app personal. La privacidad no es una feature — es
+              vaquita es una app personal. La privacidad no es una feature — es
               el punto de partida.
             </p>
           </div>
