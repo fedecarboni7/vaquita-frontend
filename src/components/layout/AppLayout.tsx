@@ -169,7 +169,7 @@ export default function AppLayout() {
           >
             <img
               src={appLogoUrl}
-              alt="Vaquita logo"
+              alt="vaquita logo"
               className={cn(
                 "absolute h-20 w-20 rounded-2xl object-cover transition-all duration-500 ease-out",
                 showLogoWordmark ? "scale-90 opacity-0" : "scale-100 opacity-100",
@@ -177,7 +177,7 @@ export default function AppLayout() {
             />
             <img
               src={appWordmarkUrl}
-              alt="Vaquita logo con nombre"
+              alt="vaquita logo con nombre"
               className={cn(
                 "absolute h-20 w-20 rounded-2xl object-cover transition-all duration-500 ease-out",
                 showLogoWordmark ? "scale-100 translate-y-0 opacity-100" : "scale-90 translate-y-1 opacity-0",
@@ -342,7 +342,7 @@ export default function AppLayout() {
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border py-1.5 pb-[calc(0.4rem+env(safe-area-inset-bottom))] z-[200]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border py-1.5 pb-[calc(0.4rem+env(safe-area-inset-bottom))] z-[200]">
         <div className="flex justify-around">
           {[...mainNav, systemNav[0]].map((item) => (
             <NavLink
