@@ -9,6 +9,7 @@ interface Props {
   onSend: (text: string) => void;
   onStop: () => void;
   isProcessing?: boolean;
+  resetSignal?: number;
 }
 
 interface TranscriptionResponse {
@@ -21,7 +22,7 @@ function formatElapsedTime(totalSeconds: number) {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-export default function ChatInput({ onSend, onStop, isProcessing = false }: Props) {
+export default function ChatInput({ onSend, onStop, isProcessing = false, resetSignal = 0 }: Props) {
   const [text, setText] = useState("");
   const [isTranscribing, setIsTranscribing] = useState(false);
   const { isRecording, startRecording, stopRecording, elapsedSeconds, canvasRef } = useAudioRecorder();
@@ -40,6 +41,10 @@ export default function ChatInput({ onSend, onStop, isProcessing = false }: Prop
   useLayoutEffect(() => {
     autoResizeTextarea();
   }, [text]);
+
+  useLayoutEffect(() => {
+    setText("");
+  }, [resetSignal]);
 
   const sendCurrentText = () => {
     const trimmed = text.trim();
@@ -113,80 +118,82 @@ export default function ChatInput({ onSend, onStop, isProcessing = false }: Prop
   };
 
   return (
-    <div className="border-t border-border bg-card/95 px-4 py-4">
-      {isRecording && (
-        <div className="mb-3 flex items-center gap-3 rounded-2xl border border-border bg-muted/50 px-3 py-2">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent animate-pulse" />
-            <canvas
-              ref={canvasRef}
-              className="h-11 w-full min-w-0 flex-1 rounded-xl border border-border bg-background/80"
-              aria-hidden="true"
-            />
-          </div>
-          <span className="shrink-0 font-mono text-xs text-muted-foreground">
-            {formatElapsedTime(elapsedSeconds)}
-          </span>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleTextareaKeyDown}
-            placeholder={isTranscribing ? "Transcribiendo..." : "Ej: Gasté 500 en el super con..."}
-            disabled={isProcessing || isTranscribing}
-            className={`block w-full min-h-11 rounded-xl border border-border bg-background px-4 py-3 text-sm leading-5 text-foreground outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60 resize-none ${
-              isTranscribing ? "pr-32" : "pr-4"
-            }`}
-          />
-
-          {isTranscribing && (
-            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Loader2 size={14} className="animate-spin" />
-              <span>Transcribiendo...</span>
+    <div className="border-t border-border bg-card/95">
+      <div className="px-4 py-4">
+        {isRecording && (
+          <div className="mb-3 flex items-center gap-3 rounded-2xl border border-border bg-muted/50 px-3 py-2">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent animate-pulse" />
+              <canvas
+                ref={canvasRef}
+                className="h-11 w-full min-w-0 flex-1 rounded-xl border border-border bg-background/80"
+                aria-hidden="true"
+              />
             </div>
-          )}
-        </div>
+            <span className="shrink-0 font-mono text-xs text-muted-foreground">
+              {formatElapsedTime(elapsedSeconds)}
+            </span>
+          </div>
+        )}
 
-        <button
-          type="button"
-          onClick={handleMicClick}
-          disabled={isProcessing || isTranscribing}
-          aria-label={isRecording ? "Detener grabación" : "Iniciar grabación"}
-          className={
-            isRecording
-              ? "inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-[var(--destructive)] text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              : "inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-secondary text-secondary-foreground transition hover:bg-secondary/80 disabled:cursor-not-allowed disabled:opacity-60"
-          }
-        >
-          {isRecording ? <Square size={18} /> : <Mic size={18} />}
-        </button>
+        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={handleTextareaKeyDown}
+              placeholder={isTranscribing ? "Transcribiendo..." : "Ej: Gasté 500 en el super con..."}
+              disabled={isProcessing || isTranscribing}
+              className={`block w-full min-h-11 rounded-xl border border-border bg-background px-4 py-3 text-sm leading-5 text-foreground outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60 resize-none ${
+                isTranscribing ? "pr-32" : "pr-4"
+              }`}
+            />
 
-        {isProcessing ? (
+            {isTranscribing && (
+              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <Loader2 size={14} className="animate-spin" />
+                <span>Transcribiendo...</span>
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
-            onClick={onStop}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-border bg-[var(--destructive)] px-4 text-sm font-medium text-background transition hover:opacity-90"
-            aria-label="Detener procesamiento"
+            onClick={handleMicClick}
+            disabled={isProcessing || isTranscribing}
+            aria-label={isRecording ? "Detener grabación" : "Iniciar grabación"}
+            className={
+              isRecording
+                ? "inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-[var(--destructive)] text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                : "inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-secondary text-secondary-foreground transition hover:bg-secondary/80 disabled:cursor-not-allowed disabled:opacity-60"
+            }
           >
-            <Square size={18} />
+            {isRecording ? <Square size={18} /> : <Mic size={18} />}
           </button>
-        ) : (
-          <button
-            type="submit"
-            disabled={!text.trim() || isTranscribing}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-border bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Send size={16} />
-            <span>Enviar</span>
-          </button>
-        )}
-      </form>
+
+          {isProcessing ? (
+            <button
+              type="button"
+              onClick={onStop}
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-border bg-[var(--destructive)] px-4 text-sm font-medium text-background transition hover:opacity-90"
+              aria-label="Detener procesamiento"
+            >
+              <Square size={18} />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              aria-label="Enviar mensaje"
+              disabled={!text.trim() || isTranscribing}
+              className="inline-flex h-11 items-center justify-center gap-0 rounded-xl border border-border bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Send size={16} />
+            </button>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

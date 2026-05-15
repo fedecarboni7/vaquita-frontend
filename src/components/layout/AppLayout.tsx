@@ -154,7 +154,7 @@ export default function AppLayout() {
       {/* Sidebar */}
       <nav
         className={cn(
-          "fixed top-12 left-0 bottom-0 z-[100] flex w-[220px] flex-col bg-card border-r border-border py-7 pb-[calc(76px+env(safe-area-inset-bottom))] transition-transform duration-250 ease-out md:top-0 md:bottom-0 md:pb-7",
+          "fixed top-12 left-0 bottom-0 z-[100] flex w-[220px] flex-col bg-card border-r border-border py-7 pb-[calc(76px+env(safe-area-inset-bottom)+4rem)] overflow-y-auto transition-transform duration-250 ease-out md:top-0 md:bottom-0 md:pb-7 md:overflow-visible",
           "md:translate-x-0",
           sidebarOpen ? "translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.15)]" : "-translate-x-full md:translate-x-0",
         )}

@@ -9,6 +9,7 @@ export interface ChatMessage {
   input_source?: "text" | "audio";
   response_type?: string;
   data?: Record<string, unknown> | null;
+  thread_id?: string | null;
 }
 
 interface ChatResponse {
@@ -16,6 +17,7 @@ interface ChatResponse {
   message: string;
   data: Record<string, unknown> | null;
   fallback_model_used?: boolean;
+  thread_id?: string | null;
 }
 
 interface ChatRequestMessage {
@@ -25,6 +27,7 @@ interface ChatRequestMessage {
 
 interface ChatRequestPayload {
   messages: ChatRequestMessage[];
+  thread_id?: string | null;
 }
 
 interface TextMutationPayload {
@@ -51,6 +54,7 @@ function buildAssistantMessage(
     content: response.message,
     response_type: response.response_type,
     data,
+    thread_id: response.thread_id ?? null,
   };
 }
 
@@ -107,6 +111,8 @@ function isAbortError(error: unknown): boolean {
 export function useChatStore() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [threadId, setThreadId] = useState<string | null>(null);
+  const [inputResetKey, setInputResetKey] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const textMutation = useMutation({
@@ -144,6 +150,13 @@ export function useChatStore() {
     setIsProcessing(false);
   }, []);
 
+  const resetConversation = useCallback(() => {
+    stopProcessing();
+    setMessages([]);
+    setThreadId(null);
+    setInputResetKey((prev) => prev + 1);
+  }, [stopProcessing]);
+
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
@@ -168,6 +181,7 @@ export function useChatStore() {
       const historyWindow = toRequestMessages(allMessages);
       const requestPayload: ChatRequestPayload = {
         messages: historyWindow,
+        thread_id: threadId ?? null,
       };
       const controller = beginProcessing();
 
@@ -178,8 +192,15 @@ export function useChatStore() {
           payload: requestPayload,
           signal: controller.signal,
         });
+        const resolvedThreadId = response.thread_id ?? threadId ?? null;
+        if (resolvedThreadId) {
+          setThreadId(resolvedThreadId);
+        }
         setMessages((prev) => {
-          const nextMessages = [...prev, buildAssistantMessage(response)];
+          const nextMessages = [
+            ...prev,
+            buildAssistantMessage({ ...response, thread_id: resolvedThreadId }),
+          ];
           if (response.fallback_model_used) {
             nextMessages.push(buildFallbackNoticeMessage());
           }
@@ -201,7 +222,7 @@ export function useChatStore() {
         finishProcessing(controller);
       }
     },
-    [beginProcessing, finishProcessing, isProcessing, messages, textMutation],
+    [beginProcessing, finishProcessing, isProcessing, messages, textMutation, threadId],
   );
 
   return {
@@ -210,5 +231,8 @@ export function useChatStore() {
     sendMessage,
     stopProcessing,
     setMessages,
+    threadId,
+    resetConversation,
+    inputResetKey,
   };
 }
