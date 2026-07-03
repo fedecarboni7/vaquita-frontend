@@ -25,6 +25,7 @@ import {
 import { useApiKeyStatus, useDeleteApiKey, useSaveApiKey } from "@/hooks/useApiKeySettings";
 import SubcategoryManager from "@/components/settings/SubcategoryManager";
 import { useTheme } from "@/hooks/useTheme";
+import { apiFetchBlob } from "@/api";
 import type { Category } from "@/types/transaction";
 import type { ApiKeyProvider } from "@/types/settings";
 
@@ -61,6 +62,7 @@ export default function SettingsPage() {
   const ignoreCategoryBlurRef = useRef(false);
   const [provider, setProvider] = useState<ApiKeyProvider>("google");
   const [apiKeyInput, setApiKeyInput] = useState("");
+  const [isExportingCsv, setIsExportingCsv] = useState(false);
 
   const expenseCategories = categories.filter((cat) => cat.type === "expense");
   const incomeCategories = categories.filter((cat) => cat.type === "income");
@@ -227,6 +229,34 @@ export default function SettingsPage() {
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo eliminar la API key";
       toast.error(message);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    if (isExportingCsv) return;
+
+    setIsExportingCsv(true);
+    try {
+      const response = await apiFetchBlob("/expenses/export");
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+
+      const contentDisposition = response.headers.get("Content-Disposition") || "";
+      const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+      link.download = filenameMatch?.[1] || "transactions.csv";
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(downloadUrl);
+      toast.success("CSV exportado correctamente");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo exportar el CSV";
+      toast.error(message);
+    } finally {
+      setIsExportingCsv(false);
     }
   };
 
@@ -447,6 +477,38 @@ export default function SettingsPage() {
                 }`}
               />
             </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Exportación */}
+      <section className="mb-8">
+        <div className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground/60 mb-3 pb-2 border-b border-border">
+          Exportación
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-[13.5px]">Exportar transacciones</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Descargá todas tus transacciones en un archivo CSV.
+              </div>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleExportCsv}
+              disabled={isExportingCsv}
+            >
+              {isExportingCsv ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Exportando
+                </>
+              ) : (
+                "Exportar CSV"
+              )}
+            </Button>
           </div>
         </div>
       </section>
