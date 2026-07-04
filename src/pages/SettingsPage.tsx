@@ -23,6 +23,7 @@ import {
   useUpdateCategory,
 } from "@/hooks/useCategories";
 import { useApiKeyStatus, useDeleteApiKey, useSaveApiKey } from "@/hooks/useApiKeySettings";
+import ImportWizard from "@/components/settings/ImportWizard";
 import SubcategoryManager from "@/components/settings/SubcategoryManager";
 import { useTheme } from "@/hooks/useTheme";
 import { apiFetchBlob } from "@/api";
@@ -512,6 +513,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
+
+      <ImportWizard />
 
       {/* Delete Account */}
       <DeleteAccountSection />
