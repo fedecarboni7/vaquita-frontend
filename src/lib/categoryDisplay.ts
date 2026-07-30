@@ -7,7 +7,13 @@ const FALLBACK_PALETTE = [
   "#c2620e",
   "#2d6a4f",
   "#8a8a84",
+  "#0d9488",
+  "#be185d",
+  "#ca8a04",
+  "#0891b2",
 ];
+
+export { FALLBACK_PALETTE as CATEGORY_COLORS };
 
 function hashString(str: string): number {
   let hash = 0;

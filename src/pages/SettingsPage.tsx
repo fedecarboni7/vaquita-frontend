@@ -3,7 +3,6 @@ import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
-import { HexColorPicker } from "react-colorful";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -29,7 +28,7 @@ import ImportWizard from "@/components/settings/ImportWizard";
 import SubcategoryManager from "@/components/settings/SubcategoryManager";
 import { useTheme } from "@/hooks/useTheme";
 import { apiFetchBlob } from "@/api";
-import { getCategoryColor, getCategoryEmoji } from "@/lib/categoryDisplay";
+import { CATEGORY_COLORS, getCategoryColor, getCategoryEmoji } from "@/lib/categoryDisplay";
 import type { Category } from "@/types/transaction";
 import type { ApiKeyProvider } from "@/types/settings";
 
@@ -238,7 +237,18 @@ export default function SettingsPage() {
             />
           </PopoverTrigger>
           <PopoverContent className="w-auto p-3">
-            <HexColorPicker color={catColor} onChange={(color) => handleColorChange(category, color)} />
+            <div className="flex flex-wrap gap-1 max-w-[164px]">
+              {CATEGORY_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => handleColorChange(category, c)}
+                  className="w-5 h-5 rounded-full border border-border/50 transition-transform hover:scale-125 focus:scale-125"
+                  style={{ background: c }}
+                  aria-label={c}
+                />
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => handleColorChange(category, "")}
@@ -534,7 +544,18 @@ export default function SettingsPage() {
                 />
               </PopoverTrigger>
               <PopoverContent className="w-auto p-3">
-                <HexColorPicker color={newCatColor ?? "#8a8a84"} onChange={setNewCatColor} />
+                <div className="flex flex-wrap gap-1 max-w-[164px]">
+                  {CATEGORY_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setNewCatColor(c)}
+                      className="w-5 h-5 rounded-full border border-border/50 transition-transform hover:scale-125 focus:scale-125"
+                      style={{ background: c }}
+                      aria-label={c}
+                    />
+                  ))}
+                </div>
                 <button
                   type="button"
                   onClick={() => setNewCatColor(null)}
