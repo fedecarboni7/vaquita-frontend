@@ -70,6 +70,8 @@ export interface Category {
   id: string;
   name: string;
   type: string;
+  emoji: string | null;
+  color: string | null;
   created_at: string;
   subcategories: Subcategory[];
 }

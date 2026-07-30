@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -6,10 +7,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn, formatCurrencyAmount, getWeakCurrencyExchangeRateFromAmounts } from "@/lib/utils";
+import { getCategoryColor, getCategoryEmoji } from "@/lib/categoryDisplay";
 import { Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import TransactionRow from "./TransactionRow";
-import type { Transaction } from "@/types/transaction";
+import type { Category, Transaction } from "@/types/transaction";
 
 function getDateLabel(dateIso: string): string {
   const [year, month, day] = dateIso.split("-").map(Number);
@@ -17,22 +19,11 @@ function getDateLabel(dateIso: string): string {
   return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
 }
 
-function getCategoryTagClass(category: string | null): string {
-  if (!category) return "tag-home";
-  const norm = category.toLowerCase();
-  if (norm.includes("comida") || norm.includes("aliment") || norm.includes("super")) return "tag-food";
-  if (norm.includes("transporte") || norm.includes("viaje") || norm.includes("auto")) return "tag-transport";
-  if (norm.includes("servicios") || norm.includes("internet") || norm.includes("luz") || norm.includes("gas") || norm.includes("agua")) return "tag-services";
-  if (norm.includes("salud") || norm.includes("farmacia") || norm.includes("doctor") || norm.includes("médic") || norm.includes("medic")) return "tag-health";
-  if (norm.includes("ocio") || norm.includes("entretenimiento") || norm.includes("salida") || norm.includes("juego")) return "tag-leisure";
-  if (norm.includes("sueldo") || norm.includes("salario") || norm.includes("ingreso")) return "tag-salary";
-  return "tag-home";
-}
-
 interface Props {
   transactions: Transaction[];
   balancesVisible: boolean;
   hasMore: boolean;
+  categories: Category[];
   onLoadMore: () => void;
   onSelect: (t: Transaction) => void;
   onEdit: (t: Transaction) => void;
@@ -43,12 +34,18 @@ export default function MonthSection({
   transactions,
   balancesVisible,
   hasMore,
+  categories,
   onLoadMore,
   onSelect,
   onEdit,
   onDelete,
 }: Props) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  const categoryMap = useMemo(
+    () => new Map(categories.map((c) => [c.id, c])),
+    [categories],
+  );
 
   return (
     <section>
@@ -71,6 +68,7 @@ export default function MonthSection({
                   key={t.id}
                   transaction={t}
                   balancesVisible={balancesVisible}
+                  categoryData={t.category_id ? categoryMap.get(t.category_id) : undefined}
                   onSelect={onSelect}
                   onEdit={onEdit}
                   onDelete={onDelete}
@@ -177,10 +175,18 @@ export default function MonthSection({
                   </div>
                 ) : (
                   <div className="mt-2 flex items-center gap-2 flex-wrap min-w-0">
-                    {categoryLabel && (
-                      <span className={`tag ${getCategoryTagClass(categoryLabel)}`}>
-                        {categoryLabel}
-                      </span>
+                    {categoryLabel && t.category_id && categoryMap.get(t.category_id) && (
+                      (() => {
+                        const cat = categoryMap.get(t.category_id)!;
+                        return (
+                          <span
+                            className="category-badge inline-block px-2 py-0.5 rounded text-[11px] font-medium"
+                            style={{ backgroundColor: getCategoryColor(cat) + "1a", color: getCategoryColor(cat) }}
+                          >
+                            {getCategoryEmoji(cat)} {categoryLabel}
+                          </span>
+                        );
+                      })()
                     )}
                     <span className="text-xs text-muted-foreground truncate max-w-full">
                       {t.account}

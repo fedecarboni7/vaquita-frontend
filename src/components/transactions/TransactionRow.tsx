@@ -6,31 +6,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn, formatCurrencyAmount, getWeakCurrencyExchangeRateFromAmounts } from "@/lib/utils";
-import type { Transaction } from "@/types/transaction";
+import { getCategoryColor, getCategoryEmoji } from "@/lib/categoryDisplay";
+import type { Category, Transaction } from "@/types/transaction";
 
 interface Props {
   transaction: Transaction;
   balancesVisible: boolean;
+  categoryData: Category | null | undefined;
   onSelect: (t: Transaction) => void;
   onEdit: (t: Transaction) => void;
   onDelete: (t: Transaction) => void;
 }
 
-function getCategoryTagClass(category: string | null): string {
-  if (!category) return "tag-home";
-  const norm = category.toLowerCase();
-  if (norm.includes("comida") || norm.includes("aliment") || norm.includes("super")) return "tag-food";
-  if (norm.includes("transporte") || norm.includes("viaje") || norm.includes("auto")) return "tag-transport";
-  if (norm.includes("servicios") || norm.includes("internet") || norm.includes("luz") || norm.includes("gas") || norm.includes("agua")) return "tag-services";
-  if (norm.includes("salud") || norm.includes("farmacia") || norm.includes("doctor") || norm.includes("médic") || norm.includes("medic")) return "tag-health";
-  if (norm.includes("ocio") || norm.includes("entretenimiento") || norm.includes("salida") || norm.includes("juego")) return "tag-leisure";
-  if (norm.includes("sueldo") || norm.includes("salario") || norm.includes("ingreso")) return "tag-salary";
-  return "tag-home";
-}
-
 export default function TransactionRow({
   transaction,
   balancesVisible,
+  categoryData,
   onSelect,
   onEdit,
   onDelete,
@@ -65,9 +56,12 @@ export default function TransactionRow({
         )}
       </td>
       <td>
-        {categoryLabel && (
-          <span className={`tag ${getCategoryTagClass(categoryLabel)}`}>
-            {categoryLabel}
+        {categoryLabel && categoryData && (
+          <span
+            className="category-badge inline-block px-2 py-0.5 rounded text-[11px] font-medium"
+            style={{ backgroundColor: getCategoryColor(categoryData) + "1a", color: getCategoryColor(categoryData) }}
+          >
+            {getCategoryEmoji(categoryData)} {categoryLabel}
           </span>
         )}
       </td>

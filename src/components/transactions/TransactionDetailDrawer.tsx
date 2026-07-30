@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/drawer";
 import { formatCurrencyAmount, getWeakCurrencyExchangeRateFromAmounts } from "@/lib/utils";
 import { getReceiptUrl } from "@/hooks/useTransactions";
+import { useCategories } from "@/hooks/useCategories";
+import { getCategoryColor, getCategoryEmoji } from "@/lib/categoryDisplay";
 import type { Transaction } from "@/types/transaction";
 
 interface Props {
@@ -54,6 +56,7 @@ function DetailContent({
   onDelete: () => void;
 }) {
   const [isViewingReceipt, setIsViewingReceipt] = useState(false);
+  const { data: categories = [] } = useCategories();
   const exchangeRate = getWeakCurrencyExchangeRateFromAmounts(
     transaction.amount,
     transaction.to_amount,
@@ -82,7 +85,6 @@ function DetailContent({
       value: exchangeRate ? formatCurrencyAmount(exchangeRate.amount, exchangeRate.currency) : null,
     },
     { label: "Descripción", value: transaction.description },
-    { label: "Categoría", value: transaction.category_name ?? transaction.category },
     { label: "Subcategoría", value: transaction.subcategory_name },
     { label: "Cuenta", value: transaction.account },
     { label: "Cuenta destino", value: transaction.account_destination },
@@ -114,6 +116,11 @@ function DetailContent({
     }
   };
 
+  const categoryLabel = transaction.category_name ?? transaction.category;
+  const categoryData = transaction.category_id
+    ? categories.find((c) => c.id === transaction.category_id)
+    : null;
+
   return (
     <div className="flex flex-col gap-4">
       <div className="space-y-3">
@@ -125,6 +132,21 @@ function DetailContent({
               <p className="text-sm font-medium">{r.value}</p>
             </div>
           ))}
+        {categoryLabel && (
+          <div>
+            <p className="text-xs text-muted-foreground">Categoría</p>
+            {categoryData ? (
+              <span
+                className="category-badge inline-block px-2 py-0.5 rounded text-[12px] font-medium"
+                style={{ backgroundColor: getCategoryColor(categoryData) + "1a", color: getCategoryColor(categoryData) }}
+              >
+                {getCategoryEmoji(categoryData)} {categoryLabel}
+              </span>
+            ) : (
+              <p className="text-sm font-medium">{categoryLabel}</p>
+            )}
+          </div>
+        )}
       </div>
       {transaction.receipt_url && (
         <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">

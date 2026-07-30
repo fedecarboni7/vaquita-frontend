@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getCategoryColor } from "@/lib/categoryDisplay";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +63,11 @@ export default function SubcategoryManager({ categories, loadingCategories }: Pr
     }
     return sortedCategories[0]?.id ?? "";
   }, [selectedCategoryId, sortedCategories]);
+
+  const parentCategory = useMemo(
+    () => sortedCategories.find((c) => c.id === effectiveCategoryId) ?? null,
+    [sortedCategories, effectiveCategoryId],
+  );
 
   const { data: subcategories = [], isLoading: loadingSubcategories } = useSubcategories(
     effectiveCategoryId || null,
@@ -177,8 +183,14 @@ export default function SubcategoryManager({ categories, loadingCategories }: Pr
                 return (
                   <div
                     key={subcategory.id}
-                    className="group inline-flex items-center gap-2 px-2.5 py-1 rounded-full border border-border text-xs"
+                    className="group inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full border border-border text-xs"
                   >
+                    {parentCategory && (
+                      <span
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ background: getCategoryColor(parentCategory) }}
+                      />
+                    )}
                     {isEditing ? (
                       <input
                         type="text"
