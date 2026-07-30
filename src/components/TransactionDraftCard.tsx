@@ -9,6 +9,7 @@ import {
   sanitizeAmountInput,
 } from "@/lib/amountInput";
 import { formatCurrencyAmount } from "@/lib/utils";
+import AmountInput from "@/components/ui/AmountInput";
 import type { Category, TransactionType } from "@/types/transaction";
 
 interface Props {
@@ -406,20 +407,19 @@ const handleFieldChange = (field: string, value: string) => {
         {renderRow(
           FIELD_LABELS.amount,
           isEditing ? (
-            <input
-              type="text"
-              inputMode="decimal"
+            <AmountInput
               value={displayAmount}
               onChange={(event) => {
-                const sanitized = sanitizeAmountInput(event.target.value);
+                const rawValue = event.target.value.replace(/\./g, "");
+                const sanitized = sanitizeAmountInput(rawValue);
                 handleFieldChange("amount", sanitized);
-                setDisplayAmount(sanitized);
+                setDisplayAmount(formatAmountForDisplay(sanitized));
               }}
-              onBlur={() => {
-                const rawValue = String(editData.amount ?? "");
-                setDisplayAmount(formatAmountForDisplay(rawValue));
+              onValueChange={(rawValue) => {
+                const sanitized = sanitizeAmountInput(rawValue.replace(/\./g, ","));
+                handleFieldChange("amount", sanitized);
+                setDisplayAmount(formatAmountForDisplay(sanitized));
               }}
-              onFocus={() => setDisplayAmount(String(editData.amount ?? ""))}
               className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
               placeholder="0,00"
             />
@@ -434,20 +434,19 @@ const handleFieldChange = (field: string, value: string) => {
           renderRow(
             FIELD_LABELS.to_amount,
             isEditing ? (
-              <input
-                type="text"
-                inputMode="decimal"
+              <AmountInput
                 value={displayToAmount}
                 onChange={(event) => {
-                  const sanitized = sanitizeAmountInput(event.target.value);
+                  const rawValue = event.target.value.replace(/\./g, "");
+                  const sanitized = sanitizeAmountInput(rawValue);
                   handleFieldChange("to_amount", sanitized);
-                  setDisplayToAmount(sanitized);
+                  setDisplayToAmount(formatAmountForDisplay(sanitized));
                 }}
-                onBlur={() => {
-                  const rawValue = editData.to_amount == null ? "" : String(editData.to_amount);
-                  setDisplayToAmount(formatAmountForDisplay(rawValue));
+                onValueChange={(rawValue) => {
+                  const sanitized = sanitizeAmountInput(rawValue.replace(/\./g, ","));
+                  handleFieldChange("to_amount", sanitized);
+                  setDisplayToAmount(formatAmountForDisplay(sanitized));
                 }}
-                onFocus={() => setDisplayToAmount(editData.to_amount == null ? "" : String(editData.to_amount))}
                 className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
                 placeholder="0,00"
               />

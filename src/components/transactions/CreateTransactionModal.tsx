@@ -24,6 +24,7 @@ import {
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
 import {
+  formatAmountForDisplay,
   parseAmountForSubmission,
   sanitizeAmountInput,
 } from "@/lib/amountInput";
@@ -449,14 +450,15 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
               <AmountInput
                 value={displayAmount}
                 onChange={(e) => {
-                  const sanitized = sanitizeAmountInput(e.target.value);
+                  const rawValue = e.target.value.replace(/\./g, "");
+                  const sanitized = sanitizeAmountInput(rawValue);
                   setAmount(sanitized);
-                  setDisplayAmount(sanitized);
+                  setDisplayAmount(formatAmountForDisplay(sanitized));
                 }}
                 onValueChange={(rawValue) => {
                   const sanitized = sanitizeAmountInput(rawValue.replace(/\./g, ","));
                   setAmount(sanitized);
-                  setDisplayAmount(sanitized);
+                  setDisplayAmount(formatAmountForDisplay(sanitized));
                 }}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pr-12 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 placeholder="0,00"
@@ -528,14 +530,15 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
                 <AmountInput
                   value={displayToAmount}
                   onChange={(e) => {
-                    const sanitized = sanitizeAmountInput(e.target.value);
+                    const rawValue = e.target.value.replace(/\./g, "");
+                    const sanitized = sanitizeAmountInput(rawValue);
                     setToAmountInput(sanitized);
-                    setDisplayToAmount(sanitized);
+                    setDisplayToAmount(formatAmountForDisplay(sanitized));
                   }}
                   onValueChange={(rawValue) => {
                     const sanitized = sanitizeAmountInput(rawValue.replace(/\./g, ","));
                     setToAmountInput(sanitized);
-                    setDisplayToAmount(sanitized);
+                    setDisplayToAmount(formatAmountForDisplay(sanitized));
                   }}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pr-12 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   placeholder="0,00"

@@ -121,15 +121,3 @@ export function parseAmountForSubmission(sanitizedValue: string): number | null 
   const parsed = Number.parseFloat(withPeriodInsteadOfComma);
   return Number.isFinite(parsed) ? parsed : null;
 }
-
-export function normalizeArAmountInput(rawValue: string): string {
-  return sanitizeAmountInput(rawValue);
-}
-
-export function formatArAmountInput(normalizedValue: string): string {
-  return formatAmountForDisplay(normalizedValue);
-}
-
-export function parseNormalizedAmount(normalizedValue: string): number | null {
-  return parseAmountForSubmission(normalizedValue);
-}

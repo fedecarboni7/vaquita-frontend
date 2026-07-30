@@ -39,6 +39,12 @@ import {
 } from "@/hooks/useAccounts";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
+import {
+  formatAmountForDisplay,
+  sanitizeAmountInput,
+} from "@/lib/amountInput";
+import { formatCurrencyAmount } from "@/lib/utils";
+import AmountInput from "@/components/ui/AmountInput";
 import type { Account, AccountTypeCode, CurrencyCode } from "@/types/transaction";
 
 const CARD_ACCENTS = ["bg-emerald-500", "bg-sky-500", "bg-amber-500", "bg-rose-500", "bg-teal-500"];
@@ -68,14 +74,6 @@ type MobileSortOption = {
   sortKey: AccountSortKey;
   sortDirection: SortDirection;
 };
-
-function formatMoney(amount: number, currency: CurrencyCode): string {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
 
 function parseLocalDate(iso: string): Date {
   const [year, month, day] = iso.split("-").map(Number);
@@ -174,6 +172,8 @@ export default function AccountsPage() {
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [paymentCard, setPaymentCard] = useState<Account | null>(null);
   const [adjustBalance, setAdjustBalance] = useState("");
+  const [displayAdjustBalance, setDisplayAdjustBalance] = useState("");
+  const [isNegativeAdjust, setIsNegativeAdjust] = useState(false);
   const [adjustAffectsBalance, setAdjustAffectsBalance] = useState(false);
   const [viewMode, setViewMode] = useState<AccountViewMode>(() => {
     if (typeof window === "undefined") {
@@ -378,7 +378,13 @@ export default function AccountsPage() {
 
   const openAdjust = (account: Account) => {
     setAdjustTarget(account);
-    setAdjustBalance(account.balance.toFixed(2));
+    const rawInitial = String(account.balance.toFixed(2));
+    const isNeg = rawInitial.startsWith("-");
+    const cleanInitial = isNeg ? rawInitial.slice(1) : rawInitial;
+    const sanitizedInitial = sanitizeAmountInput(cleanInitial.replace(".", ","));
+    setAdjustBalance(sanitizedInitial);
+    setIsNegativeAdjust(isNeg);
+    setDisplayAdjustBalance((isNeg ? "-" : "") + formatAmountForDisplay(sanitizedInitial));
     setAdjustAffectsBalance(false);
     setAdjustOpen(true);
   };
@@ -414,11 +420,12 @@ export default function AccountsPage() {
 
     const parsedBalance = parseBalanceInput(adjustBalance);
     if (parsedBalance == null) return;
+    const signedBalance = isNegativeAdjust ? -parsedBalance : parsedBalance;
 
     adjustMutation.mutate(
       {
         id: adjustTarget.id,
-        balance: parsedBalance,
+        balance: signedBalance,
         affects_balance: adjustAffectsBalance,
       },
       {
@@ -431,7 +438,10 @@ export default function AccountsPage() {
     );
   };
 
-  const parsedAdjustBalance = parseBalanceInput(adjustBalance);
+  const parsedAdjustBalance = (() => {
+    const parsed = parseBalanceInput(adjustBalance);
+    return parsed != null ? (isNegativeAdjust ? -parsed : parsed) : null;
+  })();
 
   const renderAccountActions = (account: Account) => (
     <div className="flex items-center gap-1">
@@ -506,15 +516,15 @@ export default function AccountsPage() {
                   Resumen actual
                 </div>
                 <div className="font-serif text-[29px] tracking-[-0.6px] leading-none mb-2">
-                  {summaryAmount != null ? (balancesVisible ? formatMoney(summaryAmount, account.currency) : "••••••") : "-"}
+                  {summaryAmount != null ? (balancesVisible ? formatCurrencyAmount(summaryAmount, account.currency) : "••••••") : "-"}
                 </div>
                 <div className="text-[11.5px] text-muted-foreground/80 mb-1">
-                  Saldo histórico: {balancesVisible ? formatMoney(account.balance, account.currency) : "••••••"}
+                  Saldo histórico: {balancesVisible ? formatCurrencyAmount(account.balance, account.currency) : "••••••"}
                 </div>
               </>
             ) : (
               <div className="font-serif text-[29px] tracking-[-0.6px] leading-none mb-2">
-                {balancesVisible ? formatMoney(account.balance, account.currency) : "••••••"}
+                {balancesVisible ? formatCurrencyAmount(account.balance, account.currency) : "••••••"}
               </div>
             )}
             <div className="text-[12px] text-muted-foreground mb-1">
@@ -562,7 +572,7 @@ export default function AccountsPage() {
         <TableCell className="font-medium">{account.name}</TableCell>
         <TableCell>{ACCOUNT_TYPE_LABELS[account.account_type]}</TableCell>
         <TableCell>{account.currency}</TableCell>
-        <TableCell>{summaryAmount != null ? (balancesVisible ? formatMoney(summaryAmount, account.currency) : "••••••") : "-"}</TableCell>
+        <TableCell>{summaryAmount != null ? (balancesVisible ? formatCurrencyAmount(summaryAmount, account.currency) : "••••••") : "-"}</TableCell>
         <TableCell className="hidden md:table-cell">
           {account.account_type === "credit_card" ? formatBillingPeriod(account.billing_period_start, account.billing_period_end) : "—"}
         </TableCell>
@@ -628,7 +638,7 @@ export default function AccountsPage() {
               Total {currency}
             </div>
             <div className="font-serif text-[28px] tracking-[-0.5px] leading-none">
-              {balancesVisible ? formatMoney(total, currency) : "••••••"}
+              {balancesVisible ? formatCurrencyAmount(total, currency) : "••••••"}
             </div>
             <div className="text-[11.5px] mt-2 text-muted-foreground">
               {count} cuenta(s)
@@ -748,7 +758,7 @@ export default function AccountsPage() {
                           const summaryAmount = getVisibleAccountAmount(account);
                           if (!balancesVisible) return "••••••";
                           return summaryAmount != null
-                            ? formatMoney(summaryAmount, account.currency)
+                            ? formatCurrencyAmount(summaryAmount, account.currency)
                             : "-";
                         })()}
                       </div>
@@ -1121,19 +1131,36 @@ export default function AccountsPage() {
               Cuenta: <span className="text-foreground">{adjustTarget?.name}</span>
             </div>
             <div className="text-sm text-muted-foreground mb-4">
-              Saldo calculado: {adjustTarget ? (balancesVisible ? formatMoney(adjustTarget.balance, adjustTarget.currency) : "••••••") : "-"}
+              Saldo calculado: {adjustTarget ? (balancesVisible ? formatCurrencyAmount(adjustTarget.balance, adjustTarget.currency) : "••••••") : "-"}
             </div>
             <div className="mb-4">
               <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
                 Saldo real actual
               </label>
-              <input
-                type="number"
-                step="0.01"
-                value={adjustBalance}
-                onChange={(event) => setAdjustBalance(event.target.value)}
+              <AmountInput
+                value={displayAdjustBalance}
+                onChange={(event) => {
+                  const rawValue = event.target.value.replace(/\./g, "");
+                  const hasMinus = rawValue.startsWith("-");
+                  const cleanValue = hasMinus ? rawValue.slice(1) : rawValue;
+                  const sanitized = sanitizeAmountInput(cleanValue);
+                  setAdjustBalance(sanitized);
+                  setIsNegativeAdjust(hasMinus);
+                  setDisplayAdjustBalance(
+                    (hasMinus ? "-" : "") + formatAmountForDisplay(sanitized),
+                  );
+                }}
+                onValueChange={(rawValue) => {
+                  const isNeg = rawValue.startsWith("-");
+                  const cleanValue = isNeg ? rawValue.slice(1) : rawValue;
+                  const sanitized = sanitizeAmountInput(cleanValue.replace(/\./g, ","));
+                  setAdjustBalance(sanitized);
+                  setIsNegativeAdjust(isNeg);
+                  setDisplayAdjustBalance(
+                    (isNeg ? "-" : "") + formatAmountForDisplay(sanitized),
+                  );
+                }}
                 className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
-                autoFocus
               />
             </div>
             <div className="mb-4 rounded-lg border border-border bg-card px-3 py-2.5">

@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/api";
 import { toast } from "sonner";
+import {
+  formatAmountForDisplay,
+  parseAmountForSubmission,
+  sanitizeAmountInput,
+} from "@/lib/amountInput";
+import AmountInput from "@/components/ui/AmountInput";
 import type { Account, CurrencyCode } from "@/types/transaction";
 
 interface CreditCardPaymentModalProps {
@@ -23,6 +29,7 @@ export default function CreditCardPaymentModal({
   const queryClient = useQueryClient();
   const [sourceAccountId, setSourceAccountId] = useState<string>("");
   const [amount, setAmount] = useState("");
+  const [displayAmount, setDisplayAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const sourceAccounts = useMemo(() =>
@@ -36,7 +43,9 @@ export default function CreditCardPaymentModal({
 
   useEffect(() => {
     if (open && creditCard) {
-      setAmount(Math.abs(creditCard.balance).toFixed(2));
+      const initialRaw = String(Math.abs(creditCard.balance).toFixed(2)).replace(".", ",");
+      setAmount(initialRaw);
+      setDisplayAmount(formatAmountForDisplay(initialRaw));
       setSourceAccountId(sourceAccounts.length === 1 ? sourceAccounts[0].id : "");
     }
   }, [open, creditCard, sourceAccounts]);
@@ -45,8 +54,8 @@ export default function CreditCardPaymentModal({
     e.preventDefault();
     if (!creditCard || !sourceAccountId) return;
 
-    const parsedAmount = Number.parseFloat(amount.replace(",", "."));
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return;
+    const parsedAmount = parseAmountForSubmission(amount);
+    if (parsedAmount == null || parsedAmount <= 0) return;
 
     setIsSubmitting(true);
     try {
@@ -131,15 +140,21 @@ export default function CreditCardPaymentModal({
               <label className="block text-[11.5px] text-muted-foreground font-mono tracking-wide uppercase mb-1.5">
                 Monto
               </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+              <AmountInput
+                value={displayAmount}
+                onChange={(e) => {
+                  const rawValue = e.target.value.replace(/\./g, "");
+                  const sanitized = sanitizeAmountInput(rawValue);
+                  setAmount(sanitized);
+                  setDisplayAmount(formatAmountForDisplay(sanitized));
+                }}
+                onValueChange={(rawValue) => {
+                  const sanitized = sanitizeAmountInput(rawValue.replace(/\./g, ","));
+                  setAmount(sanitized);
+                  setDisplayAmount(formatAmountForDisplay(sanitized));
+                }}
                 className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none transition-colors focus:border-muted-foreground"
-                required
-                autoFocus
+                placeholder="0,00"
               />
             </div>
           </div>
