@@ -10,6 +10,7 @@ import {
 } from "@/lib/amountInput";
 import { formatCurrencyAmount } from "@/lib/utils";
 import AmountInput from "@/components/ui/AmountInput";
+import { getCategoryEmoji } from "@/lib/categoryDisplay";
 import type { Category, TransactionType } from "@/types/transaction";
 
 interface Props {
@@ -542,7 +543,7 @@ const handleFieldChange = (field: string, value: string) => {
                 <option value="">Sin categoría</option>
                 {categoriesForType.map((category: Category) => (
                   <option key={category.id} value={category.name}>
-                    {category.name}
+                    {getCategoryEmoji(category)} {category.name}
                   </option>
                 ))}
               </select>
@@ -566,7 +567,7 @@ const handleFieldChange = (field: string, value: string) => {
                 <option value="">Sin subcategoría</option>
                 {availableSubcategories.map((subcategory) => (
                   <option key={subcategory.id} value={subcategory.id}>
-                    {subcategory.name}
+                    {selectedCategory ? getCategoryEmoji(selectedCategory) : ""} {subcategory.name}
                   </option>
                 ))}
               </select>

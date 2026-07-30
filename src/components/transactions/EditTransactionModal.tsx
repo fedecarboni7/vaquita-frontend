@@ -23,6 +23,7 @@ import {
   parseAmountForSubmission,
   sanitizeAmountInput,
 } from "@/lib/amountInput";
+import { getCategoryEmoji } from "@/lib/categoryDisplay";
 import type { Transaction, TransactionType } from "@/types/transaction";
 import AmountInput from "@/components/ui/AmountInput";
 import ReceiptUploader from "./ReceiptUploader";
@@ -457,14 +458,14 @@ export default function EditTransactionModal({
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Sin categoría">
-                      {safeCategoryValue === "__none__" ? "Sin categoría" : selectedCategory?.name}
+                      {safeCategoryValue === "__none__" ? "Sin categoría" : selectedCategory ? `${getCategoryEmoji(selectedCategory)} ${selectedCategory.name}` : ""}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Sin categoría</SelectItem>
                     {categoriesForType.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.name}
+                        {getCategoryEmoji(c)} {c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -482,14 +483,18 @@ export default function EditTransactionModal({
                     <SelectValue placeholder="Sin subcategoría">
                       {safeSubcategoryValue === "__none__"
                         ? "Sin subcategoría"
-                        : availableSubcategories.find((item) => item.id === safeSubcategoryValue)?.name}
+                        : (() => {
+                            const sub = availableSubcategories.find((item) => item.id === safeSubcategoryValue);
+                            const parentEmoji = selectedCategory ? getCategoryEmoji(selectedCategory) : "";
+                            return sub ? `${parentEmoji} ${sub.name}` : "";
+                          })()}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Sin subcategoría</SelectItem>
                     {availableSubcategories.map((subcategory) => (
                       <SelectItem key={subcategory.id} value={subcategory.id}>
-                        {subcategory.name}
+                        {selectedCategory ? getCategoryEmoji(selectedCategory) : ""} {subcategory.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

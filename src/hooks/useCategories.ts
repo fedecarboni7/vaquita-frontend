@@ -13,7 +13,7 @@ export function useCategories() {
 export function useCreateCategory() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; type: "expense" | "income" }) =>
+    mutationFn: (data: { name: string; type: "expense" | "income"; emoji?: string | null; color?: string | null }) =>
       apiFetch<Category>("/categories", {
         method: "POST",
         body: JSON.stringify(data),
@@ -42,10 +42,10 @@ export function useDeleteCategory() {
 export function useUpdateCategory() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) =>
+    mutationFn: ({ id, name, emoji, color }: { id: string; name?: string; emoji?: string | null; color?: string | null }) =>
       apiFetch<Category>(`/categories/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ ...(name !== undefined && { name }), ...(emoji !== undefined && { emoji }), ...(color !== undefined && { color }) }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });

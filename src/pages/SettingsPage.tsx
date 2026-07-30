@@ -5,6 +5,7 @@ import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { DeleteAccountSection } from "@/components/settings/DeleteAccountSection";
 import {
   AlertDialog,
@@ -27,22 +28,9 @@ import ImportWizard from "@/components/settings/ImportWizard";
 import SubcategoryManager from "@/components/settings/SubcategoryManager";
 import { useTheme } from "@/hooks/useTheme";
 import { apiFetchBlob } from "@/api";
+import { CATEGORY_COLORS, getCategoryColor, getCategoryEmoji } from "@/lib/categoryDisplay";
 import type { Category } from "@/types/transaction";
 import type { ApiKeyProvider } from "@/types/settings";
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Comida: "#c06a2b",
-  Transporte: "#2563a8",
-  Servicios: "#6d28d9",
-  Salud: "#b91c1c",
-  Ocio: "#9333ea",
-  Hogar: "#c2620e",
-};
-
-function getCategoryColor(name: string, type: string): string {
-  if (type === "income") return "var(--accent, #2d6a4f)";
-  return CATEGORY_COLORS[name] || "#8a8a84";
-}
 
 export default function SettingsPage() {
   const { data: categories = [], isLoading: categoriesLoading } = useCategories();
@@ -56,11 +44,16 @@ export default function SettingsPage() {
 
   const [newCatName, setNewCatName] = useState("");
   const [newCatType, setNewCatType] = useState<"expense" | "income">("expense");
+  const [newCatEmoji, setNewCatEmoji] = useState("");
+  const [newCatColor, setNewCatColor] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editingCategoryValue, setEditingCategoryValue] = useState("");
   const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null);
   const ignoreCategoryBlurRef = useRef(false);
+  const [editingEmojiId, setEditingEmojiId] = useState<string | null>(null);
+  const [editingEmojiValue, setEditingEmojiValue] = useState("");
+  const ignoreEmojiBlurRef = useRef(false);
   const [provider, setProvider] = useState<ApiKeyProvider>("google");
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [isExportingCsv, setIsExportingCsv] = useState(false);
@@ -108,19 +101,93 @@ export default function SettingsPage() {
     }
   };
 
+  const commitEmojiEdit = async (category: Category) => {
+    if (savingCategoryId === category.id) return;
+
+    const trimmed = editingEmojiValue.trim();
+    if (trimmed === (category.emoji ?? "")) {
+      setEditingEmojiId(null);
+      setEditingEmojiValue("");
+      return;
+    }
+
+    setSavingCategoryId(category.id);
+    try {
+      await updateCategory.mutateAsync({ id: category.id, emoji: trimmed || null });
+      setEditingEmojiId(null);
+      setEditingEmojiValue("");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo actualizar el emoji";
+      toast.error(message);
+    } finally {
+      setSavingCategoryId(null);
+    }
+  };
+
+  const handleColorChange = async (category: Category, color: string) => {
+    setSavingCategoryId(category.id);
+    try {
+      await updateCategory.mutateAsync({ id: category.id, color });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo actualizar el color";
+      toast.error(message);
+    } finally {
+      setSavingCategoryId(null);
+    }
+  };
+
   const renderCategoryChip = (category: Category) => {
     const isEditing = editingCategoryId === category.id;
+    const isEditingEmoji = editingEmojiId === category.id;
     const isSaving = savingCategoryId === category.id;
+    const catColor = getCategoryColor(category);
 
     return (
       <div
         key={category.id}
-        className="group flex items-center gap-1.5 px-3 py-1 rounded-full border border-border bg-card text-[12.5px] transition-colors hover:border-muted-foreground/40"
+        className="group flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full border border-border bg-card text-[12.5px] transition-colors hover:border-muted-foreground/40"
       >
-        <div
-          className="w-2 h-2 rounded-full flex-shrink-0"
-          style={{ background: getCategoryColor(category.name, category.type) }}
-        />
+        {isEditingEmoji ? (
+          <input
+            type="text"
+            value={editingEmojiValue}
+            onChange={(event) => setEditingEmojiValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === "Tab") {
+                event.preventDefault();
+                ignoreEmojiBlurRef.current = true;
+                void commitEmojiEdit(category);
+              }
+              if (event.key === "Escape") {
+                event.preventDefault();
+                ignoreEmojiBlurRef.current = true;
+                setEditingEmojiId(null);
+                setEditingEmojiValue("");
+              }
+            }}
+            onBlur={() => {
+              if (ignoreEmojiBlurRef.current) {
+                ignoreEmojiBlurRef.current = false;
+                return;
+              }
+              void commitEmojiEdit(category);
+            }}
+            disabled={isSaving}
+            autoFocus
+            maxLength={8}
+            className="w-7 bg-transparent text-[12.5px] outline-none text-center"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => { setEditingEmojiId(category.id); setEditingEmojiValue(category.emoji ?? ""); }}
+            className="w-7 h-5 flex items-center justify-center text-[12.5px] rounded-full transition-colors hover:bg-muted"
+            title="Editar emoji"
+          >
+            {getCategoryEmoji(category)}
+          </button>
+        )}
+
         {isEditing ? (
           <input
             type="text"
@@ -132,7 +199,6 @@ export default function SettingsPage() {
                 ignoreCategoryBlurRef.current = true;
                 void commitCategoryEdit(category);
               }
-
               if (event.key === "Escape") {
                 event.preventDefault();
                 ignoreCategoryBlurRef.current = true;
@@ -159,11 +225,45 @@ export default function SettingsPage() {
             {category.name}
           </button>
         )}
+
+        <Popover>
+          <PopoverTrigger
+            className="p-0.5 rounded transition-opacity sm:opacity-0 sm:group-hover:opacity-100 opacity-100 hover:bg-muted"
+            disabled={isSaving}
+          >
+            <div
+              className="w-3.5 h-3.5 rounded-full border border-border/50"
+              style={{ background: catColor }}
+            />
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3">
+            <div className="flex flex-wrap gap-1 max-w-[164px]">
+              {CATEGORY_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => handleColorChange(category, c)}
+                  className="w-5 h-5 rounded-full border border-border/50 transition-transform hover:scale-125 focus:scale-125"
+                  style={{ background: c }}
+                  aria-label={c}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => handleColorChange(category, "")}
+              className="mt-2 w-full text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Quitar color
+            </button>
+          </PopoverContent>
+        </Popover>
+
         {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
         <button
           type="button"
           onClick={() => setDeleteTarget(category)}
-          disabled={isEditing || isSaving}
+          disabled={isEditing || isEditingEmoji || isSaving}
           className="text-muted-foreground/40 hover:text-destructive text-sm leading-none ml-0.5 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 disabled:opacity-30"
           aria-label={`Eliminar categoria ${category.name}`}
         >
@@ -189,8 +289,8 @@ export default function SettingsPage() {
     const trimmed = newCatName.trim();
     if (!trimmed) return;
     createCategory.mutate(
-      { name: trimmed, type: newCatType },
-      { onSuccess: () => { setNewCatName(""); } }
+      { name: trimmed, type: newCatType, emoji: newCatEmoji || null, color: newCatColor },
+      { onSuccess: () => { setNewCatName(""); setNewCatEmoji(""); setNewCatColor(null); } }
     );
   };
 
@@ -411,34 +511,76 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <form onSubmit={handleAddCategory} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <input
-            type="text"
-            value={newCatName}
-            onChange={(e) => setNewCatName(e.target.value)}
-            placeholder="Nueva categoría..."
-            className="w-full sm:max-w-[200px] px-3 py-2 border border-border rounded-lg bg-card text-sm outline-none transition-colors focus:border-muted-foreground"
-          />
-          <select
-            value={newCatType}
-            onChange={(e) => setNewCatType(e.target.value as "expense" | "income")}
-            className="w-full sm:w-auto px-3 py-2 border border-border rounded-lg bg-card text-sm outline-none cursor-pointer"
-          >
-            <option value="expense">Gasto</option>
-            <option value="income">Ingreso</option>
-          </select>
-          <Button
-            type="submit"
-            variant="outline"
-            size="sm"
-            disabled={!newCatName.trim() || createCategory.isPending}
-          >
-            {createCategory.isPending ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              "+ Agregar"
-            )}
-          </Button>
+        <form onSubmit={handleAddCategory} className="rounded-lg border border-border bg-card p-4 space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              type="text"
+              value={newCatName}
+              onChange={(e) => setNewCatName(e.target.value)}
+              placeholder="Nueva categoría..."
+              className="w-full sm:max-w-[200px] px-3 py-2 border border-border rounded-lg bg-card text-sm outline-none transition-colors focus:border-muted-foreground"
+            />
+            <select
+              value={newCatType}
+              onChange={(e) => setNewCatType(e.target.value as "expense" | "income")}
+              className="w-full sm:w-auto px-3 py-2 border border-border rounded-lg bg-card text-sm outline-none cursor-pointer"
+            >
+              <option value="expense">Gasto</option>
+              <option value="income">Ingreso</option>
+            </select>
+            <input
+              type="text"
+              value={newCatEmoji}
+              onChange={(e) => setNewCatEmoji(e.target.value)}
+              maxLength={8}
+              placeholder="🍔 Elegí un emoji"
+              className="w-full sm:w-28 px-3 py-2 border border-border rounded-lg bg-card text-sm outline-none transition-colors focus:border-muted-foreground text-center"
+            />
+            <Popover>
+              <PopoverTrigger className="p-2 border border-border rounded-lg hover:bg-muted transition-colors inline-flex items-center justify-center">
+                <div
+                  className="w-5 h-5 rounded-full border border-border/50"
+                  style={{ background: newCatColor ?? "#8a8a84" }}
+                />
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-3">
+                <div className="flex flex-wrap gap-1 max-w-[164px]">
+                  {CATEGORY_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setNewCatColor(c)}
+                      className="w-5 h-5 rounded-full border border-border/50 transition-transform hover:scale-125 focus:scale-125"
+                      style={{ background: c }}
+                      aria-label={c}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNewCatColor(null)}
+                  className="mt-2 w-full text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Usar color por defecto
+                </button>
+              </PopoverContent>
+            </Popover>
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              disabled={!newCatName.trim() || createCategory.isPending}
+            >
+              {createCategory.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                "+ Agregar"
+              )}
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Tip: usá el selector de emojis de tu teclado
+          </p>
         </form>
       </section>
 

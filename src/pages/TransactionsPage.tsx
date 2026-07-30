@@ -303,6 +303,7 @@ export default function TransactionsPage() {
               transactions={filteredTransactions}
               balancesVisible={balancesVisible}
               hasMore={hasMore && search === ""}
+              categories={categories}
               onLoadMore={handleLoadMore}
               onSelect={handleSelect}
               onEdit={handleEdit}

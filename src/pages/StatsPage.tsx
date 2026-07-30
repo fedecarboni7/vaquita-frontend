@@ -19,10 +19,12 @@ import type { ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStats } from "@/hooks/useStats";
+import { useCategories } from "@/hooks/useCategories";
 import { formatCurrencyAmount } from "@/lib/utils";
+import { getCategoryColor, getCategoryEmoji } from "@/lib/categoryDisplay";
 import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import type { StatsCategoryExpenseItem, StatsSubcategoryExpenseItem } from "@/types/stats";
-import type { CurrencyCode } from "@/types/transaction";
+import type { Category, CurrencyCode } from "@/types/transaction";
 
 const STATS_CURRENCY_PREFERENCE_KEY = "stats_currency_preference";
 
@@ -171,6 +173,7 @@ function StatsCharts({
   onSelectIncomeCategory,
   onClearIncomeCategory,
   currency,
+  categories,
 }: {
   expensesByCategory: StatsCategoryExpenseItem[];
   expensesBySubcategory: Record<string, StatsSubcategoryExpenseItem[]>;
@@ -189,7 +192,23 @@ function StatsCharts({
   onSelectIncomeCategory: (category: string) => void;
   onClearIncomeCategory: () => void;
   currency: CurrencyCode;
+  categories: Category[];
 }) {
+  const categoryNameMap = useMemo(
+    () => new Map(categories.map((c) => [c.name, c])),
+    [categories],
+  );
+
+  const getCategoryColorForName = (name: string, fallbackIndex: number): string => {
+    const cat = categoryNameMap.get(name);
+    return cat ? getCategoryColor(cat) : CHART_COLORS[fallbackIndex % CHART_COLORS.length];
+  };
+
+  const getCategoryEmojiForName = (name: string): string => {
+    const cat = categoryNameMap.get(name);
+    return cat ? getCategoryEmoji(cat) : "";
+  };
+
   const isSubcategoryView = selectedCategory !== null;
   const subcategoryData = selectedCategory
     ? expensesBySubcategory[selectedCategory] ?? []
@@ -267,18 +286,21 @@ function StatsCharts({
                     outerRadius="78%"
                     paddingAngle={2}
                   >
-                    {chartData.map((item, index) => (
-                      <Cell
-                        key={index}
-                        fill={CHART_COLORS[index % CHART_COLORS.length]}
-                        onClick={
-                          isSubcategoryView
-                            ? undefined
-                            : () => onSelectCategory((item as StatsCategoryExpenseItem).category_name)
-                        }
-                        className={isSubcategoryView ? undefined : "cursor-pointer"}
-                      />
-                    ))}
+                    {chartData.map((item, index) => {
+                      const catName = isSubcategoryView ? selectedCategory! : (item as StatsCategoryExpenseItem).category_name;
+                      return (
+                        <Cell
+                          key={index}
+                          fill={getCategoryColorForName(catName, index)}
+                          onClick={
+                            isSubcategoryView
+                              ? undefined
+                              : () => onSelectCategory((item as StatsCategoryExpenseItem).category_name)
+                          }
+                          className={isSubcategoryView ? undefined : "cursor-pointer"}
+                        />
+                      );
+                    })}
                   </Pie>
                 </PieChart>
                 </ResponsiveContainer>
@@ -289,7 +311,7 @@ function StatsCharts({
                       <div key={item.subcategory_name} className="flex items-start gap-2 text-xs">
                         <span
                           className="mt-1 inline-block h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                          style={{ backgroundColor: getCategoryColorForName(selectedCategory!, index) }}
                         />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium">{item.subcategory_name}</p>
@@ -311,10 +333,10 @@ function StatsCharts({
                       >
                         <span
                           className="mt-1 inline-block h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                          style={{ backgroundColor: getCategoryColorForName(item.category_name, index) }}
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium">{item.category_name}</p>
+                          <p className="truncate font-medium">{getCategoryEmojiForName(item.category_name)} {item.category_name}</p>
                           <p className="text-muted-foreground">
                             {formatCurrencyAmount(item.total, currency)} ({item.percentage.toLocaleString("es-AR", {
                               minimumFractionDigits: 1,
@@ -368,18 +390,21 @@ function StatsCharts({
                     outerRadius="78%"
                     paddingAngle={2}
                   >
-                    {incomeChartData.map((item, index) => (
-                      <Cell
-                        key={index}
-                        fill={CHART_COLORS[index % CHART_COLORS.length]}
-                        onClick={
-                          isIncomeSubcategoryView
-                            ? undefined
-                            : () => onSelectIncomeCategory((item as StatsCategoryExpenseItem).category_name)
-                        }
-                        className={isIncomeSubcategoryView ? undefined : "cursor-pointer"}
-                      />
-                    ))}
+                    {incomeChartData.map((item, index) => {
+                      const catName = isIncomeSubcategoryView ? selectedIncomeCategory! : (item as StatsCategoryExpenseItem).category_name;
+                      return (
+                        <Cell
+                          key={index}
+                          fill={getCategoryColorForName(catName, index)}
+                          onClick={
+                            isIncomeSubcategoryView
+                              ? undefined
+                              : () => onSelectIncomeCategory((item as StatsCategoryExpenseItem).category_name)
+                          }
+                          className={isIncomeSubcategoryView ? undefined : "cursor-pointer"}
+                        />
+                      );
+                    })}
                   </Pie>
                 </PieChart>
                 </ResponsiveContainer>
@@ -390,7 +415,7 @@ function StatsCharts({
                       <div key={item.subcategory_name} className="flex items-start gap-2 text-xs">
                         <span
                           className="mt-1 inline-block h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                          style={{ backgroundColor: getCategoryColorForName(selectedIncomeCategory!, index) }}
                         />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium">{item.subcategory_name}</p>
@@ -412,10 +437,10 @@ function StatsCharts({
                       >
                         <span
                           className="mt-1 inline-block h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                          style={{ backgroundColor: getCategoryColorForName(item.category_name, index) }}
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium">{item.category_name}</p>
+                          <p className="truncate font-medium">{getCategoryEmojiForName(item.category_name)} {item.category_name}</p>
                           <p className="text-muted-foreground">
                             {formatCurrencyAmount(item.total, currency)} ({item.percentage.toLocaleString("es-AR", {
                               minimumFractionDigits: 1,
@@ -515,6 +540,7 @@ export default function StatsPage() {
   }, [currency]);
 
   const { data, isLoading, isError, refetch, isFetching } = useStats(month, currency);
+  const { data: categories = [] } = useCategories();
 
   return (
     <div>
@@ -628,6 +654,7 @@ export default function StatsPage() {
               onSelectIncomeCategory={setSelectedIncomeCategory}
               onClearIncomeCategory={() => setSelectedIncomeCategory(null)}
               currency={currency}
+              categories={categories}
             />
           </div>
         </>
