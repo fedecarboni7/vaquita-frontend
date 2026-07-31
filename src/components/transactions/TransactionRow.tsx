@@ -61,7 +61,7 @@ export default function TransactionRow({
             className="category-badge inline-block px-2 py-0.5 rounded text-[11px] font-medium"
             style={{ backgroundColor: getCategoryColor(categoryData) + "1a", color: getCategoryColor(categoryData) }}
           >
-            {getCategoryEmoji(categoryData)} {categoryLabel}
+            {[getCategoryEmoji(categoryData), categoryLabel].filter(Boolean).join(" ")}
           </span>
         )}
       </td>

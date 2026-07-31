@@ -183,7 +183,7 @@ export default function MonthSection({
                             className="category-badge inline-block px-2 py-0.5 rounded text-[11px] font-medium"
                             style={{ backgroundColor: getCategoryColor(cat) + "1a", color: getCategoryColor(cat) }}
                           >
-                            {getCategoryEmoji(cat)} {categoryLabel}
+                            {[getCategoryEmoji(cat), categoryLabel].filter(Boolean).join(" ")}
                           </span>
                         );
                       })()

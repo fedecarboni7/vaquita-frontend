@@ -175,6 +175,7 @@ export default function SettingsPage() {
             disabled={isSaving}
             autoFocus
             maxLength={8}
+            placeholder=":-)"
             className="w-7 bg-transparent text-[12.5px] outline-none text-center"
           />
         ) : (
@@ -184,7 +185,9 @@ export default function SettingsPage() {
             className="w-7 h-5 flex items-center justify-center text-[12.5px] rounded-full transition-colors hover:bg-muted"
             title="Editar emoji"
           >
-            {getCategoryEmoji(category)}
+            {getCategoryEmoji(category) || (
+              <span className="text-muted-foreground">:)</span>
+            )}
           </button>
         )}
 
@@ -228,7 +231,7 @@ export default function SettingsPage() {
 
         <Popover>
           <PopoverTrigger
-            className="p-0.5 rounded transition-opacity sm:opacity-0 sm:group-hover:opacity-100 opacity-100 hover:bg-muted"
+            className="p-0.5 rounded transition-opacity opacity-100 hover:bg-muted"
             disabled={isSaving}
           >
             <div
@@ -264,7 +267,7 @@ export default function SettingsPage() {
           type="button"
           onClick={() => setDeleteTarget(category)}
           disabled={isEditing || isEditingEmoji || isSaving}
-          className="text-muted-foreground/40 hover:text-destructive text-sm leading-none ml-0.5 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 disabled:opacity-30"
+          className="text-muted-foreground/40 hover:text-destructive text-sm leading-none ml-0.5 transition-opacity disabled:opacity-30"
           aria-label={`Eliminar categoria ${category.name}`}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -533,8 +536,8 @@ export default function SettingsPage() {
               value={newCatEmoji}
               onChange={(e) => setNewCatEmoji(e.target.value)}
               maxLength={8}
-              placeholder="🍔 Elegí un emoji"
-              className="w-full sm:w-28 px-3 py-2 border border-border rounded-lg bg-card text-sm outline-none transition-colors focus:border-muted-foreground text-center"
+              placeholder=":-)"
+              className="w-full sm:w-11 px-3 py-2 border border-border rounded-lg bg-card text-sm outline-none transition-colors focus:border-muted-foreground text-center"
             />
             <Popover>
               <PopoverTrigger className="p-2 border border-border rounded-lg hover:bg-muted transition-colors inline-flex items-center justify-center">

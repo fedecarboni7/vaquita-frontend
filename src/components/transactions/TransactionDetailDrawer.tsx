@@ -140,7 +140,7 @@ function DetailContent({
                 className="category-badge inline-block px-2 py-0.5 rounded text-[12px] font-medium"
                 style={{ backgroundColor: getCategoryColor(categoryData) + "1a", color: getCategoryColor(categoryData) }}
               >
-                {getCategoryEmoji(categoryData)} {categoryLabel}
+                {[getCategoryEmoji(categoryData), categoryLabel].filter(Boolean).join(" ")}
               </span>
             ) : (
               <p className="text-sm font-medium">{categoryLabel}</p>

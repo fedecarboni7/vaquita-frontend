@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getCategoryEmoji } from "@/lib/categoryDisplay";
 import type { TransactionType, Account, Category } from "@/types/transaction";
 
 interface MultiSelectOption {
@@ -125,7 +126,11 @@ export default function FilterBar({
   );
 
   const categoryOptions = useMemo(
-    () => categories.map((category) => ({ value: category.id, label: category.name })),
+    () =>
+      categories.map((category) => ({
+        value: category.id,
+        label: [getCategoryEmoji(category), category.name].filter(Boolean).join(" "),
+      })),
     [categories]
   );
 

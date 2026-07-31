@@ -458,14 +458,14 @@ export default function EditTransactionModal({
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Sin categoría">
-                      {safeCategoryValue === "__none__" ? "Sin categoría" : selectedCategory ? `${getCategoryEmoji(selectedCategory)} ${selectedCategory.name}` : ""}
+                      {safeCategoryValue === "__none__" ? "Sin categoría" : selectedCategory ? [getCategoryEmoji(selectedCategory), selectedCategory.name].filter(Boolean).join(" ") : ""}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Sin categoría</SelectItem>
                     {categoriesForType.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {getCategoryEmoji(c)} {c.name}
+                        {[getCategoryEmoji(c), c.name].filter(Boolean).join(" ")}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -485,8 +485,7 @@ export default function EditTransactionModal({
                         ? "Sin subcategoría"
                         : (() => {
                             const sub = availableSubcategories.find((item) => item.id === safeSubcategoryValue);
-                            const parentEmoji = selectedCategory ? getCategoryEmoji(selectedCategory) : "";
-                            return sub ? `${parentEmoji} ${sub.name}` : "";
+                            return sub ? sub.name : "";
                           })()}
                     </SelectValue>
                   </SelectTrigger>
@@ -494,7 +493,7 @@ export default function EditTransactionModal({
                     <SelectItem value="__none__">Sin subcategoría</SelectItem>
                     {availableSubcategories.map((subcategory) => (
                       <SelectItem key={subcategory.id} value={subcategory.id}>
-                        {selectedCategory ? getCategoryEmoji(selectedCategory) : ""} {subcategory.name}
+                        {subcategory.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -1,4 +1,4 @@
-const FALLBACK_PALETTE = [
+export const CATEGORY_COLORS = [
   "#95cdeb", // celeste
   "#1f78b4", // azul
   "#08b2a7", // turquesa
@@ -15,8 +15,6 @@ const FALLBACK_PALETTE = [
   "#8a8a84", // gris
 ];
 
-export { FALLBACK_PALETTE as CATEGORY_COLORS };
-
 function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -27,10 +25,9 @@ function hashString(str: string): number {
 
 export function getCategoryColor(category: { id: string; color: string | null }): string {
   if (category.color) return category.color;
-  return FALLBACK_PALETTE[hashString(category.id) % FALLBACK_PALETTE.length];
+  return CATEGORY_COLORS[hashString(category.id) % CATEGORY_COLORS.length];
 }
 
 export function getCategoryEmoji(category: { name: string; emoji: string | null }): string {
-  if (category.emoji) return category.emoji;
-  return category.name.charAt(0).toUpperCase();
+  return category.emoji ?? "";
 }

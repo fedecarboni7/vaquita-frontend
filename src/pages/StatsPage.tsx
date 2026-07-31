@@ -41,6 +41,26 @@ const CHART_COLORS = [
   "#5f78d9",
 ];
 
+const DISTINCT_SEQUENCE_ORDER = [
+  "#1f78b4",
+  "#33a02c",
+  "#e31a1c",
+  "#ff7f00",
+  "#6a3d9a",
+  "#95cdeb",
+  "#b2df8a",
+  "#fb9a99",
+  "#fdbf6f",
+  "#cab2d6",
+  "#08b2a7",
+  "#e3e342",
+  "#b15928",
+  "#8a8a84",
+];
+
+const getSubcategorySliceColor = (index: number): string =>
+  DISTINCT_SEQUENCE_ORDER[index % DISTINCT_SEQUENCE_ORDER.length];
+
 function getCurrentMonth(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -291,7 +311,7 @@ function StatsCharts({
                       return (
                         <Cell
                           key={index}
-                          fill={getCategoryColorForName(catName, index)}
+                          fill={isSubcategoryView ? getSubcategorySliceColor(index) : getCategoryColorForName(catName, index)}
                           onClick={
                             isSubcategoryView
                               ? undefined
@@ -311,7 +331,7 @@ function StatsCharts({
                       <div key={item.subcategory_name} className="flex items-start gap-2 text-xs">
                         <span
                           className="mt-1 inline-block h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: getCategoryColorForName(selectedCategory!, index) }}
+                          style={{ backgroundColor: getSubcategorySliceColor(index) }}
                         />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium">{item.subcategory_name}</p>
@@ -336,7 +356,7 @@ function StatsCharts({
                           style={{ backgroundColor: getCategoryColorForName(item.category_name, index) }}
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium">{getCategoryEmojiForName(item.category_name)} {item.category_name}</p>
+                          <p className="truncate font-medium">{[getCategoryEmojiForName(item.category_name), item.category_name].filter(Boolean).join(" ")}</p>
                           <p className="text-muted-foreground">
                             {formatCurrencyAmount(item.total, currency)} ({item.percentage.toLocaleString("es-AR", {
                               minimumFractionDigits: 1,
@@ -395,7 +415,7 @@ function StatsCharts({
                       return (
                         <Cell
                           key={index}
-                          fill={getCategoryColorForName(catName, index)}
+                          fill={isIncomeSubcategoryView ? getSubcategorySliceColor(index) : getCategoryColorForName(catName, index)}
                           onClick={
                             isIncomeSubcategoryView
                               ? undefined
@@ -415,7 +435,7 @@ function StatsCharts({
                       <div key={item.subcategory_name} className="flex items-start gap-2 text-xs">
                         <span
                           className="mt-1 inline-block h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: getCategoryColorForName(selectedIncomeCategory!, index) }}
+                          style={{ backgroundColor: getSubcategorySliceColor(index) }}
                         />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium">{item.subcategory_name}</p>
@@ -440,7 +460,7 @@ function StatsCharts({
                           style={{ backgroundColor: getCategoryColorForName(item.category_name, index) }}
                         />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium">{getCategoryEmojiForName(item.category_name)} {item.category_name}</p>
+                          <p className="truncate font-medium">{[getCategoryEmojiForName(item.category_name), item.category_name].filter(Boolean).join(" ")}</p>
                           <p className="text-muted-foreground">
                             {formatCurrencyAmount(item.total, currency)} ({item.percentage.toLocaleString("es-AR", {
                               minimumFractionDigits: 1,

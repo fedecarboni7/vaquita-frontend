@@ -183,7 +183,7 @@ export default function SubcategoryManager({ categories, loadingCategories }: Pr
                 return (
                   <div
                     key={subcategory.id}
-                    className="group inline-flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full border border-border text-xs"
+                    className="group inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-full border border-border text-xs"
                   >
                     {parentCategory && (
                       <span
