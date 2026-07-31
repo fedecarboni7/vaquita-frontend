@@ -28,7 +28,7 @@ function shiftMonth(month: string, delta: number): string {
 function formatMonthNav(month: string): string {
   const [y, m] = month.split("-").map(Number);
   const d = new Date(y, m - 1);
-  return d.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+  return d.toLocaleDateString("es-AR", { month: "short", year: "numeric" });
 }
 
 function calculateNetTotalsByCurrency(
