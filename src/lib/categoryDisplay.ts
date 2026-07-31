@@ -1,16 +1,18 @@
 const FALLBACK_PALETTE = [
-  "#c06a2b",
-  "#2563a8",
-  "#6d28d9",
-  "#b91c1c",
-  "#9333ea",
-  "#c2620e",
-  "#2d6a4f",
-  "#8a8a84",
-  "#0d9488",
-  "#be185d",
-  "#ca8a04",
-  "#0891b2",
+  "#95cdeb", // celeste
+  "#1f78b4", // azul
+  "#08b2a7", // turquesa
+  "#b2df8a", // verde claro
+  "#33a02c", // verde
+  "#fb9a99", // rosa/salmón
+  "#e31a1c", // rojo
+  "#fdbf6f", // naranja claro
+  "#ff7f00", // naranja
+  "#b15928", // marrón
+  "#cab2d6", // lila
+  "#6a3d9a", // violeta
+  "#e3e342", // amarillo
+  "#8a8a84", // gris
 ];
 
 export { FALLBACK_PALETTE as CATEGORY_COLORS };
