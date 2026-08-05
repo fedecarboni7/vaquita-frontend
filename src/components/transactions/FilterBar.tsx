@@ -103,6 +103,8 @@ const typeOptions: { value: TransactionType; label: string }[] = [
   { value: "transfer", label: "Transferencias" },
 ];
 
+const UNCATEGORIZED_CATEGORY_FILTER = "none";
+
 export default function FilterBar({
   types,
   accountIds,
@@ -127,10 +129,13 @@ export default function FilterBar({
 
   const categoryOptions = useMemo(
     () =>
-      categories.map((category) => ({
-        value: category.id,
-        label: [getCategoryEmoji(category), category.name].filter(Boolean).join(" "),
-      })),
+      [
+        ...categories.map((category) => ({
+          value: category.id,
+          label: [getCategoryEmoji(category), category.name].filter(Boolean).join(" "),
+        })),
+        { value: UNCATEGORIZED_CATEGORY_FILTER, label: "Sin categoría" },
+      ],
     [categories]
   );
 
@@ -154,7 +159,11 @@ export default function FilterBar({
     [accounts]
   );
   const categoryNameById = useMemo(
-    () => new Map(categories.map((category) => [category.id, category.name])),
+    () =>
+      new Map<string, string>([
+        ...categories.map((category): [string, string] => [category.id, category.name]),
+        [UNCATEGORIZED_CATEGORY_FILTER, "Sin categoría"],
+      ]),
     [categories]
   );
   const subcategoryNameById = useMemo(

@@ -14,6 +14,8 @@ import CreateTransactionModal from "@/components/transactions/CreateTransactionM
 import DeleteConfirmDialog from "@/components/transactions/DeleteConfirmDialog";
 import type { Transaction, TransactionType } from "@/types/transaction";
 
+const UNCATEGORIZED_CATEGORY_FILTER = "none";
+
 function getCurrentMonth(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -72,17 +74,29 @@ export default function TransactionsPage() {
 
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
+  const hasUncategorizedCategoryFilter = categoryFilters.includes(UNCATEGORIZED_CATEGORY_FILTER);
+  const selectedCategoryIds = categoryFilters.filter(
+    (categoryId) => categoryId !== UNCATEGORIZED_CATEGORY_FILTER
+  );
 
   const getAllowedSubcategoryIds = useCallback(
-    (selectedCategoryIds: string[]) =>
-      new Set(
-        (selectedCategoryIds.length === 0
-          ? categories.flatMap((category) => category.subcategories)
-          : categories
-              .filter((category) => selectedCategoryIds.includes(category.id))
-              .flatMap((category) => category.subcategories)
-        ).map((subcategory) => subcategory.id)
-      ),
+    (selectedCategoryIds: string[]) => {
+      const hasUncategorized = selectedCategoryIds.includes(UNCATEGORIZED_CATEGORY_FILTER);
+      const regularCategoryIds = selectedCategoryIds.filter(
+        (categoryId) => categoryId !== UNCATEGORIZED_CATEGORY_FILTER
+      );
+
+      if (hasUncategorized && regularCategoryIds.length === 0) {
+        return new Set<string>();
+      }
+
+      const sourceCategories =
+        regularCategoryIds.length === 0
+          ? categories
+          : categories.filter((category) => regularCategoryIds.includes(category.id));
+
+      return new Set(sourceCategories.flatMap((category) => category.subcategories).map((subcategory) => subcategory.id));
+    },
     [categories]
   );
 
@@ -95,7 +109,7 @@ export default function TransactionsPage() {
     month,
     types: typeFilters,
     accountIds: accountFilters,
-    categoryIds: categoryFilters,
+    categoryIds: hasUncategorizedCategoryFilter ? undefined : categoryFilters,
     subcategoryIds: effectiveSubcategoryFilters,
     limit: 100,
     offset,
@@ -108,17 +122,32 @@ export default function TransactionsPage() {
   );
   const hasMore = data?.has_more ?? false;
 
+  const categoryFilteredTransactions = useMemo(() => {
+    if (!hasUncategorizedCategoryFilter) return transactions;
+
+    if (selectedCategoryIds.length === 0) {
+      return transactions.filter((transaction) => transaction.category_id === null);
+    }
+
+    const selectedCategoryIdSet = new Set(selectedCategoryIds);
+    return transactions.filter(
+      (transaction) =>
+        transaction.category_id === null ||
+        (transaction.category_id !== null && selectedCategoryIdSet.has(transaction.category_id))
+    );
+  }, [transactions, hasUncategorizedCategoryFilter, selectedCategoryIds]);
+
   // Client-side search filtering
   const filteredTransactions = useMemo(() => {
-    if (!search.trim()) return transactions;
+    if (!search.trim()) return categoryFilteredTransactions;
     const lowerSearch = search.toLowerCase();
-    return transactions.filter(t => 
+    return categoryFilteredTransactions.filter(t => 
       t.description?.toLowerCase().includes(lowerSearch) ||
       t.note?.toLowerCase().includes(lowerSearch) ||
       (t.category_name ?? t.category)?.toLowerCase().includes(lowerSearch) ||
       t.account?.toLowerCase().includes(lowerSearch)
     );
-  }, [transactions, search]);
+  }, [categoryFilteredTransactions, search]);
 
   const resetPagination = useCallback(() => {
     setOffset(0);
