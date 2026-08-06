@@ -81,6 +81,13 @@ export function useTransactions(params: UseTransactionsParams) {
   });
 }
 
+export function useAvailableMonths() {
+  return useQuery({
+    queryKey: ["transactions", "available-months"],
+    queryFn: () => apiFetch<string[]>("/expenses/available-months"),
+  });
+}
+
 export function useDeleteTransaction() {
   const queryClient = useQueryClient();
   return useMutation({

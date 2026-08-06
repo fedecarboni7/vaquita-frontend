@@ -8,6 +8,7 @@ import App from './App.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'
 import { BackendStartupProvider } from './components/BackendStartupProvider.tsx'
 import { BalanceVisibilityProvider } from './context/BalanceVisibilityContext.tsx'
+import { CurrencyProvider } from './context/CurrencyContext.tsx'
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 const queryClient = new QueryClient()
@@ -19,8 +20,10 @@ createRoot(document.getElementById('root')!).render(
         <GoogleOAuthProvider clientId={googleClientId}>
           <AuthProvider>
             <BalanceVisibilityProvider>
-              <App />
-              <Toaster position="top-right" richColors />
+              <CurrencyProvider>
+                <App />
+                <Toaster position="top-right" richColors />
+              </CurrencyProvider>
             </BalanceVisibilityProvider>
           </AuthProvider>
         </GoogleOAuthProvider>

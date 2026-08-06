@@ -1,6 +1,7 @@
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 
 import { cn } from "@/lib/utils";
+import { OVERLAY_Z_INDEX } from "./overlay-z-index";
 
 function Popover({ ...props }: PopoverPrimitive.Root.Props) {
   return <PopoverPrimitive.Root data-slot="popover" {...props} />;
@@ -13,11 +14,25 @@ function PopoverTrigger({ ...props }: PopoverPrimitive.Trigger.Props) {
 function PopoverContent({
   className,
   children,
+  align,
+  alignOffset,
+  side,
+  sideOffset,
   ...props
-}: PopoverPrimitive.Popup.Props) {
+}: PopoverPrimitive.Popup.Props &
+  Pick<
+    PopoverPrimitive.Positioner.Props,
+    "align" | "alignOffset" | "side" | "sideOffset"
+  >) {
   return (
     <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Positioner style={{ zIndex: 9999 }}>
+      <PopoverPrimitive.Positioner
+        style={{ zIndex: OVERLAY_Z_INDEX.popover }}
+        align={align}
+        alignOffset={alignOffset}
+        side={side}
+        sideOffset={sideOffset}
+      >
         <PopoverPrimitive.Popup
           data-slot="popover-content"
           className={cn(

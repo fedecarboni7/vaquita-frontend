@@ -3,6 +3,7 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
+import { OVERLAY_Z_INDEX } from "./overlay-z-index"
 
 const Select = SelectPrimitive.Root
 
@@ -76,7 +77,8 @@ function SelectContent({
         align={align}
         alignOffset={alignOffset}
         alignItemWithTrigger={alignItemWithTrigger}
-        className="isolate z-50"
+        className="isolate"
+        style={{ zIndex: OVERLAY_Z_INDEX.select }}
       >
         <SelectPrimitive.Popup
           data-slot="select-content"

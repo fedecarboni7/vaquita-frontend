@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getCategoryEmoji } from "@/lib/categoryDisplay";
 import type { TransactionType, Account, Category } from "@/types/transaction";
 
@@ -26,7 +27,6 @@ interface MultiSelectDropdownProps {
   selectedValues: string[];
   onChange: (values: string[]) => void;
   emptyLabel: string;
-  className?: string;
 }
 
 function MultiSelectDropdown({
@@ -35,7 +35,6 @@ function MultiSelectDropdown({
   selectedValues,
   onChange,
   emptyLabel,
-  className,
 }: MultiSelectDropdownProps) {
   const selectedSet = useMemo(() => new Set(selectedValues), [selectedValues]);
   const triggerLabel = selectedValues.length > 0 ? `${label}: ${selectedValues.length}` : label;
@@ -82,9 +81,7 @@ function MultiSelectDropdown({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        className={`inline-flex h-9 items-center justify-between rounded-md border border-input bg-background px-3 text-sm ${className ?? ""}`}
-      >
+      <DropdownMenuTrigger className="inline-flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm">
         <span className="truncate">{triggerLabel}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64">
@@ -122,7 +119,6 @@ interface Props {
   onAccountsChange: (accountIds: string[]) => void;
   onCategoriesChange: (categoryIds: string[]) => void;
   onSubcategoriesChange: (subcategoryIds: string[]) => void;
-  onSearchChange: (search: string) => void;
   onClearFilters: () => void;
 }
 
@@ -146,11 +142,8 @@ export default function FilterBar({
   onAccountsChange,
   onCategoriesChange,
   onSubcategoriesChange,
-  onSearchChange,
   onClearFilters,
 }: Props) {
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-
   const accountOptions = useMemo(
     () => accounts.map((account) => ({ value: account.id, label: account.name })),
     [accounts]
@@ -252,129 +245,92 @@ export default function FilterBar({
     subcategoryIds.length > 0 ||
     types.length > 0;
 
-  const filterControls = (
-    <>
-      <input
-        className="filter-input w-full md:w-64"
-        type="text"
-        placeholder="Buscar descripción..."
-        value={search}
-        onChange={(e) => onSearchChange(e.target.value)}
-      />
+  const activeFilterCount =
+    accountIds.length + categoryIds.length + subcategoryIds.length + types.length;
 
-      <MultiSelectDropdown
-        label="Categorias"
-        options={categoryOptions}
-        selectedValues={categoryIds}
-        onChange={onCategoriesChange}
-        emptyLabel="No hay categorias disponibles"
-        className="w-full md:w-52"
-      />
-
-      <MultiSelectDropdown
-        label="Subcategorias"
-        options={availableSubcategories}
-        selectedValues={subcategoryIds}
-        onChange={onSubcategoriesChange}
-        emptyLabel="No hay subcategorias para las categorias seleccionadas"
-        className="w-full md:w-52"
-      />
-
-      <MultiSelectDropdown
-        label="Cuentas"
-        options={accountOptions}
-        selectedValues={accountIds}
-        onChange={onAccountsChange}
-        emptyLabel="No hay cuentas disponibles"
-        className="w-full md:w-52"
-      />
-
-      <MultiSelectDropdown
-        label="Tipos"
-        options={typeOptions}
-        selectedValues={types}
-        onChange={(values) => onTypesChange(values as TransactionType[])}
-        emptyLabel="No hay tipos disponibles"
-        className="w-full md:w-44"
-      />
-
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={onClearFilters}
-        disabled={!hasActiveFilters}
-        className="justify-center md:justify-start"
-      >
-        Limpiar filtros
-      </Button>
-    </>
-  );
-  
   return (
-    <div className="px-2 py-2 sm:px-4 sm:py-3 border-b border-border/60">
-      <div className="md:hidden">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="w-full justify-between"
-          onClick={() => setMobileFiltersOpen((prev) => !prev)}
-        >
-          <span className="inline-flex items-center gap-2">
+    <Popover>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Filtros"
+            className="relative"
+          >
             <SlidersHorizontal className="h-4 w-4" />
-            Filtros
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {mobileFiltersOpen ? "Ocultar" : "Mostrar"}
-          </span>
-        </Button>
-
-        {mobileFiltersOpen && (
-          <div className="mt-2 grid gap-2">
-            {filterControls}
-            {selectedChips.length > 0 && (
-              <div className="flex flex-wrap gap-1 pt-1">
-                {selectedChips.map((chip) => (
-                  <Badge key={chip.key} variant="secondary" className="gap-1.5 pr-1">
-                    <span>{chip.label}</span>
-                    <button
-                      type="button"
-                      onClick={chip.onRemove}
-                      className="rounded-sm p-0.5 hover:bg-foreground/10"
-                      aria-label={`Quitar ${chip.label}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
+            {activeFilterCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium leading-none text-primary-foreground">
+                {activeFilterCount}
+              </span>
             )}
+          </Button>
+        }
+      />
+      <PopoverContent align="end" className="w-[calc(100vw-2rem)] max-w-sm">
+        <div className="grid gap-2">
+          <MultiSelectDropdown
+            label="Categorias"
+            options={categoryOptions}
+            selectedValues={categoryIds}
+            onChange={onCategoriesChange}
+            emptyLabel="No hay categorias disponibles"
+          />
+
+          <MultiSelectDropdown
+            label="Subcategorias"
+            options={availableSubcategories}
+            selectedValues={subcategoryIds}
+            onChange={onSubcategoriesChange}
+            emptyLabel="No hay subcategorias para las categorias seleccionadas"
+          />
+
+          <MultiSelectDropdown
+            label="Cuentas"
+            options={accountOptions}
+            selectedValues={accountIds}
+            onChange={onAccountsChange}
+            emptyLabel="No hay cuentas disponibles"
+          />
+
+          <MultiSelectDropdown
+            label="Tipos"
+            options={typeOptions}
+            selectedValues={types}
+            onChange={(values) => onTypesChange(values as TransactionType[])}
+            emptyLabel="No hay tipos disponibles"
+          />
+        </div>
+
+        {selectedChips.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1">
+            {selectedChips.map((chip) => (
+              <Badge key={chip.key} variant="secondary" className="gap-1.5 pr-1">
+                <span>{chip.label}</span>
+                <button
+                  type="button"
+                  onClick={chip.onRemove}
+                  className="rounded-sm p-0.5 hover:bg-foreground/10"
+                  aria-label={`Quitar ${chip.label}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
           </div>
         )}
-      </div>
 
-      <div className="hidden md:flex md:items-center md:gap-2.5 md:mb-3 md:flex-wrap">
-        {filterControls}
-      </div>
-
-      {selectedChips.length > 0 && (
-        <div className="hidden md:flex md:flex-wrap md:gap-1.5">
-          {selectedChips.map((chip) => (
-            <Badge key={chip.key} variant="secondary" className="gap-1.5 pr-1">
-              <span>{chip.label}</span>
-              <button
-                type="button"
-                onClick={chip.onRemove}
-                className="rounded-sm p-0.5 hover:bg-foreground/10"
-                aria-label={`Quitar ${chip.label}`}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
-        </div>
-      )}
-    </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onClearFilters}
+          disabled={!hasActiveFilters}
+          className="mt-3 w-full justify-center"
+        >
+          Limpiar filtros
+        </Button>
+      </PopoverContent>
+    </Popover>
   );
 }

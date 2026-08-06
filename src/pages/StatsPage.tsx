@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Bar,
@@ -23,10 +23,10 @@ import { useCategories } from "@/hooks/useCategories";
 import { formatCurrencyAmount } from "@/lib/utils";
 import { getCategoryColor, getCategoryEmoji } from "@/lib/categoryDisplay";
 import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
+import { useCurrency } from "@/hooks/useCurrency";
+import CurrencyToggle from "@/components/CurrencyToggle";
 import type { StatsCategoryExpenseItem, StatsSubcategoryExpenseItem } from "@/types/stats";
 import type { Category, CurrencyCode } from "@/types/transaction";
-
-const STATS_CURRENCY_PREFERENCE_KEY = "stats_currency_preference";
 
 const CHART_COLORS = [
   "var(--chart-1)",
@@ -543,21 +543,10 @@ function StatsCharts({
 }
 
 export default function StatsPage() {
+  const { currency } = useCurrency();
   const [month, setMonth] = useState(getCurrentMonth);
-  const [currency, setCurrency] = useState<CurrencyCode>(() => {
-    if (typeof window === "undefined") {
-      return "ARS";
-    }
-
-    const stored = window.localStorage.getItem(STATS_CURRENCY_PREFERENCE_KEY);
-    return stored === "USD" ? "USD" : "ARS";
-  });
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedIncomeCategory, setSelectedIncomeCategory] = useState<string | null>(null);
-
-  useEffect(() => {
-    window.localStorage.setItem(STATS_CURRENCY_PREFERENCE_KEY, currency);
-  }, [currency]);
 
   const { data, isLoading, isError, refetch, isFetching } = useStats(month, currency);
   const { data: categories = [] } = useCategories();
@@ -565,28 +554,12 @@ export default function StatsPage() {
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
-        <Button
-          variant={currency === "ARS" ? "default" : "outline"}
-          size="sm"
-          onClick={() => {
+        <CurrencyToggle
+          onChange={() => {
             setSelectedCategory(null);
             setSelectedIncomeCategory(null);
-            setCurrency("ARS");
           }}
-        >
-          ARS
-        </Button>
-        <Button
-          variant={currency === "USD" ? "default" : "outline"}
-          size="sm"
-          onClick={() => {
-            setSelectedCategory(null);
-            setSelectedIncomeCategory(null);
-            setCurrency("USD");
-          }}
-        >
-          USD
-        </Button>
+        />
       </div>
 
       <div className="mb-6 flex items-center justify-between border-b border-border pb-3">
