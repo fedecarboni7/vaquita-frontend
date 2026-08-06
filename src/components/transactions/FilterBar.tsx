@@ -17,6 +17,7 @@ import type { TransactionType, Account, Category } from "@/types/transaction";
 interface MultiSelectOption {
   value: string;
   label: string;
+  group?: string;
 }
 
 interface MultiSelectDropdownProps {
@@ -39,6 +40,46 @@ function MultiSelectDropdown({
   const selectedSet = useMemo(() => new Set(selectedValues), [selectedValues]);
   const triggerLabel = selectedValues.length > 0 ? `${label}: ${selectedValues.length}` : label;
 
+  const groupedOptions = useMemo(() => {
+    const ungrouped: MultiSelectOption[] = [];
+    const groups = new Map<string, MultiSelectOption[]>();
+    for (const option of options) {
+      if (option.group === undefined) {
+        ungrouped.push(option);
+        continue;
+      }
+      const groupOptions = groups.get(option.group);
+      if (groupOptions) {
+        groupOptions.push(option);
+      } else {
+        groups.set(option.group, [option]);
+      }
+    }
+    return { ungrouped, groups };
+  }, [options]);
+
+  const renderOption = (option: MultiSelectOption) => {
+    const isChecked = selectedSet.has(option.value);
+    return (
+      <DropdownMenuCheckboxItem
+        key={option.value}
+        checked={isChecked}
+        onCheckedChange={(checked) => {
+          const nextChecked = checked === true;
+          if (nextChecked && !isChecked) {
+            onChange([...selectedValues, option.value]);
+            return;
+          }
+          if (!nextChecked && isChecked) {
+            onChange(selectedValues.filter((value) => value !== option.value));
+          }
+        }}
+      >
+        {option.label}
+      </DropdownMenuCheckboxItem>
+    );
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -54,27 +95,15 @@ function MultiSelectDropdown({
         {options.length === 0 ? (
           <div className="px-2 py-1.5 text-sm text-muted-foreground">{emptyLabel}</div>
         ) : (
-          options.map((option) => {
-            const isChecked = selectedSet.has(option.value);
-            return (
-              <DropdownMenuCheckboxItem
-                key={option.value}
-                checked={isChecked}
-                onCheckedChange={(checked) => {
-                  const nextChecked = checked === true;
-                  if (nextChecked && !isChecked) {
-                    onChange([...selectedValues, option.value]);
-                    return;
-                  }
-                  if (!nextChecked && isChecked) {
-                    onChange(selectedValues.filter((value) => value !== option.value));
-                  }
-                }}
-              >
-                {option.label}
-              </DropdownMenuCheckboxItem>
-            );
-          })
+          <>
+            {groupedOptions.ungrouped.map(renderOption)}
+            {[...groupedOptions.groups.entries()].map(([groupLabel, groupOptions]) => (
+              <DropdownMenuGroup key={groupLabel}>
+                <DropdownMenuLabel inset>{groupLabel}</DropdownMenuLabel>
+                {groupOptions.map(renderOption)}
+              </DropdownMenuGroup>
+            ))}
+          </>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -128,14 +157,19 @@ export default function FilterBar({
   );
 
   const categoryOptions = useMemo(
-    () =>
-      [
-        { value: UNCATEGORIZED_CATEGORY_FILTER, label: "🚫 Sin categoría" },
-        ...categories.map((category) => ({
-          value: category.id,
-          label: [getCategoryEmoji(category), category.name].filter(Boolean).join(" "),
-        })),
-      ],
+    () => [
+      { value: UNCATEGORIZED_CATEGORY_FILTER, label: "🚫 Sin categoría" },
+      ...categories.map((category) => ({
+        value: category.id,
+        label: [getCategoryEmoji(category), category.name].filter(Boolean).join(" "),
+        group:
+          category.type === "expense"
+            ? "Gastos"
+            : category.type === "income"
+              ? "Ingresos"
+              : undefined,
+      })),
+    ],
     [categories]
   );
 
