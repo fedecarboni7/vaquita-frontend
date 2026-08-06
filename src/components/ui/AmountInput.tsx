@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Calculator } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { getRawAmount, sanitizeAmountInput } from "@/lib/amountInput";
 import { cn } from "@/lib/utils";
 
 interface AmountInputProps {
@@ -92,6 +93,7 @@ export default function AmountInput({
   const [isOpen, setIsOpen] = useState(false);
   const [currentValue, setCurrentValue] = useState("0");
   const [result, setResult] = useState<number | null>(null);
+  const [confirmedResult, setConfirmedResult] = useState<number | null>(null);
   const [previousValue, setPreviousValue] = useState<string | null>(null);
   const [operator, setOperator] = useState<string | null>(null);
   const [shouldResetDisplay, setShouldResetDisplay] = useState(false);
@@ -100,18 +102,37 @@ export default function AmountInput({
     setIsOpen(false);
     setCurrentValue("0");
     setResult(null);
+    setConfirmedResult(null);
     setPreviousValue(null);
     setOperator(null);
     setShouldResetDisplay(false);
   }, []);
 
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      setIsOpen(open);
+      if (open) {
+        const rawAmount = getRawAmount(value);
+        const sanitized = sanitizeAmountInput(rawAmount).replace(/,/g, ".");
+        const numericValue = Number.parseFloat(sanitized);
+        setCurrentValue(Number.isFinite(numericValue) && numericValue !== 0 ? sanitized : "0");
+        setConfirmedResult(Number.isFinite(numericValue) && numericValue !== 0 ? numericValue : null);
+        setResult(null);
+        setPreviousValue(null);
+        setOperator(null);
+        setShouldResetDisplay(false);
+      }
+    },
+    [value]
+  );
+
   const handleUseResult = useCallback(() => {
-    if (result != null && Number.isFinite(result)) {
-      const rawValue = result.toString();
+    if (confirmedResult != null && Number.isFinite(confirmedResult)) {
+      const rawValue = confirmedResult.toString();
       onValueChange(rawValue);
     }
     handleClose();
-  }, [result, onValueChange, handleClose]);
+  }, [confirmedResult, onValueChange, handleClose]);
 
   const handleKeyPress = useCallback((key: string) => {
     setCurrentValue((prev) => {
@@ -157,6 +178,7 @@ export default function AmountInput({
           setOperator(null);
           setShouldResetDisplay(true);
           setResult(Number.parseFloat(computed));
+          setConfirmedResult(Number.parseFloat(computed));
           return computed;
         }
         case "+":
@@ -208,6 +230,9 @@ export default function AmountInput({
     : Number.isFinite(parsedCurrent)
       ? formatForDisplay(parsedCurrent)
       : "0";
+  const displayConfirmedResult = confirmedResult != null && Number.isFinite(confirmedResult)
+    ? formatForDisplay(confirmedResult)
+    : "0";
   const displayExpression = previousValue && operator
     ? shouldResetDisplay
       ? `${previousValue} ${toDisplayOperator(operator)}`
@@ -226,7 +251,7 @@ export default function AmountInput({
         className={className}
         placeholder={placeholder}
       />
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <Popover open={isOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger
           render={
             <button
@@ -348,7 +373,7 @@ export default function AmountInput({
               borderRadius: "var(--border-radius-md)",
             }}
           >
-            Usar {displayResult}
+            Usar {displayConfirmedResult}
           </button>
         </PopoverContent>
       </Popover>
