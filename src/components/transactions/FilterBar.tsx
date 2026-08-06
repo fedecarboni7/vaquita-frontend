@@ -130,11 +130,11 @@ export default function FilterBar({
   const categoryOptions = useMemo(
     () =>
       [
+        { value: UNCATEGORIZED_CATEGORY_FILTER, label: "🚫 Sin categoría" },
         ...categories.map((category) => ({
           value: category.id,
           label: [getCategoryEmoji(category), category.name].filter(Boolean).join(" "),
         })),
-        { value: UNCATEGORIZED_CATEGORY_FILTER, label: "Sin categoría" },
       ],
     [categories]
   );
