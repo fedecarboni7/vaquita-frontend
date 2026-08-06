@@ -311,33 +311,35 @@ export default function EditTransactionModal({
           <DialogTitle>Editar transacción</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
-          <div>
-            <label className="text-sm font-medium mb-1 block">Fecha</label>
-            <input
-              type="date"
-              value={expenseDate}
-              onChange={(e) => setExpenseDate(e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
-          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Fecha</label>
+              <input
+                type="date"
+                value={expenseDate}
+                onChange={(e) => setExpenseDate(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
 
-          <div>
-            <label className="text-sm font-medium mb-1 block">Tipo</label>
-            <Select
-              value={transactionType}
-              onValueChange={(value) => handleTypeChange((value as TransactionType) ?? "expense")}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleccionar tipo">{selectedTypeLabel}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {TYPE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Tipo</label>
+              <Select
+                value={transactionType}
+                onValueChange={(value) => handleTypeChange((value as TransactionType) ?? "expense")}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar tipo">{selectedTypeLabel}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div>

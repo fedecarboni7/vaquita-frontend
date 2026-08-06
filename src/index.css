@@ -7,6 +7,7 @@
 @custom-variant dark (&:is([data-theme="dark"] *));
 
 :root {
+    color-scheme: light;
     --background: oklch(0.98 0.002 90);
     --foreground: oklch(0.13 0.005 90);
     --card: oklch(1 0 0);
@@ -42,6 +43,7 @@
 }
 
 [data-theme="dark"] {
+    color-scheme: dark;
     --background: oklch(0.10 0.002 90);
     --foreground: oklch(0.92 0.003 90);
     --card: oklch(0.14 0.003 90);
