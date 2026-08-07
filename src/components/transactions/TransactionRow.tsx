@@ -42,7 +42,7 @@ export default function TransactionRow({
   return (
     <article
       onClick={() => onSelect(transaction)}
-      className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 cursor-pointer"
+      className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 cursor-pointer"
     >
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-base">
         {emoji}

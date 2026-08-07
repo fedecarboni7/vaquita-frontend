@@ -337,7 +337,7 @@ export default function AppLayout() {
       </header>
 
       {/* Main content */}
-      <main className="md:ml-[220px] flex-1 bg-background px-3 sm:px-4 pt-[60px] pb-[88px] md:px-12 md:py-10 md:max-w-[1100px]">
+      <main className="md:ml-[220px] flex-1 min-w-0 bg-background px-3 sm:px-4 pt-[60px] pb-[88px] md:px-12 md:py-10 md:max-w-[1100px]">
         <Outlet />
       </main>
 
