@@ -25,6 +25,7 @@ import { getCategoryColor, getCategoryEmoji } from "@/lib/categoryDisplay";
 import { useBalanceVisibility } from "@/hooks/useBalanceVisibility";
 import { useCurrency } from "@/hooks/useCurrency";
 import CurrencyToggle from "@/components/CurrencyToggle";
+import BudgetsSection from "@/components/budgets/BudgetsSection";
 import type { StatsCategoryExpenseItem, StatsSubcategoryExpenseItem } from "@/types/stats";
 import type { Category, CurrencyCode } from "@/types/transaction";
 
@@ -631,6 +632,10 @@ export default function StatsPage() {
               metric="income"
               currency={currency}
             />
+          </div>
+
+          <div className="mt-4">
+            <BudgetsSection />
           </div>
 
           <div className="mt-4">
