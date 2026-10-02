@@ -31,7 +31,9 @@ export default function TransactionRow({
 
   const accountLabel = isTransfer
     ? `${transaction.account ?? "Sin cuenta"} → ${transaction.account_destination ?? "Sin cuenta destino"}`
-    : transaction.account;
+    : transaction.subcategory_name
+      ? [transaction.subcategory_name, transaction.account].filter(Boolean).join(" · ")
+      : transaction.account;
 
   const amountColor = isTransfer
     ? "text-foreground"

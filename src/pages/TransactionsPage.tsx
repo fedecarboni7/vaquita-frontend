@@ -20,6 +20,7 @@ import DeleteConfirmDialog from "@/components/transactions/DeleteConfirmDialog";
 import type { Transaction, TransactionType, CurrencyCode } from "@/types/transaction";
 
 const UNCATEGORIZED_CATEGORY_FILTER = "none";
+const UNCATEGORIZED_SUBCATEGORY_FILTER = "none";
 
 function getCurrentMonth(): string {
   const now = new Date();
@@ -188,15 +189,24 @@ export default function TransactionsPage() {
 
   const effectiveSubcategoryFilters = useMemo(() => {
     const allowed = getAllowedSubcategoryIds(categoryFilters);
-    return subcategoryFilters.filter((subcategoryId) => allowed.has(subcategoryId));
+    return subcategoryFilters.filter(
+      (subcategoryId) =>
+        subcategoryId === UNCATEGORIZED_SUBCATEGORY_FILTER || allowed.has(subcategoryId)
+    );
   }, [subcategoryFilters, categoryFilters, getAllowedSubcategoryIds]);
+  const hasUncategorizedSubcategoryFilter = effectiveSubcategoryFilters.includes(
+    UNCATEGORIZED_SUBCATEGORY_FILTER
+  );
+  const selectedSubcategoryIds = effectiveSubcategoryFilters.filter(
+    (subcategoryId) => subcategoryId !== UNCATEGORIZED_SUBCATEGORY_FILTER
+  );
 
   const { data, isLoading, isError, refetch } = useTransactions({
     month,
     types: typeFilters,
     accountIds: accountFilters,
     categoryIds: hasUncategorizedCategoryFilter ? undefined : categoryFilters,
-    subcategoryIds: effectiveSubcategoryFilters,
+    subcategoryIds: hasUncategorizedSubcategoryFilter ? undefined : effectiveSubcategoryFilters,
     limit: 100,
     offset,
   });
@@ -212,28 +222,51 @@ export default function TransactionsPage() {
     if (!hasUncategorizedCategoryFilter) return transactions;
 
     if (selectedCategoryIds.length === 0) {
-      return transactions.filter((transaction) => transaction.category_id === null);
+      return transactions.filter(
+        (transaction) =>
+          transaction.category_id === null && transaction.type !== "transfer"
+      );
     }
 
     const selectedCategoryIdSet = new Set(selectedCategoryIds);
     return transactions.filter(
       (transaction) =>
-        transaction.category_id === null ||
+        (transaction.category_id === null && transaction.type !== "transfer") ||
         (transaction.category_id !== null && selectedCategoryIdSet.has(transaction.category_id))
     );
   }, [transactions, hasUncategorizedCategoryFilter, selectedCategoryIds]);
 
+  const subcategoryFilteredTransactions = useMemo(() => {
+    if (!hasUncategorizedSubcategoryFilter) return categoryFilteredTransactions;
+
+    if (selectedSubcategoryIds.length === 0) {
+      return categoryFilteredTransactions.filter(
+        (transaction) =>
+          transaction.subcategory_id === null && transaction.type !== "transfer"
+      );
+    }
+
+    const selectedSubcategoryIdSet = new Set(selectedSubcategoryIds);
+    return categoryFilteredTransactions.filter(
+      (transaction) =>
+        (transaction.subcategory_id === null && transaction.type !== "transfer") ||
+        (transaction.subcategory_id !== null &&
+          selectedSubcategoryIdSet.has(transaction.subcategory_id))
+    );
+  }, [categoryFilteredTransactions, hasUncategorizedSubcategoryFilter, selectedSubcategoryIds]);
+
   // Client-side search filtering
   const filteredTransactions = useMemo(() => {
-    if (!search.trim()) return categoryFilteredTransactions;
+    if (!search.trim()) return subcategoryFilteredTransactions;
     const lowerSearch = search.toLowerCase();
-    return categoryFilteredTransactions.filter(t => 
+    return subcategoryFilteredTransactions.filter(t =>
       t.description?.toLowerCase().includes(lowerSearch) ||
       t.note?.toLowerCase().includes(lowerSearch) ||
       (t.category_name ?? t.category)?.toLowerCase().includes(lowerSearch) ||
+      t.subcategory_name?.toLowerCase().includes(lowerSearch) ||
       t.account?.toLowerCase().includes(lowerSearch)
     );
-  }, [categoryFilteredTransactions, search]);
+  }, [subcategoryFilteredTransactions, search]);
 
   // Client-side currency filtering
   const currencyFilteredTransactions = useMemo(
@@ -276,7 +309,11 @@ export default function TransactionsPage() {
     setCategoryFilters(categoryIds);
     const allowedSubcategoryIds = getAllowedSubcategoryIds(categoryIds);
     setSubcategoryFilters((previous) =>
-      previous.filter((subcategoryId) => allowedSubcategoryIds.has(subcategoryId))
+      previous.filter(
+        (subcategoryId) =>
+          subcategoryId === UNCATEGORIZED_SUBCATEGORY_FILTER ||
+          allowedSubcategoryIds.has(subcategoryId)
+      )
     );
     resetPagination();
   };
@@ -284,7 +321,11 @@ export default function TransactionsPage() {
   const handleSubcategoriesChange = (subcategoryIds: string[]) => {
     const allowedSubcategoryIds = getAllowedSubcategoryIds(categoryFilters);
     setSubcategoryFilters(
-      subcategoryIds.filter((subcategoryId) => allowedSubcategoryIds.has(subcategoryId))
+      subcategoryIds.filter(
+        (subcategoryId) =>
+          subcategoryId === UNCATEGORIZED_SUBCATEGORY_FILTER ||
+          allowedSubcategoryIds.has(subcategoryId)
+      )
     );
     resetPagination();
   };
@@ -375,9 +416,15 @@ export default function TransactionsPage() {
                       variant="ghost"
                       size="icon"
                       aria-label="Buscar"
-                      className={cn(search ? "text-foreground" : "text-muted-foreground")}
+                      className={cn(
+                        "relative",
+                        search ? "text-foreground" : "text-muted-foreground"
+                      )}
                     >
                       <Search className="h-4 w-4" />
+                      {search.trim() !== "" && (
+                        <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary" />
+                      )}
                     </Button>
                   }
                 />

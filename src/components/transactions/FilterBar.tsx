@@ -129,6 +129,7 @@ const typeOptions: { value: TransactionType; label: string }[] = [
 ];
 
 const UNCATEGORIZED_CATEGORY_FILTER = "none";
+const UNCATEGORIZED_SUBCATEGORY_FILTER = "none";
 
 export default function FilterBar({
   types,
@@ -166,19 +167,28 @@ export default function FilterBar({
     [categories]
   );
 
-  const availableSubcategories = useMemo(() => {
+  const subcategoryOptions = useMemo(() => {
     const selectedCategorySet = new Set(categoryIds);
     const sourceCategories =
       selectedCategorySet.size === 0
         ? categories
         : categories.filter((category) => selectedCategorySet.has(category.id));
 
-    return sourceCategories.flatMap((category) =>
-      category.subcategories.map((subcategory) => ({
-        value: subcategory.id,
-        label: subcategory.name,
-      }))
-    );
+    return [
+      { value: UNCATEGORIZED_SUBCATEGORY_FILTER, label: "🚫 Sin subcategoría" },
+      ...sourceCategories.flatMap((category) =>
+        category.subcategories.map((subcategory) => ({
+          value: subcategory.id,
+          label: subcategory.name,
+          group:
+            category.type === "expense"
+              ? "Gastos"
+              : category.type === "income"
+                ? "Ingresos"
+                : undefined,
+        }))
+      ),
+    ];
   }, [categories, categoryIds]);
 
   const accountNameById = useMemo(
@@ -195,11 +205,12 @@ export default function FilterBar({
   );
   const subcategoryNameById = useMemo(
     () =>
-      new Map(
-        categories
+      new Map([
+        ...categories
           .flatMap((category) => category.subcategories)
-          .map((subcategory) => [subcategory.id, subcategory.name])
-      ),
+          .map((subcategory): [string, string] => [subcategory.id, subcategory.name]),
+        [UNCATEGORIZED_SUBCATEGORY_FILTER, "Sin subcategoría"],
+      ]),
     [categories]
   );
   const typeLabelByValue = useMemo(
@@ -279,7 +290,7 @@ export default function FilterBar({
 
           <MultiSelectDropdown
             label="Subcategorias"
-            options={availableSubcategories}
+            options={subcategoryOptions}
             selectedValues={subcategoryIds}
             onChange={onSubcategoriesChange}
             emptyLabel="No hay subcategorias para las categorias seleccionadas"
