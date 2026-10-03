@@ -5,15 +5,18 @@ export type ApiRequestOptions = RequestInit & {
 };
 
 export class ApiError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly detail: unknown,
-  ) {
+  readonly status: number;
+  readonly detail: unknown;
+
+  constructor(status: number, detail: unknown) {
+    super();
+    this.status = status;
+    this.detail = detail;
     const message =
       typeof detail === "object" && detail !== null && "message" in detail
         ? String(detail.message)
         : String(detail);
-    super(`HTTP ${status}: ${message}`);
+    this.message = `HTTP ${status}: ${message}`;
     this.name = "ApiError";
   }
 }

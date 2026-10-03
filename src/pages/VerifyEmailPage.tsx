@@ -8,13 +8,13 @@ export default function VerifyEmailPage() {
   const { loginWithAccessToken } = useAuth();
   const hasStarted = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  const token = searchParams.get("token");
+  const missingTokenError = token ? null : "El link de verificación no es válido";
 
   useEffect(() => {
     if (hasStarted.current) return;
     hasStarted.current = true;
-    const token = searchParams.get("token");
     if (!token) {
-      setError("El link de verificación no es válido");
       return;
     }
 
@@ -29,12 +29,14 @@ export default function VerifyEmailPage() {
       });
   }, [loginWithAccessToken, searchParams]);
 
-  if (error) {
+  const displayedError = error ?? missingTokenError;
+
+  if (displayedError) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-background">
         <div className="w-full max-w-sm space-y-4 text-center">
           <h1 className="text-2xl font-serif font-medium">No pudimos verificar tu mail</h1>
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-destructive">{displayedError}</p>
           <Link to="/login" className="text-sm underline underline-offset-4">Volver a iniciar sesión</Link>
         </div>
       </div>
