@@ -24,6 +24,8 @@ import {
   useUpdateCategory,
 } from "@/hooks/useCategories";
 import { useApiKeyStatus, useDeleteApiKey, useSaveApiKey } from "@/hooks/useApiKeySettings";
+import { useSetPassword } from "@/hooks/usePasswordSettings";
+import { useAuth } from "@/context/useAuth";
 import ImportWizard from "@/components/settings/ImportWizard";
 import SubcategoryManager from "@/components/settings/SubcategoryManager";
 import { useTheme } from "@/hooks/useTheme";
@@ -41,6 +43,8 @@ export default function SettingsPage() {
   const saveApiKey = useSaveApiKey();
   const removeApiKey = useDeleteApiKey();
   const { isDark, toggleTheme } = useTheme();
+  const { user, refreshUser } = useAuth();
+  const setPassword = useSetPassword();
 
   const [newCatName, setNewCatName] = useState("");
   const [newCatType, setNewCatType] = useState<"expense" | "income">("expense");
@@ -57,6 +61,8 @@ export default function SettingsPage() {
   const [provider, setProvider] = useState<ApiKeyProvider>("google");
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [isExportingCsv, setIsExportingCsv] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
 
   const expenseCategories = categories.filter((cat) => cat.type === "expense");
   const incomeCategories = categories.filter((cat) => cat.type === "income");
@@ -336,6 +342,28 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSetPassword = async () => {
+    if (newPassword.length < 8) {
+      toast.error("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+    if (newPassword !== passwordConfirmation) {
+      toast.error("Las contraseñas no coinciden");
+      return;
+    }
+
+    try {
+      await setPassword.mutateAsync(newPassword);
+      await refreshUser();
+      setNewPassword("");
+      setPasswordConfirmation("");
+      toast.success("Contraseña creada");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo crear la contraseña";
+      toast.error(message);
+    }
+  };
+
   const handleExportCsv = async () => {
     if (isExportingCsv) return;
 
@@ -458,6 +486,42 @@ export default function SettingsPage() {
           </p>
         </div>
       </section>
+
+      {user && !user.has_password && (
+        <section className="mb-8">
+          <div className="text-[11px] font-mono tracking-widest uppercase text-muted-foreground/60 mb-3 pb-2 border-b border-border">
+            Contraseña
+          </div>
+          <div className="rounded-lg border border-border bg-card p-4 sm:p-5 space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Agregá una contraseña para poder entrar también con tu mail.
+            </p>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") void handleSetPassword(); }}
+              placeholder="Nueva contraseña"
+              autoComplete="new-password"
+              maxLength={128}
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition-colors focus:border-muted-foreground"
+            />
+            <input
+              type="password"
+              value={passwordConfirmation}
+              onChange={(event) => setPasswordConfirmation(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") void handleSetPassword(); }}
+              placeholder="Repetí la contraseña"
+              autoComplete="new-password"
+              maxLength={128}
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition-colors focus:border-muted-foreground"
+            />
+            <Button type="button" size="sm" onClick={() => void handleSetPassword()} disabled={setPassword.isPending}>
+              {setPassword.isPending ? "Creando..." : "Crear contraseña"}
+            </Button>
+          </div>
+        </section>
+      )}
 
       {/* Categorías */}
       <section className="mb-8">
