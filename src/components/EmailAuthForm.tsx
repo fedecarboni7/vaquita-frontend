@@ -16,7 +16,6 @@ export default function EmailAuthForm({ onRegistered }: EmailAuthFormProps) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -35,7 +34,7 @@ export default function EmailAuthForm({ onRegistered }: EmailAuthFormProps) {
       if (mode === "register") {
         await apiFetch("/auth/register", {
           method: "POST",
-          body: JSON.stringify({ email: email.trim(), password, name: name.trim() || undefined }),
+          body: JSON.stringify({ email: email.trim(), password }),
           skipAuthRedirect: true,
         });
         onRegistered();
@@ -108,17 +107,6 @@ export default function EmailAuthForm({ onRegistered }: EmailAuthFormProps) {
         </button>
       </div>
 
-      {mode === "register" && (
-        <input
-          type="text"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Nombre (opcional)"
-          className={inputClassName}
-          autoComplete="name"
-        />
-      )}
       <input
         type="email"
         value={email}

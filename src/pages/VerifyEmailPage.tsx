@@ -1,35 +1,59 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch, ApiError } from "@/api";
 import { useAuth } from "@/context/useAuth";
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams();
-  const { loginWithAccessToken } = useAuth();
-  const hasStarted = useRef(false);
-  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { user, isLoading, loginWithAccessToken } = useAuth();
+  const inFlightVerification = useRef<{ token: string; promise: Promise<void> } | null>(null);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [verificationFailed, setVerificationFailed] = useState(false);
   const token = searchParams.get("token");
   const missingTokenError = token ? null : "El link de verificación no es válido";
 
   useEffect(() => {
-    if (hasStarted.current) return;
-    hasStarted.current = true;
     if (!token) {
       return;
     }
+    if (inFlightVerification.current?.token === token) {
+      return;
+    }
 
-    void apiFetch<{ access_token: string }>("/auth/verify-email", {
+    const promise = apiFetch<{ access_token: string }>("/auth/verify-email", {
       method: "POST",
       body: JSON.stringify({ token }),
       skipAuthRedirect: true,
     })
-      .then(({ access_token }) => loginWithAccessToken(access_token))
+      .then(async ({ access_token }) => {
+        await loginWithAccessToken(access_token);
+        navigate("/", { replace: true });
+      })
       .catch((caughtError: unknown) => {
-        setError(caughtError instanceof ApiError ? "El link de verificación no es válido o venció" : "No se pudo verificar el mail");
+        setVerificationError(
+          caughtError instanceof ApiError
+            ? "El link de verificación no es válido o venció"
+            : "No se pudo verificar el mail",
+        );
+        setVerificationFailed(true);
       });
-  }, [loginWithAccessToken, searchParams]);
 
-  const displayedError = error ?? missingTokenError;
+    inFlightVerification.current = { token, promise };
+  }, [loginWithAccessToken, navigate, token]);
+
+  useEffect(() => {
+    if (!verificationFailed) {
+      return;
+    }
+    if (user) {
+      navigate("/", { replace: true });
+    }
+  }, [navigate, user, verificationFailed]);
+
+  const displayedError =
+    missingTokenError ??
+    (!isLoading && verificationFailed ? verificationError ?? "No se pudo verificar el mail" : null);
 
   if (displayedError) {
     return (
