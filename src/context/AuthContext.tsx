@@ -26,6 +26,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
+  const loginWithAccessToken = async (accessToken: string) => {
+    localStorage.setItem("access_token", accessToken);
+    const me = await apiFetch<User>("/auth/me");
+    setUser(me);
+  };
+
+  const refreshUser = async () => {
+    const me = await apiFetch<User>("/auth/me");
+    setUser(me);
+  };
+
   const login = async (credential: string) => {
     const { access_token } = await apiFetch<{ access_token: string }>(
       "/auth/google",
@@ -35,10 +46,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     );
 
-    localStorage.setItem("access_token", access_token);
+    await loginWithAccessToken(access_token);
+  };
 
-    const me = await apiFetch<User>("/auth/me");
-    setUser(me);
+  const loginWithPassword = async (email: string, password: string) => {
+    const { access_token } = await apiFetch<{ access_token: string }>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+      skipAuthRedirect: true,
+    });
+
+    await loginWithAccessToken(access_token);
   };
 
   const loginDev = async () => {
@@ -54,10 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     );
 
-    localStorage.setItem("access_token", access_token);
-
-    const me = await apiFetch<User>("/auth/me");
-    setUser(me);
+    await loginWithAccessToken(access_token);
   };
 
   const logout = () => {
@@ -66,7 +81,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, loginDev, isDevAuthEnabled, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        login,
+        loginWithPassword,
+        loginWithAccessToken,
+        refreshUser,
+        loginDev,
+        isDevAuthEnabled,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

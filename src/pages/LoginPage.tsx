@@ -1,13 +1,17 @@
-import { Navigate } from "react-router-dom";
+import { useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../context/useAuth";
 import { getAppLogoUrl } from "@/constants/branding";
 import { useTheme } from "@/hooks/useTheme";
+import EmailAuthForm from "@/components/EmailAuthForm";
 
 export default function LoginPage() {
   const { user, isLoading, login, loginDev, isDevAuthEnabled } = useAuth();
   const { isDark } = useTheme();
   const appLogoUrl = getAppLogoUrl(isDark);
+  const location = useLocation();
+  const [isRegistered, setIsRegistered] = useState(false);
 
   if (isLoading) {
     return (
@@ -31,7 +35,7 @@ export default function LoginPage() {
             className="mx-auto h-20 w-20 rounded-2xl object-cover"
           />
           <h1 className="text-2xl font-serif font-medium" style={{ fontFamily: "'Quicksand', sans-serif" }}>vaquita</h1>
-          <p className="text-sm text-muted-foreground">Iniciá sesión con tu cuenta de Google</p>
+          <p className="text-sm text-muted-foreground">Iniciá sesión con tu cuenta</p>
         </div>
 
         <div className="flex justify-center">
@@ -50,6 +54,34 @@ export default function LoginPage() {
             }}
           />
         </div>
+
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="h-px flex-1 bg-border" />
+          <span>o</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        {isRegistered ? (
+          <div className="space-y-3 text-left text-sm">
+            <p>Revisá tu mail para verificar tu cuenta.</p>
+            <p className="text-xs text-muted-foreground">
+              Si ya tenés cuenta con Google, entrá con Google o usá &quot;Olvidé mi contraseña&quot;.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsRegistered(false)}
+              className="text-xs underline underline-offset-4"
+            >
+              Volver a iniciar sesión
+            </button>
+          </div>
+        ) : (
+          <EmailAuthForm onRegistered={() => setIsRegistered(true)} />
+        )}
+
+        {location.state?.message && (
+          <p className="text-sm text-green-700 dark:text-green-400">{location.state.message}</p>
+        )}
 
         {isDevAuthEnabled && (
           <div className="space-y-2.5">

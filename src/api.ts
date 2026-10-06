@@ -1,16 +1,38 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+export type ApiRequestOptions = RequestInit & {
+  skipAuthRedirect?: boolean;
+};
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly detail: unknown;
+
+  constructor(status: number, detail: unknown) {
+    super();
+    this.status = status;
+    this.detail = detail;
+    const message =
+      typeof detail === "object" && detail !== null && "message" in detail
+        ? String(detail.message)
+        : String(detail);
+    this.message = `HTTP ${status}: ${message}`;
+    this.name = "ApiError";
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
+  const { skipAuthRedirect = false, ...requestOptions } = options;
   const token = localStorage.getItem("access_token");
   const isFormDataBody =
-    typeof FormData !== "undefined" && options.body instanceof FormData;
+    typeof FormData !== "undefined" && requestOptions.body instanceof FormData;
 
   const headers: HeadersInit = {
     ...(isFormDataBody ? {} : { "Content-Type": "application/json" }),
-    ...options.headers,
+    ...requestOptions.headers,
   };
 
   if (token) {
@@ -18,11 +40,11 @@ export async function apiFetch<T>(
   }
 
   const response = await fetch(`${API_URL}${path}`, {
-    ...options,
+    ...requestOptions,
     headers,
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && !skipAuthRedirect) {
     localStorage.removeItem("access_token");
     window.location.href = "/login";
     throw new Error("Unauthorized");
@@ -31,7 +53,7 @@ export async function apiFetch<T>(
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: "Unknown error" }));
     const detail = error.detail || `HTTP ${response.status}`;
-    throw new Error(`HTTP ${response.status}: ${detail}`);
+    throw new ApiError(response.status, detail);
   }
 
   // Si no hay contenido (ej 204 No Content para DELETE), retorna nulo.
