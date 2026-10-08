@@ -28,7 +28,7 @@ Frontend de [vaquita](https://vaquita.up.railway.app), una app de finanzas perso
 | Server state | TanStack Query |
 | Chat state | Estado local de React en `useChatStore` |
 | Shared UI state | React Context para autenticación, moneda y visibilidad de balances |
-| Auth | @react-oauth/google |
+| Auth | @react-oauth/google +  email y contraseña |
 | Fuente | Geist |
 
 ---
