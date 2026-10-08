@@ -7,6 +7,7 @@ Frontend de [vaquita](https://vaquita.up.railway.app), una app de finanzas perso
 ## ¿Qué incluye?
 
 - **Chat con IA** — registrá transacciones por texto o audio; el agente las interpreta y te muestra un borrador para confirmar antes de guardar
+- **Aclaraciones con memoria** — cuando falta información, el chat conserva el borrador parcial y lo completa con tu siguiente mensaje
 - **Historial de transacciones** — visualizá, filtrá y buscá todos tus movimientos
 - **Cuentas** — administrá múltiples cuentas en distintas monedas
 - **Estadísticas** — gráficos y resúmenes de gastos e ingresos por categoría y período
@@ -25,6 +26,8 @@ Frontend de [vaquita](https://vaquita.up.railway.app), una app de finanzas perso
 | Componentes | shadcn/ui |
 | Routing | react-router-dom v7 |
 | Server state | TanStack Query |
+| Chat state | Estado local de React en `useChatStore` |
+| Shared UI state | React Context para autenticación, moneda y visibilidad de balances |
 | Auth | @react-oauth/google |
 | Fuente | Geist |
 

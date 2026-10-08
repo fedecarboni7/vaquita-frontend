@@ -4,9 +4,10 @@ import type { ChatMessage as ChatMessageType } from "../hooks/useChatStore";
 interface Props {
   messages: ChatMessageType[];
   isProcessing?: boolean;
+  onDraftSettled: () => void;
 }
 
-export default function ChatWindow({ messages, isProcessing = false }: Props) {
+export default function ChatWindow({ messages, isProcessing = false, onDraftSettled }: Props) {
   if (messages.length === 0 && !isProcessing) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground text-sm text-center">
@@ -21,6 +22,7 @@ export default function ChatWindow({ messages, isProcessing = false }: Props) {
         <ChatMessage
           key={msg.id}
           message={msg}
+          onDraftSettled={onDraftSettled}
         />
       ))}
       {isProcessing && (

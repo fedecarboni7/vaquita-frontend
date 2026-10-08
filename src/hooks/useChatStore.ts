@@ -8,13 +8,39 @@ export interface ChatMessage {
   content: string;
   input_source?: "text" | "audio";
   response_type?: string;
-  data?: Record<string, unknown> | null;
+  data?: PendingDraft | null;
+}
+
+export interface PendingDraft {
+  type?: "expense" | "income" | "transfer" | null;
+  amount?: number | string | null;
+  to_amount?: number | string | null;
+  description?: string | null;
+  account?: string | null;
+  account_id?: string | null;
+  account_destination?: string | null;
+  account_destination_id?: string | null;
+  category?: string | null;
+  category_id?: string | null;
+  subcategory?: string | null;
+  subcategory_name?: string | null;
+  subcategory_id?: string | null;
+  expense_date?: string | null;
+  currency?: string | null;
+  installments?: number | null;
+  installment_amount?: number | null;
+  note?: string | null;
+  missing_fields?: string[];
+  inferred_fields?: string[];
+  [key: string]: unknown;
 }
 
 interface ChatResponse {
   response_type: string;
   message: string;
-  data: Record<string, unknown> | null;
+  data: PendingDraft | null;
+  missing_fields?: string[];
+  inferred_fields?: string[];
   fallback_model_used?: boolean;
 }
 
@@ -25,6 +51,7 @@ interface ChatRequestMessage {
 
 interface ChatRequestPayload {
   messages: ChatRequestMessage[];
+  pending_draft: PendingDraft | null;
 }
 
 interface TextMutationPayload {
@@ -38,12 +65,13 @@ function toRequestMessages(messages: ChatMessage[]): ChatRequestMessage[] {
     .map((message) => ({
       role: message.role,
       content: message.content,
-    }));
+    }))
+    .slice(-8);
 }
 
 function buildAssistantMessage(
   response: ChatResponse,
-  data: Record<string, unknown> | null = response.data,
+  data: PendingDraft | null = response.data,
 ): ChatMessage {
   return {
     id: crypto.randomUUID(),
@@ -106,6 +134,8 @@ function isAbortError(error: unknown): boolean {
 
 export function useChatStore() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [pendingDraft, setPendingDraftState] = useState<PendingDraft | null>(null);
+  const pendingDraftRef = useRef<PendingDraft | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [inputResetKey, setInputResetKey] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -148,8 +178,15 @@ export function useChatStore() {
   const resetConversation = useCallback(() => {
     stopProcessing();
     setMessages([]);
+    pendingDraftRef.current = null;
+    setPendingDraftState(null);
     setInputResetKey((prev) => prev + 1);
   }, [stopProcessing]);
+
+  const clearPendingDraft = useCallback(() => {
+    pendingDraftRef.current = null;
+    setPendingDraftState(null);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -175,6 +212,7 @@ export function useChatStore() {
       const historyWindow = toRequestMessages(allMessages);
       const requestPayload: ChatRequestPayload = {
         messages: historyWindow,
+        pending_draft: pendingDraftRef.current,
       };
       const controller = beginProcessing();
 
@@ -195,6 +233,13 @@ export function useChatStore() {
           }
           return nextMessages;
         });
+        if (response.response_type === "clarification" && response.data !== null) {
+          pendingDraftRef.current = response.data;
+          setPendingDraftState(response.data);
+        } else if (response.response_type === "draft") {
+          pendingDraftRef.current = null;
+          setPendingDraftState(null);
+        }
       } catch (error) {
         if (isAbortError(error)) {
           return;
@@ -222,5 +267,7 @@ export function useChatStore() {
     setMessages,
     resetConversation,
     inputResetKey,
+    pendingDraft,
+    clearPendingDraft,
   };
 }

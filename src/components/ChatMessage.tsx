@@ -4,9 +4,10 @@ import TransactionDraftCard from "./TransactionDraftCard";
 
 interface Props {
   message: ChatMessageType;
+  onDraftSettled: () => void;
 }
 
-export default function ChatMessage({ message }: Props) {
+export default function ChatMessage({ message, onDraftSettled }: Props) {
   const isUser = message.role === "user";
   const isAudioTranscription = isUser && message.input_source === "audio";
   const isSystemNotice = message.role === "system";
@@ -45,7 +46,7 @@ export default function ChatMessage({ message }: Props) {
     return (
       <div className="flex items-end">
         <div className="max-w-[95%] sm:max-w-[85%] min-w-0">
-          <TransactionDraftCard data={message.data} />
+          <TransactionDraftCard data={message.data} onDraftSettled={onDraftSettled} />
         </div>
       </div>
     );

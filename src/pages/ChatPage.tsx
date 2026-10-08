@@ -12,6 +12,7 @@ export default function ChatPage() {
     stopProcessing,
     resetConversation,
     inputResetKey,
+    clearPendingDraft,
   } = useChatStore();
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -33,6 +34,7 @@ export default function ChatPage() {
         <ChatWindow
           messages={messages}
           isProcessing={isProcessing}
+          onDraftSettled={clearPendingDraft}
         />
         <div ref={bottomRef} />
       </div>

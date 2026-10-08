@@ -15,6 +15,7 @@ import type { Category, TransactionType } from "@/types/transaction";
 
 interface Props {
   data: Record<string, unknown>;
+  onDraftSettled?: () => void;
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -102,7 +103,28 @@ function formatDisplayDate(value: unknown): string {
   return `${day}/${month}/${year}`;
 }
 
-export default function TransactionDraftCard({ data }: Props) {
+function buildSavedSummary(data: Record<string, unknown>, currency: string): string {
+  const type = normalizeTransactionType(data.type);
+  const typeLabel = TYPE_LABELS[type];
+  const amount = buildFormattedAmount(data.amount, currency);
+  const description =
+    typeof data.description === "string" && data.description.trim()
+      ? data.description.trim()
+      : "Sin descripción";
+  const account = typeof data.account === "string" ? data.account : "Cuenta sin nombre";
+
+  if (type === "transfer") {
+    const destination =
+      typeof data.account_destination === "string"
+        ? data.account_destination
+        : "Cuenta destino sin nombre";
+    return `✓ ${typeLabel} registrada: ${amount} — ${account} → ${destination}`;
+  }
+
+  return `✓ ${typeLabel} registrado: ${amount} — ${description} · ${account}`;
+}
+
+export default function TransactionDraftCard({ data, onDraftSettled }: Props) {
   const queryClient = useQueryClient();
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
@@ -128,6 +150,7 @@ export default function TransactionDraftCard({ data }: Props) {
   });
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error" | "cancelled">("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [changedFields, setChangedFields] = useState<Set<string>>(new Set());
   const [displayAmount, setDisplayAmount] = useState(() =>
     formatAmountForDisplay(sanitizeAmountInput(String(data.amount ?? ""))),
   );
@@ -259,6 +282,7 @@ export default function TransactionDraftCard({ data }: Props) {
 
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       setStatus("saved");
+      onDraftSettled?.();
     } catch (error) {
       setStatus("error");
       setErrorMessage(error instanceof Error ? error.message : "Error al guardar. Intentá de nuevo.");
@@ -267,6 +291,12 @@ export default function TransactionDraftCard({ data }: Props) {
 
 const handleFieldChange = (field: string, value: string) => {
     const sanitizedValue = sanitizeAmountInput(value);
+
+    setChangedFields((prev) => {
+      const next = new Set(prev);
+      next.add(field);
+      return next;
+    });
 
     setEditData((prev) => ({
       ...prev,
@@ -280,6 +310,11 @@ const handleFieldChange = (field: string, value: string) => {
               : value,
     }));
   };
+
+  const isInferred = (field: string) =>
+    !changedFields.has(field) &&
+    Array.isArray(data.inferred_fields) &&
+    data.inferred_fields.includes(field);
 
   const handleTypeChange = (value: TransactionType) => {
     setEditData((prev) => {
@@ -354,7 +389,7 @@ const handleFieldChange = (field: string, value: string) => {
   if (status === "saved") {
     return (
       <div className="border border-border rounded-xl p-4 bg-card text-sm flex items-center gap-2 text-muted-foreground">
-        ✓ Transacción guardada
+        {buildSavedSummary(editData, selectedAccountCurrency)}
       </div>
     );
   }
@@ -472,23 +507,28 @@ const handleFieldChange = (field: string, value: string) => {
 
         {renderRow(
           FIELD_LABELS.account,
-          isEditing ? (
-            <select
-              value={selectedAccount}
-              onChange={(event) => handleFieldChange("account", event.target.value)}
-              className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <option value="">Seleccionar cuenta</option>
-              {accountNotFound && <option value={selectedAccount}>{selectedAccount}</option>}
-              {accounts.map((account) => (
-                <option key={account.id} value={account.name}>
-                  {account.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">{selectedAccount || "Sin cuenta"}</span>
-          ),
+          <div className="flex flex-col items-end gap-1">
+            {isEditing ? (
+              <select
+                value={selectedAccount}
+                onChange={(event) => handleFieldChange("account", event.target.value)}
+                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="">Seleccionar cuenta</option>
+                {accountNotFound && <option value={selectedAccount}>{selectedAccount}</option>}
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.name}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">{selectedAccount || "Sin cuenta"}</span>
+            )}
+            {isInferred("account") && (
+              <span className="text-[11px] text-muted-foreground">Cuenta sugerida, revisá que sea la correcta</span>
+            )}
+          </div>,
         )}
 
         {isTransfer &&
@@ -658,7 +698,10 @@ const handleFieldChange = (field: string, value: string) => {
           {isEditing ? "Listo" : "Editar"}
         </button>
         <button
-          onClick={() => setStatus("cancelled")}
+          onClick={() => {
+            setStatus("cancelled");
+            onDraftSettled?.();
+          }}
           className="text-destructive text-sm px-4 py-1.5 rounded-lg hover:bg-destructive/10 transition-colors font-medium border border-destructive/30"
         >
           Cancelar
