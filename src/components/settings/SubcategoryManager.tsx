@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCategoryColor } from "@/lib/categoryDisplay";
+import { getCategoryColor, getCategoryEmoji } from "@/lib/categoryDisplay";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -155,7 +155,8 @@ export default function SubcategoryManager({ categories, loadingCategories }: Pr
           ) : (
             sortedCategories.map((category) => (
               <option key={category.id} value={category.id}>
-                {category.name} ({category.type === "income" ? "Ingreso" : "Gasto"})
+                {[getCategoryEmoji(category), category.name].filter(Boolean).join(" ")}{" "}
+                ({category.type === "income" ? "Ingreso" : "Gasto"})
               </option>
             ))
           )}
