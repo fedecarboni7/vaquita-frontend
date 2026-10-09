@@ -8,13 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useUpdateTransaction } from "@/hooks/useTransactions";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useCategories } from "@/hooks/useCategories";
@@ -134,8 +127,6 @@ export default function EditTransactionModal({
   const parsedToAmount = parseAmountForSubmission(toAmountInput);
   const hasInvalidToAmount =
     isTransfer && toAmountInput !== "" && (parsedToAmount == null || parsedToAmount <= 0);
-  const selectedTypeLabel =
-    TYPE_OPTIONS.find((option) => option.value === transactionType)?.label || "Gasto";
 
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
@@ -286,7 +277,7 @@ export default function EditTransactionModal({
 
       if (event.target instanceof HTMLElement) {
         const isSelectInteraction = event.target.closest(
-          '[role="combobox"], [role="listbox"], [role="option"]',
+          '[role="combobox"], [role="listbox"], [role="option"], select',
         );
         if (isSelectInteraction) {
           return;
@@ -324,21 +315,17 @@ export default function EditTransactionModal({
 
             <div>
               <label className="text-sm font-medium mb-1 block">Tipo</label>
-              <Select
+              <select
                 value={transactionType}
-                onValueChange={(value) => handleTypeChange((value as TransactionType) ?? "expense")}
+                onChange={(e) => handleTypeChange((e.target.value as TransactionType) ?? "expense")}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar tipo">{selectedTypeLabel}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {TYPE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -376,37 +363,37 @@ export default function EditTransactionModal({
             <label className="text-sm font-medium mb-1 block">
               {isTransfer ? "Cuenta de origen" : "Cuenta"}
             </label>
-            <Select value={account} onValueChange={(v) => setAccount(v ?? "")}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleccionar cuenta" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.name}>
-                    {a.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              value={account}
+              onChange={(e) => setAccount(e.target.value ?? "")}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">Seleccionar cuenta</option>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.name}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {isTransfer && (
             <div>
               <label className="text-sm font-medium mb-1 block">Cuenta destino</label>
-              <Select value={accountDestination} onValueChange={(v) => setAccountDestination(v ?? "")}> 
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar cuenta destino" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts
-                    .filter((a) => a.name !== account)
-                    .map((a) => (
-                      <SelectItem key={a.id} value={a.name}>
-                        {a.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+              <select
+                value={accountDestination}
+                onChange={(e) => setAccountDestination(e.target.value ?? "")}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">Seleccionar cuenta destino</option>
+                {accounts
+                  .filter((a) => a.name !== account)
+                  .map((a) => (
+                    <option key={a.id} value={a.name}>
+                      {a.name}
+                    </option>
+                  ))}
+              </select>
             </div>
           )}
 
@@ -451,55 +438,38 @@ export default function EditTransactionModal({
             <>
               <div>
                 <label className="text-sm font-medium mb-1 block">Categoría</label>
-                <Select
+                <select
                   value={safeCategoryValue}
-                  onValueChange={(value) => {
-                    setCategoryId(value ?? "__none__");
+                  onChange={(e) => {
+                    setCategoryId(e.target.value ?? "__none__");
                     setSubcategoryId("__none__");
                   }}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sin categoría">
-                      {safeCategoryValue === "__none__" ? "Sin categoría" : selectedCategory ? [getCategoryEmoji(selectedCategory), selectedCategory.name].filter(Boolean).join(" ") : ""}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Sin categoría</SelectItem>
-                    {categoriesForType.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {[getCategoryEmoji(c), c.name].filter(Boolean).join(" ")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <option value="__none__">Sin categoría</option>
+                  {categoriesForType.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {[getCategoryEmoji(c), c.name].filter(Boolean).join(" ")}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="text-sm font-medium mb-1 block">Subcategoría</label>
-                <Select
+                <select
                   value={safeSubcategoryValue}
-                  onValueChange={(value) => setSubcategoryId(value ?? "__none__")}
+                  onChange={(e) => setSubcategoryId(e.target.value ?? "__none__")}
                   disabled={safeCategoryValue === "__none__"}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sin subcategoría">
-                      {safeSubcategoryValue === "__none__"
-                        ? "Sin subcategoría"
-                        : (() => {
-                            const sub = availableSubcategories.find((item) => item.id === safeSubcategoryValue);
-                            return sub ? sub.name : "";
-                          })()}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Sin subcategoría</SelectItem>
-                    {availableSubcategories.map((subcategory) => (
-                      <SelectItem key={subcategory.id} value={subcategory.id}>
-                        {subcategory.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <option value="__none__">Sin subcategoría</option>
+                  {availableSubcategories.map((subcategory) => (
+                    <option key={subcategory.id} value={subcategory.id}>
+                      {subcategory.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {isExpense && (
