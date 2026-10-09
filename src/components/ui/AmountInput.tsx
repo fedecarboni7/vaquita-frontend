@@ -10,6 +10,7 @@ interface AmountInputProps {
   onValueChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  suffix?: string;
 }
 
 function formatForDisplay(value: number | null): string {
@@ -87,6 +88,7 @@ export default function AmountInput({
   onValueChange,
   placeholder = "0,00",
   className,
+  suffix,
 }: AmountInputProps) {
   const baseButtonClass = "h-9 rounded-md border text-sm font-medium border-white/10 hover:bg-white/10 transition-colors";
   const operatorButtonClass = "bg-[var(--color-background-info)] text-[var(--color-text-info)]";
@@ -242,29 +244,34 @@ export default function AmountInput({
       : currentValue;
 
   return (
-    <div className="relative">
-      <input
-        type="text"
-        inputMode="decimal"
-        value={value}
-        onChange={onChange}
-        className={className}
-        placeholder={placeholder}
-      />
-      <Popover open={isOpen} onOpenChange={handleOpenChange}>
-        <PopoverTrigger
-          render={
-            <button
-              type="button"
-              className="absolute top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center border rounded-md bg-transparent hover:bg-secondary transition-colors cursor-pointer"
-              style={{ right: "2px" }}
-              aria-label="Abrir calculadora"
-            />
-          }
-        >
-          <Calculator className="h-4 w-4 text-muted-foreground" />
-        </PopoverTrigger>
-        <PopoverContent className="w-[220px] p-2">
+    <div className="min-w-0">
+      <div className="relative min-w-0">
+        <input
+          type="text"
+          inputMode="decimal"
+          value={value}
+          onChange={onChange}
+          className={cn(className, "min-w-0 w-full pr-11", suffix && "pr-20")}
+          placeholder={placeholder}
+        />
+        {suffix && (
+          <span className="pointer-events-none absolute right-11 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+            {suffix}
+          </span>
+        )}
+        <Popover open={isOpen} onOpenChange={handleOpenChange}>
+          <PopoverTrigger
+            render={
+              <button
+                type="button"
+                className="absolute right-0 top-0 flex h-full w-10 items-center justify-center border-l border-border bg-transparent text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                aria-label="Abrir calculadora"
+              />
+            }
+          >
+            <Calculator className="h-4 w-4 text-muted-foreground" />
+          </PopoverTrigger>
+          <PopoverContent className="w-[220px] p-2">
           <div
             className="bg-secondary rounded-md p-[10px] mb-2"
             style={{ background: "var(--color-background-secondary)" }}
@@ -375,8 +382,9 @@ export default function AmountInput({
           >
             Usar {displayConfirmedResult}
           </button>
-        </PopoverContent>
-      </Popover>
+          </PopoverContent>
+        </Popover>
+      </div>
     </div>
   );
 }

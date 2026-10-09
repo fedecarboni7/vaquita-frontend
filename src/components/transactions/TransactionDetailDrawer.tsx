@@ -64,12 +64,26 @@ function DetailContent({
     transaction.account_destination_currency ?? transaction.currency,
   );
 
+  const categoryLabel = transaction.category_name ?? transaction.category;
+  const categoryData = transaction.category_id
+    ? categories.find((c) => c.id === transaction.category_id)
+    : null;
+
   const rows: { label: string; value: string | null | undefined }[] = [
+    { label: "Fecha", value: formatDate(transaction.expense_date) },
     { label: "Tipo", value: TYPE_LABELS[transaction.type] },
     {
       label: "Monto",
       value: formatCurrencyAmount(transaction.amount, transaction.currency),
     },
+    {
+      label: "Cuotas",
+      value: transaction.installments
+        ? String(transaction.installments)
+        : null,
+    },
+    { label: "Cuenta", value: transaction.account },
+    { label: "Cuenta destino", value: transaction.account_destination },
     {
       label: "Monto destino",
       value:
@@ -85,17 +99,9 @@ function DetailContent({
       value: exchangeRate ? formatCurrencyAmount(exchangeRate.amount, exchangeRate.currency) : null,
     },
     { label: "Descripción", value: transaction.description },
+    { label: "Categoría", value: categoryLabel },
     { label: "Subcategoría", value: transaction.subcategory_name },
-    { label: "Cuenta", value: transaction.account },
-    { label: "Cuenta destino", value: transaction.account_destination },
-    { label: "Fecha", value: formatDate(transaction.expense_date) },
     { label: "Nota", value: transaction.note },
-    {
-      label: "Cuotas",
-      value: transaction.installments
-        ? String(transaction.installments)
-        : null,
-    },
     {
       label: "Afecta balance en Registros",
       value: transaction.affects_balance === false ? "No" : "Si",
@@ -116,37 +122,29 @@ function DetailContent({
     }
   };
 
-  const categoryLabel = transaction.category_name ?? transaction.category;
-  const categoryData = transaction.category_id
-    ? categories.find((c) => c.id === transaction.category_id)
-    : null;
-
   return (
     <div className="flex flex-col gap-4">
       <div className="space-y-3">
         {rows
           .filter((r) => r.value)
-          .map((r) => (
-            <div key={r.label}>
-              <p className="text-xs text-muted-foreground">{r.label}</p>
-              <p className="text-sm font-medium">{r.value}</p>
-            </div>
-          ))}
-        {categoryLabel && (
-          <div>
-            <p className="text-xs text-muted-foreground">Categoría</p>
-            {categoryData ? (
-              <span
-                className="category-badge inline-block px-2 py-0.5 rounded text-[12px] font-medium"
-                style={{ backgroundColor: getCategoryColor(categoryData) + "1a", color: getCategoryColor(categoryData) }}
-              >
-                {[getCategoryEmoji(categoryData), categoryLabel].filter(Boolean).join(" ")}
-              </span>
+          .map((r) =>
+            r.label === "Categoría" && categoryData ? (
+              <div key={r.label}>
+                <p className="text-xs text-muted-foreground">{r.label}</p>
+                <span
+                  className="category-badge inline-block px-2 py-0.5 rounded text-[12px] font-medium"
+                  style={{ backgroundColor: getCategoryColor(categoryData) + "1a", color: getCategoryColor(categoryData) }}
+                >
+                  {[getCategoryEmoji(categoryData), r.value].filter(Boolean).join(" ")}
+                </span>
+              </div>
             ) : (
-              <p className="text-sm font-medium">{categoryLabel}</p>
-            )}
-          </div>
-        )}
+              <div key={r.label}>
+                <p className="text-xs text-muted-foreground">{r.label}</p>
+                <p className="text-sm font-medium">{r.value}</p>
+              </div>
+            ),
+          )}
       </div>
       {transaction.receipt_url && (
         <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">

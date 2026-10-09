@@ -12,6 +12,18 @@ import { formatCurrencyAmount } from "@/lib/utils";
 import AmountInput from "@/components/ui/AmountInput";
 import { getCategoryEmoji } from "@/lib/categoryDisplay";
 import type { Category, TransactionType } from "@/types/transaction";
+import {
+  Calendar,
+  Check,
+  CreditCard,
+  DollarSign,
+  FileText,
+  Grid2X2,
+  History,
+  Tag,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 
 interface Props {
   data: Record<string, unknown>;
@@ -33,7 +45,21 @@ const FIELD_LABELS: Record<string, string> = {
   note: "Nota",
 };
 
-const READ_ONLY_FIELDS = new Set(["installment_amount"]);
+const FIELD_ICONS: Record<string, LucideIcon> = {
+  amount: DollarSign,
+  to_amount: DollarSign,
+  installment_amount: DollarSign,
+  description: FileText,
+  type: Tag,
+  account: CreditCard,
+  account_destination: CreditCard,
+  category: Grid2X2,
+  subcategory_name: Tag,
+  expense_date: Calendar,
+  installments: History,
+  note: FileText,
+};
+
 const TYPE_OPTIONS: Array<{ value: TransactionType; label: string }> = [
   { value: "expense", label: "Gasto" },
   { value: "income", label: "Ingreso" },
@@ -85,24 +111,6 @@ function getCurrentLocalDateISO(): string {
   return localDate.toISOString().split("T")[0];
 }
 
-function formatDisplayDate(value: unknown): string {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  const parts = value.split("-");
-  if (parts.length !== 3) {
-    return value;
-  }
-
-  const [year, month, day] = parts;
-  if (!year || !month || !day) {
-    return value;
-  }
-
-  return `${day}/${month}/${year}`;
-}
-
 function buildSavedSummary(data: Record<string, unknown>, currency: string): string {
   const type = normalizeTransactionType(data.type);
   const typeLabel = TYPE_LABELS[type];
@@ -128,7 +136,6 @@ export default function TransactionDraftCard({ data, onDraftSettled }: Props) {
   const queryClient = useQueryClient();
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useCategories();
-  const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Record<string, unknown>>(() => {
     const normalized = { ...data };
 
@@ -371,11 +378,15 @@ const handleFieldChange = (field: string, value: string) => {
     }));
   };
 
-  const renderRow = (label: string, content: ReactNode) => {
+  const renderRow = (field: string, content: ReactNode) => {
+    const Icon = FIELD_ICONS[field];
     return (
-      <div className="flex flex-row items-center justify-between gap-2 py-2 border-b border-border/50 last:border-0">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide shrink-0">{label}:</span>
-        {content}
+      <div className="flex flex-row items-center gap-3 border-b border-border/50 py-1.5 last:border-0">
+        <div className="flex w-[34%] min-w-0 shrink-0 items-center gap-2 text-sm font-medium text-muted-foreground">
+          {Icon && <Icon className="h-5 w-5 shrink-0 text-foreground/80" strokeWidth={1.8} />}
+          <span className="truncate">{FIELD_LABELS[field] ?? field}</span>
+        </div>
+        <div className="min-w-0 flex-1">{content}</div>
       </div>
     );
   };
@@ -403,99 +414,139 @@ const handleFieldChange = (field: string, value: string) => {
   }
 
   return (
-    <div className="border border-border rounded-xl p-4 bg-card min-w-0 shadow-sm">
-      <div className="space-y-2 mb-3">
+    <div className="border border-border rounded-xl p-3 bg-card min-w-0 shadow-sm">
+      <div className="space-y-1 mb-2">
         {renderRow(
-          FIELD_LABELS.expense_date,
-          isEditing ? (
-            <input
-              type="date"
-              value={String(editData.expense_date ?? "")}
-              onChange={(event) => handleFieldChange("expense_date", event.target.value)}
-              className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          ) : (
-            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
-              {formatDisplayDate(editData.expense_date) || "-"}
-            </span>
-          ),
+          "expense_date",
+          <input
+            type="date"
+            value={String(editData.expense_date ?? "")}
+            onChange={(event) => handleFieldChange("expense_date", event.target.value)}
+            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />,
         )}
 
         {renderRow(
-          FIELD_LABELS.type,
-          isEditing ? (
+          "type",
+          <select
+            value={selectedType}
+            onChange={(event) => handleTypeChange(event.target.value as TransactionType)}
+            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            {TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>,
+        )}
+
+        {renderRow(
+          "amount",
+          <AmountInput
+            value={displayAmount}
+            onChange={(event) => {
+              const rawValue = event.target.value.replace(/\./g, "");
+              const sanitized = sanitizeAmountInput(rawValue);
+              handleFieldChange("amount", sanitized);
+              setDisplayAmount(formatAmountForDisplay(sanitized));
+            }}
+            onValueChange={(rawValue) => {
+              const sanitized = sanitizeAmountInput(rawValue.replace(/\./g, ","));
+              handleFieldChange("amount", sanitized);
+              setDisplayAmount(formatAmountForDisplay(sanitized));
+            }}
+            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            placeholder="0,00"
+            suffix={selectedAccountCurrency}
+          />,
+        )}
+
+        {isExpense &&
+          renderRow(
+            "installments",
+            <input
+              type="number"
+              min="1"
+              value={installmentsValue}
+              onChange={(event) => handleFieldChange("installments", event.target.value)}
+              placeholder="Sin cuotas"
+              className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            />,
+          )}
+
+        {isExpense && editData.installment_amount != null &&
+          renderRow(
+            "installment_amount",
+            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
+              {buildFormattedAmount(editData.installment_amount, selectedAccountCurrency)}
+            </span>,
+          )}
+
+        {renderRow(
+          "account",
+          <div className="flex flex-col items-end gap-1">
             <select
-              value={selectedType}
-              onChange={(event) => handleTypeChange(event.target.value as TransactionType)}
-              className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
+              value={selectedAccount}
+              onChange={(event) => handleFieldChange("account", event.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             >
-              {TYPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
+              <option value="">Seleccionar cuenta</option>
+              {accountNotFound && <option value={selectedAccount}>{selectedAccount}</option>}
+              {accounts.map((account) => (
+                <option key={account.id} value={account.name}>
+                  {account.name}
                 </option>
               ))}
             </select>
-          ) : (
-            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">{TYPE_LABELS[selectedType]}</span>
-          ),
-        )}
-
-        {renderRow(
-          FIELD_LABELS.amount,
-          isEditing ? (
-            <AmountInput
-              value={displayAmount}
-              onChange={(event) => {
-                const rawValue = event.target.value.replace(/\./g, "");
-                const sanitized = sanitizeAmountInput(rawValue);
-                handleFieldChange("amount", sanitized);
-                setDisplayAmount(formatAmountForDisplay(sanitized));
-              }}
-              onValueChange={(rawValue) => {
-                const sanitized = sanitizeAmountInput(rawValue.replace(/\./g, ","));
-                handleFieldChange("amount", sanitized);
-                setDisplayAmount(formatAmountForDisplay(sanitized));
-              }}
-              className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
-              placeholder="0,00"
-            />
-          ) : (
-            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
-              {buildFormattedAmount(editData.amount, selectedAccountCurrency)}
-            </span>
-          ),
+            {isInferred("account") && (
+              <span className="text-[11px] text-muted-foreground">Cuenta sugerida, revisá que sea la correcta</span>
+            )}
+          </div>,
         )}
 
         {isTransfer &&
           renderRow(
-            FIELD_LABELS.to_amount,
-            isEditing ? (
-              <AmountInput
-                value={displayToAmount}
-                onChange={(event) => {
-                  const rawValue = event.target.value.replace(/\./g, "");
-                  const sanitized = sanitizeAmountInput(rawValue);
-                  handleFieldChange("to_amount", sanitized);
-                  setDisplayToAmount(formatAmountForDisplay(sanitized));
-                }}
-                onValueChange={(rawValue) => {
-                  const sanitized = sanitizeAmountInput(rawValue.replace(/\./g, ","));
-                  handleFieldChange("to_amount", sanitized);
-                  setDisplayToAmount(formatAmountForDisplay(sanitized));
-                }}
-                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
-                placeholder="0,00"
-              />
-            ) : (
-              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
-                {hasToAmount
-                  ? buildFormattedAmount(parsedToAmount, selectedDestinationCurrency)
-                  : "Misma moneda"}
-              </span>
-            ),
+            "account_destination",
+            <select
+              value={selectedDestinationAccount}
+              onChange={(event) => handleFieldChange("account_destination", event.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              <option value="">Seleccionar cuenta destino</option>
+              {destinationNotFound && (
+                <option value={selectedDestinationAccount}>{selectedDestinationAccount}</option>
+              )}
+              {destinationAccountOptions.map((account) => (
+                <option key={account.id} value={account.name}>
+                  {account.name}
+                </option>
+              ))}
+            </select>,
           )}
 
-        {isTransfer && hasToAmount && !isEditing &&
+        {isTransfer &&
+          renderRow(
+            "to_amount",
+            <AmountInput
+              value={displayToAmount}
+              onChange={(event) => {
+                const rawValue = event.target.value.replace(/\./g, "");
+                const sanitized = sanitizeAmountInput(rawValue);
+                handleFieldChange("to_amount", sanitized);
+                setDisplayToAmount(formatAmountForDisplay(sanitized));
+              }}
+              onValueChange={(rawValue) => {
+                const sanitized = sanitizeAmountInput(rawValue.replace(/\./g, ","));
+                handleFieldChange("to_amount", sanitized);
+                setDisplayToAmount(formatAmountForDisplay(sanitized));
+              }}
+              className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              placeholder="Misma moneda"
+            />,
+          )}
+
+        {isTransfer && hasToAmount &&
           renderRow(
             "Conversión",
             <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
@@ -506,204 +557,83 @@ const handleFieldChange = (field: string, value: string) => {
           )}
 
         {renderRow(
-          FIELD_LABELS.account,
-          <div className="flex flex-col items-end gap-1">
-            {isEditing ? (
-              <select
-                value={selectedAccount}
-                onChange={(event) => handleFieldChange("account", event.target.value)}
-                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="">Seleccionar cuenta</option>
-                {accountNotFound && <option value={selectedAccount}>{selectedAccount}</option>}
-                {accounts.map((account) => (
-                  <option key={account.id} value={account.name}>
-                    {account.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">{selectedAccount || "Sin cuenta"}</span>
-            )}
-            {isInferred("account") && (
-              <span className="text-[11px] text-muted-foreground">Cuenta sugerida, revisá que sea la correcta</span>
-            )}
-          </div>,
+          "description",
+          <input
+            type="text"
+            value={String(editData.description ?? "")}
+            onChange={(event) => handleFieldChange("description", event.target.value)}
+            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />,
         )}
 
-        {isTransfer &&
+        {!isTransfer &&
           renderRow(
-            FIELD_LABELS.account_destination,
-            isEditing ? (
-              <select
-                value={selectedDestinationAccount}
-                onChange={(event) => handleFieldChange("account_destination", event.target.value)}
-                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="">Seleccionar cuenta destino</option>
-                {destinationNotFound && (
-                  <option value={selectedDestinationAccount}>{selectedDestinationAccount}</option>
-                )}
-                {destinationAccountOptions.map((account) => (
-                  <option key={account.id} value={account.name}>
-                    {account.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
-                {selectedDestinationAccount || "Sin cuenta destino"}
-              </span>
-            ),
+            "category",
+            <select
+              value={selectedCategoryName}
+              onChange={(event) => handleCategoryChange(event.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              <option value="">Sin categoría</option>
+              {categoriesForType.map((category: Category) => (
+                <option key={category.id} value={category.name}>
+                  {[getCategoryEmoji(category), category.name].filter(Boolean).join(" ")}
+                </option>
+              ))}
+            </select>,
+          )}
+
+        {!isTransfer &&
+          renderRow(
+            "subcategory_name",
+            <select
+              value={selectedSubcategoryId}
+              onChange={(event) => handleSubcategoryChange(event.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              disabled={!selectedCategoryName}
+            >
+              <option value="">Sin subcategoría</option>
+              {availableSubcategories.map((subcategory) => (
+                <option key={subcategory.id} value={subcategory.id}>
+                  {subcategory.name}
+                </option>
+              ))}
+            </select>,
           )}
 
         {renderRow(
-          FIELD_LABELS.description,
-          isEditing ? (
-            <input
-              type="text"
-              value={String(editData.description ?? "")}
-              onChange={(event) => handleFieldChange("description", event.target.value)}
-              className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          ) : (
-            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">{String(editData.description ?? "")}</span>
-          ),
+          "note",
+          <input
+            type="text"
+            value={String(editData.note ?? "")}
+            onChange={(event) => handleFieldChange("note", event.target.value)}
+            placeholder="Sin nota"
+            className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />,
         )}
-
-        {!isTransfer &&
-          renderRow(
-            FIELD_LABELS.category,
-            isEditing ? (
-              <select
-                value={selectedCategoryName}
-                onChange={(event) => handleCategoryChange(event.target.value)}
-                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="">Sin categoría</option>
-                {categoriesForType.map((category: Category) => (
-                  <option key={category.id} value={category.name}>
-                    {[getCategoryEmoji(category), category.name].filter(Boolean).join(" ")}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
-                {selectedCategoryName || "Sin categoría"}
-              </span>
-            ),
-          )}
-
-        {!isTransfer &&
-          renderRow(
-            FIELD_LABELS.subcategory_name,
-            isEditing ? (
-              <select
-                value={selectedSubcategoryId}
-                onChange={(event) => handleSubcategoryChange(event.target.value)}
-                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
-                disabled={!selectedCategoryName}
-              >
-                <option value="">Sin subcategoría</option>
-                {availableSubcategories.map((subcategory) => (
-                  <option key={subcategory.id} value={subcategory.id}>
-                    {subcategory.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
-                {typeof editData.subcategory_name === "string"
-                  ? editData.subcategory_name
-                  : "Sin subcategoría"}
-              </span>
-            ),
-          )}
-
-        {isExpense &&
-          renderRow(
-            FIELD_LABELS.installments,
-            isEditing ? (
-              <input
-                type="number"
-                min="1"
-                value={installmentsValue}
-                onChange={(event) => handleFieldChange("installments", event.target.value)}
-                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
-              />
-            ) : (
-              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
-                {installmentsValue || "Sin cuotas"}
-              </span>
-            ),
-          )}
-
-        {isExpense && editData.installment_amount != null &&
-          renderRow(
-            FIELD_LABELS.installment_amount,
-            <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">
-              {buildFormattedAmount(editData.installment_amount, selectedAccountCurrency)}
-            </span>,
-          )}
-
-        {(isEditing || editData.note != null) &&
-          renderRow(
-            FIELD_LABELS.note,
-            isEditing && !READ_ONLY_FIELDS.has("note") ? (
-              <input
-                type="text"
-                value={String(editData.note ?? "")}
-                onChange={(event) => handleFieldChange("note", event.target.value)}
-                className="bg-background text-foreground border border-border rounded-lg px-2 py-1.5 text-sm w-full sm:w-44 sm:text-right focus:outline-none focus:ring-1 focus:ring-ring"
-              />
-            ) : (
-              <span className="text-sm text-foreground text-right shrink-0 max-w-[55%] break-words">{String(editData.note ?? "")}</span>
-            ),
-          )}
       </div>
 
       {status === "error" && (
-        <p className="text-destructive text-xs mb-3">{errorMessage || "Error al guardar. Intentá de nuevo."}</p>
+        <p className="text-destructive text-xs mb-2">{errorMessage || "Error al guardar. Intentá de nuevo."}</p>
       )}
 
-      <div className="flex flex-nowrap gap-2">
+      <div className="flex flex-row-reverse flex-nowrap justify-center gap-2 pt-1">
         <button
           onClick={handleConfirm}
           disabled={!canConfirm}
-          className="bg-primary text-primary-foreground text-sm px-4 py-1.5 rounded-lg hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+          className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-[#22C55E] px-4 py-2 text-sm font-semibold text-[#07130b] transition-colors hover:bg-[#16A34A] disabled:cursor-not-allowed disabled:opacity-40"
         >
+          <Check className="h-4 w-4" strokeWidth={2.5} />
           {status === "saving" ? "Guardando..." : "Confirmar"}
-        </button>
-        <button
-          onClick={() => {
-            if (isEditing) {
-              const parsedAmount = parseAmountForSubmission(String(editData.amount ?? ""));
-              const formattedAmount = parsedAmount != null && Number.isFinite(parsedAmount)
-                ? formatAmountForDisplay(String(editData.amount ?? ""))
-                : formatAmountForDisplay(sanitizeAmountInput(String(data.amount ?? "")));
-              setDisplayAmount(formattedAmount);
-
-              if (isTransfer) {
-                const parsedToAmount = parseAmountForSubmission(String(editData.to_amount ?? ""));
-                const formattedToAmount = parsedToAmount != null && Number.isFinite(parsedToAmount)
-                  ? formatAmountForDisplay(String(editData.to_amount ?? ""))
-                  : formatAmountForDisplay(sanitizeAmountInput(String(data.to_amount ?? "")));
-                setDisplayToAmount(formattedToAmount);
-              }
-            }
-            setIsEditing(!isEditing);
-          }}
-          className="bg-secondary text-secondary-foreground text-sm px-4 py-1.5 rounded-lg hover:bg-secondary/80 transition-colors font-medium border border-border"
-        >
-          {isEditing ? "Listo" : "Editar"}
         </button>
         <button
           onClick={() => {
             setStatus("cancelled");
             onDraftSettled?.();
           }}
-          className="text-destructive text-sm px-4 py-1.5 rounded-lg hover:bg-destructive/10 transition-colors font-medium border border-destructive/30"
+          className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-[#1F2937] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#374151]"
         >
+          <X className="h-4 w-4" strokeWidth={2} />
           Cancelar
         </button>
       </div>
