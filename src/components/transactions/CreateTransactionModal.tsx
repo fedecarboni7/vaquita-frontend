@@ -10,13 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   uploadReceipt,
   useCreateTransaction,
   type CreateTransactionPayload,
@@ -45,7 +38,6 @@ const TYPE_OPTIONS: Array<{ value: TransactionType; label: string }> = [
   { value: "transfer", label: "Transferencia" },
 ];
 
-const NO_DESTINATION_VALUE = "__none__";
 const MAX_RECEIPT_SIZE = 10 * 1024 * 1024;
 const ALLOWED_RECEIPT_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -141,9 +133,6 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
     return subcategoryExists ? subcategoryId : "__none__";
   }, [availableSubcategories, subcategoryId]);
 
-  const selectedTypeLabel =
-    TYPE_OPTIONS.find((option) => option.value === transactionType)?.label || "Gasto";
-
   const installments = parseInstallments(installmentsInput);
   const hasInvalidInstallments = isExpense && installmentsInput !== "" && installments === null;
   const parsedAmount = parseAmountForSubmission(amount);
@@ -167,7 +156,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
     }
   };
 
-  const handleOriginAccountChange = (value: string | null) => {
+  const handleOriginAccountChange = (value: string) => {
     const nextAccountId = value ?? "";
     setAccountId(nextAccountId);
 
@@ -381,7 +370,7 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
 
       if (event.target instanceof HTMLElement) {
         const isSelectInteraction = event.target.closest(
-          '[role="combobox"], [role="listbox"], [role="option"]',
+          '[role="combobox"], [role="listbox"], [role="option"], select',
         );
         if (isSelectInteraction) {
           return;
@@ -429,21 +418,17 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
 
             <div>
               <label className="text-sm font-medium mb-1 block">Tipo</label>
-              <Select
+              <select
                 value={transactionType}
-                onValueChange={(value) => handleTypeChange((value as TransactionType) ?? "expense")}
+                onChange={(e) => handleTypeChange((e.target.value as TransactionType) ?? "expense")}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar tipo">{selectedTypeLabel}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {TYPE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -476,48 +461,37 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
             <label className="text-sm font-medium mb-1 block">
               {isTransfer ? "Cuenta de origen" : "Cuenta"}
             </label>
-            <Select value={selectedAccountId || undefined} onValueChange={handleOriginAccountChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleccionar cuenta">
-                  {selectedSourceAccount?.name}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              value={selectedAccountId}
+              onChange={(e) => handleOriginAccountChange(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">Seleccionar cuenta</option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {isTransfer && (
             <div>
               <label className="text-sm font-medium mb-1 block">Cuenta destino</label>
-              <Select
-                key={selectedAccountId}
-                value={accountDestinationId || NO_DESTINATION_VALUE}
-                onValueChange={(v) =>
-                  setAccountDestinationId(v === NO_DESTINATION_VALUE ? "" : (v ?? ""))
-                }
+              <select
+                value={accountDestinationId}
+                onChange={(e) => setAccountDestinationId(e.target.value ?? "")}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar cuenta destino">
-                    {selectedDestinationAccount?.name ?? "Seleccionar cuenta destino"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NO_DESTINATION_VALUE}>Seleccionar cuenta destino</SelectItem>
-                  {accounts
-                    .filter((account) => account.id !== selectedAccountId)
-                    .map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+                <option value="">Seleccionar cuenta destino</option>
+                {accounts
+                  .filter((account) => account.id !== selectedAccountId)
+                  .map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name}
+                    </option>
+                  ))}
+              </select>
               {selectedAccountId && accountDestinationId && selectedAccountId === accountDestinationId && (
                 <p className="mt-1 text-xs text-destructive">
                   La cuenta destino debe ser distinta de la cuenta de origen.
@@ -572,55 +546,38 @@ export default function CreateTransactionModal({ open, onOpenChange }: Props) {
             <>
               <div>
                 <label className="text-sm font-medium mb-1 block">Categoría</label>
-                <Select
+                <select
                   value={safeCategoryValue}
-                  onValueChange={(value) => {
-                    setCategoryId(value ?? "__none__");
+                  onChange={(e) => {
+                    setCategoryId(e.target.value ?? "__none__");
                     setSubcategoryId("__none__");
                   }}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sin categoría">
-                      {safeCategoryValue === "__none__" ? "Sin categoría" : selectedCategory ? [getCategoryEmoji(selectedCategory), selectedCategory.name].filter(Boolean).join(" ") : ""}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Sin categoría</SelectItem>
-                    {categoriesForType.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {[getCategoryEmoji(category), category.name].filter(Boolean).join(" ")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <option value="__none__">Sin categoría</option>
+                  {categoriesForType.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {[getCategoryEmoji(category), category.name].filter(Boolean).join(" ")}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="text-sm font-medium mb-1 block">Subcategoría</label>
-                <Select
+                <select
                   value={safeSubcategoryValue}
-                  onValueChange={(value) => setSubcategoryId(value ?? "__none__")}
+                  onChange={(e) => setSubcategoryId(e.target.value ?? "__none__")}
                   disabled={safeCategoryValue === "__none__"}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sin subcategoría">
-                      {safeSubcategoryValue === "__none__"
-                        ? "Sin subcategoría"
-                        : (() => {
-                            const sub = availableSubcategories.find((item) => item.id === safeSubcategoryValue);
-                            return sub ? sub.name : "";
-                          })()}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Sin subcategoría</SelectItem>
-                    {availableSubcategories.map((subcategory) => (
-                      <SelectItem key={subcategory.id} value={subcategory.id}>
-                        {subcategory.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <option value="__none__">Sin subcategoría</option>
+                  {availableSubcategories.map((subcategory) => (
+                    <option key={subcategory.id} value={subcategory.id}>
+                      {subcategory.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {isExpense && (
